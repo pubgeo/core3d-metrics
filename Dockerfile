@@ -14,4 +14,4 @@ RUN apt purge -y \
     git
 WORKDIR /GeoMetrics
 CMD echo "Please run GeoMetrics with an AOI configuration"\
-    echo "docker run --rm -v /home/ubuntu/annoteGeoExamples:/data jhuapl/geometrics python3 run_geometrics.py<aoi config>"
+    echo "docker run --rm -v /home/ubuntu/annoteGeoExamples:/data jhuapl/geometrics python3 run_geometrics.py -c <aoi config>"
