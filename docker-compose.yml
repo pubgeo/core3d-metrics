@@ -1,0 +1,10 @@
+version: "2.3"
+
+services:
+  geometrics:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: jhuapl/geometrics
+    volumes:
+      - .:/src:ro
