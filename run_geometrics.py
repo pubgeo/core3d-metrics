@@ -6,7 +6,7 @@ import os
 import sys
 import shutil
 import configparser
-import gdal
+import gdal, gdalconst
 import numpy as np
 import geometrics as geo
 import argparse
@@ -71,13 +71,17 @@ def run_geometrics(configfile,outputpath=None):
     refMask, tform = geo.imageLoad(refCLSFilename)
     refDSM = geo.imageWarp(refDSMFilename, refCLSFilename)
     refDTM = geo.imageWarp(refDTMFilename, refCLSFilename)
+    refNDX = geo.imageWarp(refNDXFilename, refCLSFilename, interp_method=gdalconst.GRA_NearestNeighbour).astype(np.uint16)
+    refMTL = geo.imageWarp(refMTLFilename, refCLSFilename, interp_method=gdalconst.GRA_NearestNeighbour).astype(np.uint8)
 
     # Read test model files and apply XYZ offsets.
     print("Reading test model files...")
     print("")
     testDTM = geo.imageWarp(testDTMFilename, refCLSFilename, xyzOffset)
-    testMask = geo.imageWarp(testCLSFilename, refCLSFilename, xyzOffset, gdal.gdalconst.GRA_NearestNeighbour)
+    testMask = geo.imageWarp(testCLSFilename, refCLSFilename, xyzOffset, gdalconst.GRA_NearestNeighbour)
     testDSM = geo.imageWarp(testDSMFilename, refCLSFilename, xyzOffset)
+    testMTL = geo.imageWarp(testMTLFilename, refCLSFilename, xyzOffset, gdalconst.GRA_NearestNeighbour).astype(np.uint8)
+
     testDSM = testDSM + xyzOffset[2]
     testDTM = testDTM + xyzOffset[2]
 
@@ -108,7 +112,7 @@ def run_geometrics(configfile,outputpath=None):
                                        tform, xyzOffset, testDSMFilename, ignoreMask, outputpath=outputpath)
 
     # Run the threshold material metrics and report results.
-    geo.run_material_metrics(refNDXFilename, refMTLFilename, testMTLFilename, materialNames, materialIndicesToIgnore)
+    geo.run_material_metrics(refNDX, refMTL, testMTL, materialNames, materialIndicesToIgnore)
 
 
 # command line function
