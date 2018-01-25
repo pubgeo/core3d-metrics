@@ -49,15 +49,11 @@ def align3d(reference_filename, test_filename, **keyword_parameters):
 
 
 def readXYZoffset(filename):
-    xyz_offset = np.zeros([3, 1])
-    file_obj = open(filename, "r")
-    offset_string = file_obj.readlines()
-    cc = offset_string[1].split(' ')
-    xyz_offset[0] = cc[0]
-    xyz_offset[1] = cc[2]
-    xyz_offset[2] = cc[4]
-    file_obj.close()
-    return xyz_offset
+    with open(filename, "r") as fid:
+        offsetstr = fid.readlines()        
+    cc = offsetstr[1].split(' ')
+    xyzoffset = [float(v) for v in [cc[0],cc[2],cc[4]]]
+    return xyzoffset
 
 
 def getXYZoffsetFilename(testFilename):
