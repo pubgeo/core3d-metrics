@@ -95,7 +95,7 @@ def run_geometrics(configfile,outputpath=None):
     # Register test model to ground truth reference model.
     print('\n=====REGISTRATION====='); sys.stdout.flush()
     align3d_path = config['REGEXEPATH']['Align3DPath']
-    xyzOffset = geo.align3d(refDSMFilename, testDSMFilename_copy, ExecPath=align3d_path)
+    xyzOffset = geo.align3d(refDSMFilename, testDSMFilename_copy, exec_path=align3d_path)
 
     # Read reference model files.
     print("")
