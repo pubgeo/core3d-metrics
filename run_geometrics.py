@@ -22,9 +22,7 @@ def run_geometrics(configfile,outputpath=None):
 
 
     # parse configuration file
-    print("")
-    print("Reading configuration from " + configfile)
-    print("")
+    print("\nReading configuration from <{}>".format(configfile))
 
     # JSON parsing
     if configfile.endswith(('.json','.JSON')):
@@ -142,8 +140,15 @@ def run_geometrics(configfile,outputpath=None):
         testDTM = np.round(testDTM / unitHgt) * unitHgt
 
     # Run the threshold geometry metrics and report results.
-    geo.run_threshold_geometry_metrics(refDSM, refDTM, refMask, REF_CLS_VALUE, testDSM, testDTM, testMask, TEST_CLS_VALUE,
-                                       tform, xyzOffset, testDSMFilename, ignoreMask, outputpath=outputpath)
+    metrics = geo.run_threshold_geometry_metrics(refDSM, refDTM, refMask, REF_CLS_VALUE, testDSM, testDTM, testMask, TEST_CLS_VALUE,
+                                       tform, ignoreMask)
+
+    metrics['offset'] = xyzOffset
+    
+    fileout = os.path.join(outputpath,os.path.basename(testDSMFilename) + "_metrics.json")
+    with open(fileout,'w') as fid:
+        json.dump(metrics,fid,indent=2)
+    print(json.dumps(metrics,indent=2))
 
     # Run the threshold material metrics and report results.
     geo.run_material_metrics(refNDX, refMTL, testMTL, materialNames, materialIndicesToIgnore)
