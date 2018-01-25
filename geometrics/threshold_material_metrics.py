@@ -19,39 +19,6 @@ class Building:
         self.testPrimaryMaterial = 0  # index of test primary building material
 
 
-# Re-project inputFile into the coordinate system of referenceFile, then save as outputFile.
-def remapImage(inputFile, referenceFile, outputFile):
-    input = gdal.Open(inputFile, gdalconst.GA_ReadOnly)
-    inputProj = input.GetProjection()
-    inputTrans = input.GetGeoTransform()
-
-    reference = gdal.Open(referenceFile, gdalconst.GA_ReadOnly)
-    referenceProj = reference.GetProjection()
-    referenceTrans = reference.GetGeoTransform()
-    bandreference = reference.GetRasterBand(1)
-    x = reference.RasterXSize
-    y = reference.RasterYSize
-
-    driver = gdal.GetDriverByName('GTiff')
-    output = driver.Create(outputFile, x, y, 1, bandreference.DataType)
-    output.SetGeoTransform(referenceTrans)
-    output.SetProjection(referenceProj)
-
-    gdal.ReprojectImage(input, output, inputProj, referenceProj, gdalconst.GRA_NearestNeighbour)
-
-    del output
-    return
-
-
-def imageLoad(filename):
-    im = gdal.Open(filename, gdal.GA_ReadOnly)
-    band = im.GetRasterBand(1)
-    img = band.ReadAsArray(0, 0, im.RasterXSize, im.RasterYSize)
-    tform = im.GetGeoTransform()
-
-    return img, tform
-
-
 # Return dictionary of buildings identified by their indices.
 def getBuildings(img):
     buildingsDic = defaultdict(Building)
@@ -85,30 +52,20 @@ def getMaterialFromBuildingPixels(img, pixels):
 
 
 # Run material labeling metrics and report results.
-def run_material_metrics(refNDXFilename, refMATFilename, testMATFilename, materialNames, materialIndicesToIgnore):
-    # Re-sample test input to ground truth resolution and store in temp file
-    print("Loading and resampling test material label image...")
-    remapImage(testMATFilename, refNDXFilename, "../tmp-resamp.tif")
-    imgTest, tform = imageLoad("../tmp-resamp.tif")
-
-    print("Loading reference object indices...")
-    imgBuildingIndices, tform = imageLoad(refNDXFilename)
-
-    print("Loading reference object materials...")
-    imgBuildingMaterials, tform = imageLoad(refMATFilename)
+def run_material_metrics(refNDX, refMTL, testMTL, materialNames, materialIndicesToIgnore):
 
     print("Building dictionary of reference building locations and labels...")
-    buildingsDic = getBuildings(imgBuildingIndices)
+    buildingsDic = getBuildings(refNDX)
     print("Found ", len(buildingsDic), "reference buildings.")
 
     print("Selecting the most abundant material for each building in reference model...")
     for k in buildingsDic.keys():
-        maxIdx = getMaterialFromBuildingPixels(imgBuildingMaterials, buildingsDic[k].pixels)
+        maxIdx = getMaterialFromBuildingPixels(refMTL, buildingsDic[k].pixels)
         buildingsDic[k].truthPrimaryMaterial = maxIdx
 
     print("Selecting the most abundant material for each building in test model...")
     for k in buildingsDic.keys():
-        maxIdx = getMaterialFromBuildingPixels(imgTest, buildingsDic[k].pixels)
+        maxIdx = getMaterialFromBuildingPixels(testMTL, buildingsDic[k].pixels)
         buildingsDic[k].testPrimaryMaterial = maxIdx
 
     print("Building material labeling confusion matrix...")
