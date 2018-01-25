@@ -11,14 +11,63 @@ import numpy as np
 import geometrics as geo
 import argparse
 import json
+import glob
 
 
+# HELPER: LOCATE ABSOLUTE FILE PATH with GLOB
+def findfiles(data,path=None):
 
-def run_geometrics(configfile,outputpath=None):
+    for key,file in data.items():
+        if not key.lower().endswith('filename'): continue
+
+        print('\nSearching for "{}"'.format(key))
+
+        # absolute path to file
+        if not os.path.isabs(file):
+            if path: file = os.path.join(path,file)
+            file = os.path.abspath(file)
+
+        # locate file (use glob to allow wildcards)
+        files = glob.glob(file)
+
+        if not files:
+            print("WARNING: unable to locate file <{}>".format(file))
+            file = None
+        else:
+            if len(files) > 1:
+                print('WARNING: multiple files located for <{}>, using 1st file'.format(file))
+
+            file = files[0]
+            print('File located <{}>'.format(file))
+
+        # save file to data
+        data[key] = file
+
+    return data
+
+
+# PRIMARY FUNCTION: RUN_GEOMETRICS
+def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None):
+
+    # current absolute path of this function
+    curpath = os.path.abspath(os.path.dirname(os.path.realpath(__file__)))
 
     # check inputs
     if not os.path.isfile(configfile):
         raise IOError("Configuration file does not exist")
+
+    if refpath is None:
+        refpath = curpath
+    elif not os.path.isdir(refpath):
+        raise IOError('"refpath" not a valid folder <{}>'.format(refpath))
+
+    if testpath is None:
+        testpath = curpath
+    elif not os.path.isdir(refpath):
+        raise IOError('"testpath" not a valid folder <{}>'.format(testpath))
+
+    if outputpath is not None and not os.path.isdir(outputpath):
+        raise IOError('"outputpath" not a valid folder <{}>'.format(outputpath))
 
 
     # parse configuration file
@@ -55,7 +104,17 @@ def run_geometrics(configfile,outputpath=None):
     else:
         raise IOError('Unrecognized configuration file')
 
+
+    # locate files for each "xxxFilename" configuration parameter
+    # this makes use of "refpath" and "testpath" arguments for relative filenames
+    for item in [('INPUT.REF',refpath),('INPUT.TEST',testpath)]:
+        sec = item[0]; path = item[1]
+        print('\n=====PROCESSING FILES FOR "{}"====='.format(sec))
+        config[sec] = findfiles(config[sec],path)
+
+
     # print final configuration
+    print('\n=====FINAL CONFIGURATION=====')
     print(json.dumps(config,indent=2))
 
 
@@ -78,11 +137,9 @@ def run_geometrics(configfile,outputpath=None):
     materialNames = config['MATERIALS.REF']['MaterialNames']
     materialIndicesToIgnore = config['MATERIALS.REF']['MaterialIndicesToIgnore']
 
-    # check output path
+    # default output path
     if outputpath is None:
         outputpath = os.path.dirname(testDSMFilename)
-    elif not os.path.isdir(outputpath):
-        raise IOError("Output folder must exist <{}>".format(outputpath))
 
     # copy testDSM to the output path
     # this is a workaround for the "align3d" function with currently always
@@ -161,6 +218,10 @@ def main():
   parser = argparse.ArgumentParser()
   parser.add_argument('-c', '--config', dest='config', 
       help='Configuration file', required=True)
+  parser.add_argument('-r', '--reference', dest='refpath', 
+      help='Reference data folder', required=False)
+  parser.add_argument('-t', '--test', dest='testpath', 
+      help='Test data folder', required=False)
   parser.add_argument('-o', '--output', dest='outputpath', 
       help='Output folder', required=False)
   
@@ -168,6 +229,8 @@ def main():
 
   # gather optional arguments
   kwargs = {}
+  if args.refpath: kwargs['refpath'] = args.refpath
+  if args.testpath: kwargs['testpath'] = args.testpath
   if args.outputpath: kwargs['outputpath'] = args.outputpath
 
   # run process
