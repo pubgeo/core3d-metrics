@@ -4,6 +4,7 @@
 
 import os
 import sys
+import shutil
 import configparser
 import gdal
 import numpy as np
@@ -12,7 +13,7 @@ import argparse
 
 
 
-def run_geometrics(configfile):
+def run_geometrics(configfile,outputpath=None):
 
     # check inputs
     if not os.path.isfile(configfile):
@@ -45,9 +46,24 @@ def run_geometrics(configfile):
     materialNames = config['MATERIALS.REF']['MaterialNames'].split(',')
     materialIndicesToIgnore = list(map(int, config['MATERIALS.REF']['MaterialIndicesToIgnore'].split(',')))
 
+    # check output path
+    if outputpath is None:
+        outputpath = os.path.dirname(testDSMFilename)
+    elif not os.path.isdir(outputpath):
+        raise IOError("Output folder must exist <{}>".format(outputpath))
+
+    # copy testDSM to the output path
+    # this is a workaround for the "align3d" function with currently always
+    # saves new files to the same path as the testDSM
+    src = testDSMFilename
+    dst = os.path.join(outputpath,os.path.basename(src))
+    if not os.path.isfile(dst): shutil.copyfile(src,dst)
+    testDSMFilename_copy = dst
+
     # Register test model to ground truth reference model.
+    print('\n=====REGISTRATION====='); sys.stdout.flush()
     align3d_path = config['REGEXEPATH']['Align3DPath']
-    xyzOffset = geo.align3d(refDSMFilename, testDSMFilename, ExecPath=align3d_path)
+    xyzOffset = geo.align3d(refDSMFilename, testDSMFilename_copy, ExecPath=align3d_path)
 
     # Read reference model files.
     print("")
@@ -89,7 +105,7 @@ def run_geometrics(configfile):
 
     # Run the threshold geometry metrics and report results.
     geo.run_threshold_geometry_metrics(refDSM, refDTM, refMask, REF_CLS_VALUE, testDSM, testDTM, testMask, TEST_CLS_VALUE,
-                                       tform, xyzOffset, testDSMFilename, ignoreMask)
+                                       tform, xyzOffset, testDSMFilename, ignoreMask, outputpath=outputpath)
 
     # Run the threshold material metrics and report results.
     geo.run_material_metrics(refNDXFilename, refMTLFilename, testMTLFilename, materialNames, materialIndicesToIgnore)
@@ -102,9 +118,17 @@ def main():
   parser = argparse.ArgumentParser()
   parser.add_argument('-c', '--config', dest='config', 
       help='Configuration file', required=True)
+  parser.add_argument('-o', '--output', dest='outputpath', 
+      help='Output folder', required=False)
   
   args = parser.parse_args()
-  run_geometrics(configfile=args.config)
+
+  # gather optional arguments
+  kwargs = {}
+  if args.outputpath: kwargs['outputpath'] = args.outputpath
+
+  # run process
+  run_geometrics(configfile=args.config,**kwargs)
 
 
 if __name__ == "__main__":

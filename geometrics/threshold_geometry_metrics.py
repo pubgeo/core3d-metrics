@@ -1,4 +1,5 @@
 import numpy as np
+import os
 
 
 def calcMops(true_positives, false_negatives, false_positives):
@@ -51,7 +52,7 @@ def printMetrics(metrics, results_file_name=None):
 
 
 def run_threshold_geometry_metrics(refDSM, refDTM, refMask, REF_CLS_VALUE, testDSM, testDTM, testMask, TEST_CLS_VALUE,
-                                   tform, xyzOffset, testDSMFilename, ignoreMask):
+                                   tform, xyzOffset, testDSMFilename, ignoreMask, outputpath=None):
     refMask = (refMask == REF_CLS_VALUE)
     refHgt = (refDSM - refDTM)
     refObj = refHgt
@@ -121,12 +122,15 @@ def run_threshold_geometry_metrics(refDSM, refDTM, refMask, REF_CLS_VALUE, testD
 
     metrics_3d['offset'] = xyzOffset
 
+    if outputpath is None:
+        outputpath = os.path.dirname(testDSMFilename)
+
     print('')
     print('2D Metrics:')
-    results_filename = testDSMFilename + "_2d_metrics.txt"
+    results_filename = os.path.join(outputpath,os.path.basename(testDSMFilename) + "_2d_metrics.txt")
     printMetrics(metrics_2d, results_filename)
 
     print('')
     print('3D Metrics:')
-    results_filename = testDSMFilename + "_3d_metrics.txt"
+    results_filename = os.path.join(outputpath,os.path.basename(testDSMFilename) + "_3d_metrics.txt")
     printMetrics(metrics_3d, results_filename)
