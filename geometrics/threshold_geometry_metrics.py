@@ -16,43 +16,8 @@ def calcMops(true_positives, false_negatives, false_positives):
     return s
 
 
-def printMetrics(metrics, results_file_name=None):
-    write_to_file = False
-    f = None
-    if results_file_name:
-        write_to_file = True
-        f = open(results_file_name, 'w')
-        print("Writing metric results to:  %s" % results_file_name)
-
-    def tee(message, include_in_file, file):
-        print(message)
-        if include_in_file:
-            file.writelines("%s\n" % message)
-
-    string = ("%s: %0.3f" % ('Completeness', metrics['completeness']))
-    tee(string, write_to_file, f)
-    string = ("%s: %0.3f" % ('Correctness', metrics['correctness']))
-    tee(string, write_to_file, f)
-    string = ("%s: %0.3f" % ('F-Score', metrics['fscore']))
-    tee(string, write_to_file, f)
-    string = ("%s: %0.3f" % ('Jaccard Index', metrics['jaccardIndex']))
-    tee(string, write_to_file, f)
-    string = ("%s: %0.3f" % ('Branching Factor', metrics['branchingFactor']))
-    tee(string, write_to_file, f)
-    string = ("%s: %0.3f" % ('Miss Factor', metrics['missFactor']))
-    tee(string, write_to_file, f)
-
-    if 'offset' in metrics:
-        val = metrics["offset"]
-        string = ("%s: (%0.3f, %0.3f, %0.3f)" % ("Registration Offset (m)", val[0], val[1], val[2]))
-        tee(string, write_to_file, f)
-
-    if write_to_file:
-        f.close()
-
-
 def run_threshold_geometry_metrics(refDSM, refDTM, refMask, REF_CLS_VALUE, testDSM, testDTM, testMask, TEST_CLS_VALUE,
-                                   tform, xyzOffset, testDSMFilename, ignoreMask, outputpath=None):
+                                   tform, ignoreMask):
     refMask = (refMask == REF_CLS_VALUE)
     refHgt = (refDSM - refDTM)
     refObj = refHgt
@@ -117,20 +82,9 @@ def run_threshold_geometry_metrics(refDSM, refDTM, refMask, REF_CLS_VALUE, testD
     tolFN = false_negatives + oobFN
     tolTP = true_positives
 
-    metrics_2d = calcMops(unitCountTP, unitCountFN, unitCountFP)
-    metrics_3d = calcMops(tolTP, tolFN, tolFP)
+    metrics = {
+        '2D': calcMops(unitCountTP, unitCountFN, unitCountFP),
+        '3D': calcMops(tolTP, tolFN, tolFP),
+    }
 
-    metrics_3d['offset'] = xyzOffset
-
-    if outputpath is None:
-        outputpath = os.path.dirname(testDSMFilename)
-
-    print('')
-    print('2D Metrics:')
-    results_filename = os.path.join(outputpath,os.path.basename(testDSMFilename) + "_2d_metrics.txt")
-    printMetrics(metrics_2d, results_filename)
-
-    print('')
-    print('3D Metrics:')
-    results_filename = os.path.join(outputpath,os.path.basename(testDSMFilename) + "_3d_metrics.txt")
-    printMetrics(metrics_3d, results_filename)
+    return metrics
