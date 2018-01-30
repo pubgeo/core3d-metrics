@@ -20,7 +20,7 @@ def run_threshold_geometry_metrics(refDSM, refDTM, refMask, REF_CLS_VALUE, testD
                                    tform, ignoreMask, plot=None):
                      
     PLOTS_ENABLE = True                        
-    if plot is None: PLOTS_ENABLE = Talse
+    if plot is None: PLOTS_ENABLE = False
                                    
     refMask = (refMask == REF_CLS_VALUE)
     refHgt = (refDSM - refDTM)
@@ -114,19 +114,19 @@ def run_threshold_geometry_metrics(refDSM, refDTM, refMask, REF_CLS_VALUE, testD
         overlap = overlapMask * (testDSM - refDSM)
         errorMap[overlapMask == 1]  =  overlap[overlapMask == 1]
 
-        plot.make(errorMap, '3D Error', 291, saveName='Err3D', colorbar=True)
+        plot.make(errorMap, '3D Error', 291, saveName='err3D', colorbar=True)
 
         errorMap[errorMap > 5] = 5
         errorMap[errorMap < -5] = -5
-        plot.make(errorMap, '3D Error', 292, saveName='Err3D_Clipped', colorbar=True)
+        plot.make(errorMap, '3D Error', 292, saveName='err3D_Clipped', colorbar=True)
 
         tmp = deltaTop
         tmp[ignoreMask] = np.nan
-        plot.make(tmp, 'DSM Error', 293, saveName='ErrDSM', colorbar=True)
+        plot.make(tmp, 'DSM Error', 293, saveName='errDSM', colorbar=True)
 
         tmp = deltaTop
         tmp[ignoreMask] = np.nan
-        plot.make(tmp, 'DTM Error', 294, saveName='ErrDTM', colorbar=True)
+        plot.make(tmp, 'DTM Error', 294, saveName='errDTM', colorbar=True)
     
     
     return metrics

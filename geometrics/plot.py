@@ -1,5 +1,7 @@
 import os
 
+import numpy as np
+
 import matplotlib  as mpl
 if os.getenv('DISPLAY') is None:
     import matplotlib
@@ -46,12 +48,20 @@ class plot:
 
         if 'cmap' in kwargs:
             self.defaultCM = kwargs['cmap']
-
-
+            
+        if (os.getenv('DISPLAY') is None) and self.doShow :
+            print('DISPLAY not set.  Disabling plot display')
+            self.doShow = False
+            
         plt.rcParams['image.cmap'] = self.defaultCM
 
 
     def make(self, image, title='', fig=None, **kwargs):
+    
+        if 'badValue' in kwargs:
+            image = np.array(image)
+            image[image == badValue] = np.nan;
+                    
         plt.figure(fig)
         plt.clf()
         hImg = plt.imshow(image)
