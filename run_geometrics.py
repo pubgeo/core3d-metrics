@@ -168,21 +168,24 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None):
     align3d_path = config['REGEXEPATH']['Align3DPath']
     xyzOffset = geo.align3d(refDSMFilename, testDSMFilename_copy, exec_path=align3d_path)
 
+    # Explicitly assign an new no data value to warped images to track filled pixels
+    noDataValue = -9999
+    
     # Read reference model files.
     print("")
     print("Reading reference model files...")
     refMask, tform = geo.imageLoad(refCLSFilename)
-    refDSM = geo.imageWarp(refDSMFilename, refCLSFilename)
-    refDTM = geo.imageWarp(refDTMFilename, refCLSFilename)
+    refDSM = geo.imageWarp(refDSMFilename, refCLSFilename, noDataValue=noDataValue)
+    refDTM = geo.imageWarp(refDTMFilename, refCLSFilename, noDataValue=noDataValue)
     refNDX = geo.imageWarp(refNDXFilename, refCLSFilename, interp_method=gdalconst.GRA_NearestNeighbour).astype(np.uint16)
     refMTL = geo.imageWarp(refMTLFilename, refCLSFilename, interp_method=gdalconst.GRA_NearestNeighbour).astype(np.uint8)
 
     # Read test model files and apply XYZ offsets.
     print("Reading test model files...")
     print("")
-    testDTM = geo.imageWarp(testDTMFilename, refCLSFilename, xyzOffset)
+    testDTM = geo.imageWarp(testDTMFilename, refCLSFilename, xyzOffset, noDataValue=noDataValue)
     testMask = geo.imageWarp(testCLSFilename, refCLSFilename, xyzOffset, gdalconst.GRA_NearestNeighbour)
-    testDSM = geo.imageWarp(testDSMFilename, refCLSFilename, xyzOffset)
+    testDSM = geo.imageWarp(testDSMFilename, refCLSFilename, xyzOffset, noDataValue=noDataValue)
     testMTL = geo.imageWarp(testMTLFilename, refCLSFilename, xyzOffset, gdalconst.GRA_NearestNeighbour).astype(np.uint8)
 
     testDSM = testDSM + xyzOffset[2]
@@ -212,13 +215,21 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None):
 
         
     if PLOTS_ENABLE:
+        
+        # geo.imwarp sets no data value to -9999.  Adjust for offset and quantization
+        newTestFillValue = noDataValue+xyzOffset[2]
+        newRefFillValue  = noDataValue
+        if QUANTIZE:
+            newTestFillValue = np.round(newTestFillValue / unitHgt) * unitHgt
+            newRefFillValue = np.round(newRefFillValue / unitHgt) * unitHgt
+    
         plot.make(refMask, 'refMask', 111,)
-        plot.make(refDSM, 'refDSM', 112, colorbar=True)
-        plot.make(refDTM, 'refDTM', 113, colorbar=True)
+        plot.make(refDSM, 'refDSM', 112, colorbar=True, badValue=newRefFillValue)
+        plot.make(refDTM, 'refDTM', 113, colorbar=True, badValue=newRefFillValue)
 
-        plot.make(testMask, 'testMask', 151)
-        plot.make(testDSM, 'testDSM', 152, colorbar=True)
-        plot.make(testDTM, 'testDTM', 153, colorbar=True)
+        plot.make(testMask, 'testMask', 151, colorbar=True)
+        plot.make(testDSM, 'testDSM', 152, colorbar=True, badValue=newTestFillValue)
+        plot.make(testDTM, 'testDSM', 153, colorbar=True, badValue=newTestFillValue)
 
         plot.make(ignoreMask, 'ignoreMask', 181)
 

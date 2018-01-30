@@ -19,7 +19,7 @@ def getNoDataValue(filename):
     return nodata
 
 
-def imageWarp(file_from: str, file_to: str, offset=None, interp_method: int = gdal.gdalconst.GRA_Bilinear):
+def imageWarp(file_from: str, file_to: str, offset=None, interp_method: int = gdal.gdalconst.GRA_Bilinear, noDataValue=None):
     image_from = gdal.Open(file_from, gdal.GA_ReadOnly)
     image_to = gdal.Open(file_to, gdal.GA_ReadOnly)
 
@@ -55,9 +55,10 @@ def imageWarp(file_from: str, file_to: str, offset=None, interp_method: int = gd
     destination.SetProjection(image_to.GetProjection())
     destination.SetGeoTransform(image_to.GetGeoTransform())
 
-    band = destination.GetRasterBand(1);
-    band.SetNoDataValue(-9999)
-    band.Fill(-9999)
+    if noDataValue is not None:
+        band = destination.GetRasterBand(1);
+        band.SetNoDataValue(noDataValue)
+        band.Fill(noDataValue)
     
     gdal.ReprojectImage(image_tmp, destination, image_from.GetProjection(),
                         image_to.GetProjection(), interp_method)

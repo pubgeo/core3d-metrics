@@ -60,7 +60,7 @@ class plot:
     
         if 'badValue' in kwargs:
             image = np.array(image)
-            image[image == badValue] = np.nan;
+            image[image == kwargs['badValue']] = np.nan;
                     
         plt.figure(fig)
         plt.clf()
