@@ -18,7 +18,8 @@
     "QuantizeHeight": true
   },
   "PLOTS": {
-    "DoPlots": false
+	"ShowPlots": false
+	"SavePlots": true
   },
   "REGEXEPATH": {
     "Align3DPath": "/build"
