@@ -95,8 +95,10 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None):
         # special section/item parsing
         s = 'INPUT.TEST'; i = 'CLSMatchValue'; config[s][i] = int(config[s][i])
         s = 'INPUT.REF'; i = 'CLSMatchValue'; config[s][i] = int(config[s][i])
-        s = 'OPTIONS'; i = 'QuantizeHeight'; config[s][i] = bool(config[s][i])
-        s = 'PLOTS'; i = 'DoPlots'; config[s][i] = bool(config[s][i])
+        # bool(config[s][i]) does not interpret 'true'/'false' strings
+        s = 'OPTIONS'; i = 'QuantizeHeight'; config[s][i] = parser.getboolean(s,i)  
+        s = 'PLOTS'; i = 'ShowPlots'; config[s][i] = parser.getboolean(s,i) 
+        s = 'PLOTS'; i = 'SavePlots'; config[s][i] = parser.getboolean(s,i)
         s = 'MATERIALS.REF'; i = 'MaterialNames'; config[s][i] = config[s][i].split(',')
         s = 'MATERIALS.REF'; i = 'MaterialIndicesToIgnore'; config[s][i] = list(map(int, config[s][i].split(',')))
 
