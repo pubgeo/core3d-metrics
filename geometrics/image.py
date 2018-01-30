@@ -47,7 +47,7 @@ def imageWarp(file_from: str, file_to: str, offset=None, interp_method: int = gd
     else:
         image_tmp = image_from
 
-    # Create outout image
+    # Create output image
     mem_drv = gdal.GetDriverByName('MEM')
     destination = mem_drv.Create('', image_to.RasterXSize, image_to.RasterYSize, 1,
                           gdal.GDT_Float32)
