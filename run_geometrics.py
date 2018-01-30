@@ -136,11 +136,23 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None):
     # Get material label names and list of material labels to ignore in evaluation.
     materialNames = config['MATERIALS.REF']['MaterialNames']
     materialIndicesToIgnore = config['MATERIALS.REF']['MaterialIndicesToIgnore']
+    
+    # Get plot settings from configuration file
+    PLOTS_SHOW   = config['PLOTS']['ShowPlots']
+    PLOTS_SAVE   = config['PLOTS']['SavePlots']
+    PLOTS_ENABLE = PLOTS_SHOW or PLOTS_SAVE
 
     # default output path
     if outputpath is None:
         outputpath = os.path.dirname(testDSMFilename)
 
+    # Configure plotting
+    basename = os.path.basename(testDSMFilename)
+    if PLOTS_ENABLE:
+        plot = geo.plot(saveDir=outputpath, autoSave=PLOTS_SAVE, savePrefix=basename+'_', badColor='black',showPlots=PLOTS_SHOW)
+    else:
+        plot = None
+        
     # copy testDSM to the output path
     # this is a workaround for the "align3d" function with currently always
     # saves new files to the same path as the testDSM
@@ -196,9 +208,24 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None):
         testDSM = np.round(testDSM / unitHgt) * unitHgt
         testDTM = np.round(testDTM / unitHgt) * unitHgt
 
+        
+    if PLOTS_ENABLE:
+        plot.make(refMask, 'refMask', 111,)
+        plot.make(refDSM, 'refDSM', 112, colorbar=True)
+        plot.make(refDTM, 'refDTM', 113, colorbar=True)
+
+        plot.make(testMask, 'testMask', 151)
+        plot.make(testDSM, 'testDSM', 152, colorbar=True)
+        plot.make(testDTM, 'testDTM', 153, colorbar=True)
+
+        plot.make(ignoreMask, 'ignoreMask', 181)
+
+        
+
+        
     # Run the threshold geometry metrics and report results.
     metrics = geo.run_threshold_geometry_metrics(refDSM, refDTM, refMask, REF_CLS_VALUE, testDSM, testDTM, testMask, TEST_CLS_VALUE,
-                                       tform, ignoreMask)
+                                       tform, ignoreMask, plot=plot)
 
     metrics['offset'] = xyzOffset
     
