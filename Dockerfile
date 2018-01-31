@@ -12,6 +12,10 @@ WORKDIR /
 RUN git clone https://github.com/pubgeo/GeoMetrics
 RUN apt purge -y \
     git
+
+# add "align3d" to path
+ENV PATH="${PATH:+${PATH}:}/build"
+
 WORKDIR /GeoMetrics
 CMD echo "Please run GeoMetrics with an AOI configuration"\
     echo "docker run --rm -v /home/ubuntu/annoteGeoExamples:/data jhuapl/geometrics python3 run_geometrics.py -c <aoi config>"
