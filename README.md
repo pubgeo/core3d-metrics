@@ -18,8 +18,6 @@ The following python3 libraries (and their dependencies) are required:
 * scipy
 * tk
 
-Users must also have installed pubgeo's [ALIGN3D](https://github.com/pubgeo/pubgeo/#align3d) software. Software must be compiled and available on $PATH. 
-
 Alternatively, you can use the provided docker [container](Dockerfile).
 
 ### core3d-metrics Usage
@@ -37,4 +35,5 @@ to toggle various software settings.
 This command would perform metric analysis on the test dataset provided by the aoi.config file. This analysis will also generate the following files (in place):
 * < test dataset >_2d_metrics.txt
 * < test dataset >_3d_metrics.txt
+
 These files contain the determined metrics for completeness, correctness, f-score, Jaccard Index, Branching Factor, and the Align3d offsets.
