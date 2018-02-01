@@ -8,14 +8,22 @@ import numpy as np
 import gdal
 
 
-def align3d(reference_filename, test_filename):
+def align3d(reference_filename, test_filename, exec_path=None):
+
+    # default location of the align3d executable.
+    if exec_path is None: exec_path = os.path.dirname(os.path.realpath(__file__))
+
+    # locate align3d executable
+    exec_filename = os.path.abspath(os.path.join(exec_path,'align3d'))
+    if not os.path.isfile(exec_filename):
+        raise IOError('"align3d" executable not found at <{}>'.format(exec_filename))
 
     # In case file names have relative paths, convert to absolute paths.
     reference_filename = os.path.abspath(reference_filename)
     test_filename = os.path.abspath(test_filename)
 
     # Run align3d.
-    command = "align3d " + reference_filename + " " + test_filename + ' maxt=10.0'
+    command = exec_filename + " " + reference_filename + " " + test_filename + ' maxt=10.0'
     print("")
     print("Registering test model to reference model to determine XYZ offset.")
     print("")
