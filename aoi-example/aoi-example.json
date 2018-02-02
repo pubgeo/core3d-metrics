@@ -5,7 +5,7 @@
     "CLSFilename": "/path_to/ground_truth-CLS.tif",
     "NDXFilename": "/path_to/ground_truth-NDX.tif",
     "MTLFilename": "/path_to/ground_truth--MTL.tif",
-    "CLSMatchValue": 6,
+    "CLSMatchValue": [6,65]
   },
   "INPUT.TEST": {
     "DSMFilename": "/path_to/test_model-DSM.tif",

@@ -93,12 +93,12 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None):
         config = {s:dict(parser.items(s)) for s in parser.sections()}   
 
         # special section/item parsing
-        s = 'INPUT.TEST'; i = 'CLSMatchValue'; config[s][i] = int(config[s][i])
-        s = 'INPUT.REF'; i = 'CLSMatchValue'; config[s][i] = int(config[s][i])
+        s = 'INPUT.TEST'; i = 'CLSMatchValue'; config[s][i] = [int(v) for v in config[s][i].split(',')]
+        s = 'INPUT.REF'; i = 'CLSMatchValue'; config[s][i] = [int(v) for v in config[s][i].split(',')]
         s = 'OPTIONS'; i = 'QuantizeHeight'; config[s][i] = bool(config[s][i])
         s = 'PLOTS'; i = 'DoPlots'; config[s][i] = bool(config[s][i])
         s = 'MATERIALS.REF'; i = 'MaterialNames'; config[s][i] = config[s][i].split(',')
-        s = 'MATERIALS.REF'; i = 'MaterialIndicesToIgnore'; config[s][i] = list(map(int, config[s][i].split(',')))
+        s = 'MATERIALS.REF'; i = 'MaterialIndicesToIgnore'; config[s][i] = [int(v) for v in config[s][i].split(',')]
 
     # unrecognized config file type
     else:
@@ -112,6 +112,16 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None):
         print('\n=====PROCESSING FILES FOR "{}"====='.format(sec))
         config[sec] = findfiles(config[sec],path)
 
+    # check for iterable configuration options (e.g., list or tuple)
+    opts = (('INPUT.TEST','CLSMatchValue'),('INPUT.REF','CLSMatchValue'),
+        ('MATERIALS.REF','MaterialIndicesToIgnore'))
+
+    for opt in opts:
+        s = opt[0]; i = opt[1];
+        try:
+            _ = (v for v in config[s][i])
+        except:
+            config[s][i] = [config[s][i]]
 
     # print final configuration
     print('\n=====FINAL CONFIGURATION=====')
@@ -123,7 +133,6 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None):
     testDTMFilename = config['INPUT.TEST']['DTMFilename']
     testCLSFilename = config['INPUT.TEST']['CLSFilename']
     testMTLFilename = config['INPUT.TEST']['MTLFilename']
-    TEST_CLS_VALUE = config['INPUT.TEST']['CLSMatchValue']
 
     # Get reference model information from configuration file.
     refDSMFilename = config['INPUT.REF']['DSMFilename']
@@ -131,7 +140,6 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None):
     refCLSFilename = config['INPUT.REF']['CLSFilename']
     refNDXFilename = config['INPUT.REF']['NDXFilename']
     refMTLFilename = config['INPUT.REF']['MTLFilename']
-    REF_CLS_VALUE = config['INPUT.REF']['CLSMatchValue']
 
     # Get material label names and list of material labels to ignore in evaluation.
     materialNames = config['MATERIALS.REF']['MaterialNames']
@@ -157,7 +165,7 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None):
     # Read reference model files.
     print("")
     print("Reading reference model files...")
-    refMask, tform = geo.imageLoad(refCLSFilename)
+    refCLS, tform = geo.imageLoad(refCLSFilename)
     refDSM = geo.imageWarp(refDSMFilename, refCLSFilename)
     refDTM = geo.imageWarp(refDTMFilename, refCLSFilename)
     refNDX = geo.imageWarp(refNDXFilename, refCLSFilename, interp_method=gdalconst.GRA_NearestNeighbour).astype(np.uint16)
@@ -167,25 +175,34 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None):
     print("Reading test model files...")
     print("")
     testDTM = geo.imageWarp(testDTMFilename, refCLSFilename, xyzOffset)
-    testMask = geo.imageWarp(testCLSFilename, refCLSFilename, xyzOffset, gdalconst.GRA_NearestNeighbour)
+    testCLS = geo.imageWarp(testCLSFilename, refCLSFilename, xyzOffset, gdalconst.GRA_NearestNeighbour)
     testDSM = geo.imageWarp(testDSMFilename, refCLSFilename, xyzOffset)
     testMTL = geo.imageWarp(testMTLFilename, refCLSFilename, xyzOffset, gdalconst.GRA_NearestNeighbour).astype(np.uint8)
 
     testDSM = testDSM + xyzOffset[2]
     testDTM = testDTM + xyzOffset[2]
 
+    # object masks based on CLSMatchValue(s)
+    refMask = np.zeros_like(refCLS, np.bool)
+    for v in config['INPUT.REF']['CLSMatchValue']:
+        refMask[refCLS == v] = True
+
+    testMask = np.zeros_like(testCLS, np.bool)
+    for v in config['INPUT.TEST']['CLSMatchValue']:
+        testMask[testCLS == v] = True    
+
     # Create mask for ignoring points labeled NoData in reference files.
     refDSM_NoDataValue = geo.getNoDataValue(refDSMFilename)
     refDTM_NoDataValue = geo.getNoDataValue(refDTMFilename)
     refCLS_NoDataValue = geo.getNoDataValue(refCLSFilename)
-    ignoreMask = np.zeros_like(refMask, np.bool)
+    ignoreMask = np.zeros_like(refCLS, np.bool)
 
     if refDSM_NoDataValue is not None:
         ignoreMask[refDSM == refDSM_NoDataValue] = True
     if refDTM_NoDataValue is not None:
         ignoreMask[refDTM == refDTM_NoDataValue] = True
     if refCLS_NoDataValue is not None:
-        ignoreMask[refMask == refCLS_NoDataValue] = True
+        ignoreMask[refCLS == refCLS_NoDataValue] = True
 
     # If quantizing to voxels, then match vertical spacing to horizontal spacing.
     QUANTIZE = config['OPTIONS']['QuantizeHeight']
@@ -197,7 +214,7 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None):
         testDTM = np.round(testDTM / unitHgt) * unitHgt
 
     # Run the threshold geometry metrics and report results.
-    metrics = geo.run_threshold_geometry_metrics(refDSM, refDTM, refMask, REF_CLS_VALUE, testDSM, testDTM, testMask, TEST_CLS_VALUE,
+    metrics = geo.run_threshold_geometry_metrics(refDSM, refDTM, refMask, testDSM, testDTM, testMask,
                                        tform, ignoreMask)
 
     metrics['offset'] = xyzOffset
