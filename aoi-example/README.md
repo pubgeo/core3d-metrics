@@ -47,9 +47,9 @@ This section is denoted by the \[PLOTS\] tag and is used to set options for draw
  After this is implemented, this boolean will enable saving plots to file.
 
 # Registration Executable Path
-This section is denoted by the \[REGEXEPATH\] tag and is used to locate executable files.
+This optional section is denoted by the \[REGEXEPATH\] tag and is used to locate executable files. By default, the application will search the $PATH variable for an align3d executable.
 ## Align3DPath
- Relative or absolute path to pubgeo's Align3d executable
+ Relative or absolute path to a custom pubgeo Align3d executable
 
 # Materials Reference
 This section is denoted by the \[MATERIALS.REF\] tag and is used to describe material labels
