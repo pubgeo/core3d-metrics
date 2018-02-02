@@ -1,0 +1,170 @@
+{
+   "$schema": "http://json-schema.org/draft-04/schema#",
+   "name": "geometrics configuration schema",
+   "type": "object",
+   "required": [
+      "INPUT.REF",
+      "INPUT.TEST",
+      "OPTIONS",
+      "PLOTS",
+      "MATERIALS.REF"
+   ],
+   "additionalProperties": false,
+   "properties": {
+      "INPUT.REF": {
+         "type": "object",
+         "required": [
+            "DSMFilename",
+            "DTMFilename",
+            "CLSFilename",
+            "NDXFilename",
+            "MTLFilename",
+            "CLSMatchValue"
+         ],
+         "additionalProperties": false,
+         "properties": {
+            "DSMFilename": {
+               "type": "string"
+            },
+            "DTMFilename": {
+               "type": "string"
+            },
+            "CLSFilename": {
+               "type": "string"
+            },
+            "NDXFilename": {
+               "type": "string"
+            },
+            "MTLFilename": {
+               "type": "string"
+            },
+            "CLSMatchValue": {
+               "oneOf": [
+                  {
+                     "type":"integer",
+                     "minimum": 0,
+                     "maximim": 255
+                  },
+                  {
+                     "type": "array",
+                     "items": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximim": 255
+                     }
+                  }
+               ]
+            }
+         }
+      },      
+      "INPUT.TEST": {
+         "type": "object",
+         "required": [
+            "DSMFilename",
+            "DTMFilename",
+            "CLSFilename",
+            "MTLFilename",
+            "CLSMatchValue"
+         ],
+         "additionalProperties": false,
+         "properties": {
+            "DSMFilename": {
+               "type": "string"
+            },
+            "DTMFilename": {
+               "type": "string"
+            },
+            "CLSFilename": {
+               "type": "string"
+            },
+            "MTLFilename": {
+               "type": "string"
+            },
+            "CLSMatchValue": {
+               "oneOf": [
+                  {
+                     "type":"integer",
+                     "minimum": 0,
+                     "maximim": 255
+                  }, 
+                  {
+                     "type": "array",
+                     "items": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximim": 255
+                     }
+                  }
+               ]
+            }
+         }
+      },
+      "OPTIONS": {
+         "type": "object",
+         "required": [
+            "QuantizeHeight"
+         ],
+         "additionalProperties": false,
+         "properties": {
+            "QuantizeHeight": {
+               "type": "boolean"
+            }
+         }
+      },
+      "PLOTS": {
+         "type": "object",
+         "required": [
+            "DoPlots"
+         ],
+         "additionalProperties": false,
+         "properties": {
+            "DoPlots": {
+               "type": "boolean"
+            }
+         }
+      },
+      "MATERIALS.REF": {
+         "type": "object",
+         "required": [
+            "MaterialNames",
+            "MaterialIndicesToIgnore"
+         ],
+         "additionalProperties": true,
+         "properties": {
+            "MaterialNames": {
+               "type": "array",
+               "items": {
+                  "type": "string"
+               }
+            },
+            "MaterialIndicesToIgnore": {
+               "oneOf": [
+                  {
+                     "type":"integer",
+                     "minimum": 0
+                  },
+                  {
+                     "type": "array",
+                     "items": {
+                        "type": "integer",
+                        "minimum": 0
+                     }
+                  }
+               ]
+            }
+         }
+      },
+      "REGEXEPATH": {
+         "type": "object",
+         "required": [
+            "Align3DPath"
+         ],
+         "additionalProperties": false,
+         "properties": {
+            "Align3DPath": {
+               "type": "string"
+            }
+         }
+      }
+   }
+}

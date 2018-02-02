@@ -5,45 +5,11 @@
 import os
 import sys
 import shutil
-import configparser
-import gdal, gdalconst
+import gdalconst
 import numpy as np
 import geometrics as geo
 import argparse
 import json
-import glob
-
-
-# HELPER: LOCATE ABSOLUTE FILE PATH with GLOB
-def findfiles(data,path=None):
-
-    for key,file in data.items():
-        if not key.lower().endswith('filename'): continue
-
-        print('\nSearching for "{}"'.format(key))
-
-        # absolute path to file
-        if not os.path.isabs(file):
-            if path: file = os.path.join(path,file)
-            file = os.path.abspath(file)
-
-        # locate file (use glob to allow wildcards)
-        files = glob.glob(file)
-
-        if not files:
-            print("WARNING: unable to locate file <{}>".format(file))
-            file = None
-        else:
-            if len(files) > 1:
-                print('WARNING: multiple files located for <{}>, using 1st file'.format(file))
-
-            file = files[0]
-            print('File located <{}>'.format(file))
-
-        # save file to data
-        data[key] = file
-
-    return data
 
 
 # PRIMARY FUNCTION: RUN_GEOMETRICS
@@ -53,79 +19,15 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None):
     if not os.path.isfile(configfile):
         raise IOError("Configuration file does not exist")
 
-    configpath = os.path.dirname(configfile)
-
-    if refpath is None:
-        refpath = configpath
-    elif not os.path.isdir(refpath):
-        raise IOError('"refpath" not a valid folder <{}>'.format(refpath))
-
-    if testpath is None:
-        testpath = configpath
-    elif not os.path.isdir(refpath):
-        raise IOError('"testpath" not a valid folder <{}>'.format(testpath))
-
     if outputpath is not None and not os.path.isdir(outputpath):
         raise IOError('"outputpath" not a valid folder <{}>'.format(outputpath))
 
+    # parse configuration
+    configpath = os.path.dirname(configfile)
 
-    # parse configuration file
-    print("\nReading configuration from <{}>".format(configfile))
-
-    # JSON parsing
-    if configfile.endswith(('.json','.JSON')):
-
-        # open & read JSON file
-        with open(configfile,'r') as fid:
-            config = json.load(fid)
-
-    # CONFIG parsing
-    elif configfile.endswith(('.config','.CONFIG')):
-
-        # setup config parser
-        parser = configparser.ConfigParser()
-        parser.optionxform = str # maintain case-sensitive items
-
-        # read entire configuration file into dict
-        if len(parser.read(configfile)) == 0:
-            raise IOError("Unable to read selected .config file")
-        config = {s:dict(parser.items(s)) for s in parser.sections()}   
-
-        # special section/item parsing
-        s = 'INPUT.TEST'; i = 'CLSMatchValue'; config[s][i] = [int(v) for v in config[s][i].split(',')]
-        s = 'INPUT.REF'; i = 'CLSMatchValue'; config[s][i] = [int(v) for v in config[s][i].split(',')]
-        s = 'OPTIONS'; i = 'QuantizeHeight'; config[s][i] = bool(config[s][i])
-        s = 'PLOTS'; i = 'DoPlots'; config[s][i] = bool(config[s][i])
-        s = 'MATERIALS.REF'; i = 'MaterialNames'; config[s][i] = config[s][i].split(',')
-        s = 'MATERIALS.REF'; i = 'MaterialIndicesToIgnore'; config[s][i] = [int(v) for v in config[s][i].split(',')]
-
-    # unrecognized config file type
-    else:
-        raise IOError('Unrecognized configuration file')
-
-
-    # locate files for each "xxxFilename" configuration parameter
-    # this makes use of "refpath" and "testpath" arguments for relative filenames
-    for item in [('INPUT.REF',refpath),('INPUT.TEST',testpath)]:
-        sec = item[0]; path = item[1]
-        print('\n=====PROCESSING FILES FOR "{}"====='.format(sec))
-        config[sec] = findfiles(config[sec],path)
-
-    # check for iterable configuration options (e.g., list or tuple)
-    opts = (('INPUT.TEST','CLSMatchValue'),('INPUT.REF','CLSMatchValue'),
-        ('MATERIALS.REF','MaterialIndicesToIgnore'))
-
-    for opt in opts:
-        s = opt[0]; i = opt[1];
-        try:
-            _ = (v for v in config[s][i])
-        except:
-            config[s][i] = [config[s][i]]
-
-    # print final configuration
-    print('\n=====FINAL CONFIGURATION=====')
-    print(json.dumps(config,indent=2))
-
+    config = geo.parse_config(configfile,
+        refpath=(refpath or configpath), 
+        testpath=(testpath or configpath))
 
     # Get test model information from configuration file.
     testDSMFilename = config['INPUT.TEST']['DSMFilename']
@@ -233,29 +135,29 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None):
 # command line function
 def main():
 
-  # parse inputs
-  parser = argparse.ArgumentParser()
-  parser.add_argument('-c', '--config', dest='config', 
-      help='Configuration file', required=True)
-  parser.add_argument('-r', '--reference', dest='refpath', 
-      help='Reference data folder', required=False)
-  parser.add_argument('-t', '--test', dest='testpath', 
-      help='Test data folder', required=False)
-  parser.add_argument('-o', '--output', dest='outputpath', 
-      help='Output folder', required=False)
-  
-  args = parser.parse_args()
+    # parse inputs
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-c', '--config', dest='config', 
+        help='Configuration file', required=True)
+    parser.add_argument('-r', '--reference', dest='refpath', 
+        help='Reference data folder', required=False)
+    parser.add_argument('-t', '--test', dest='testpath', 
+        help='Test data folder', required=False)
+    parser.add_argument('-o', '--output', dest='outputpath', 
+        help='Output folder', required=False)
 
-  # gather optional arguments
-  kwargs = {}
-  if args.refpath: kwargs['refpath'] = args.refpath
-  if args.testpath: kwargs['testpath'] = args.testpath
-  if args.outputpath: kwargs['outputpath'] = args.outputpath
+    args = parser.parse_args()
 
-  # run process
-  run_geometrics(configfile=args.config,**kwargs)
+    # gather optional arguments
+    kwargs = {}
+    if args.refpath: kwargs['refpath'] = args.refpath
+    if args.testpath: kwargs['testpath'] = args.testpath
+    if args.outputpath: kwargs['outputpath'] = args.outputpath
+
+    # run process
+    run_geometrics(configfile=args.config,**kwargs)
 
 
 if __name__ == "__main__":
-  main()
+    main()
 
