@@ -16,14 +16,12 @@ def calcMops(true_positives, false_negatives, false_positives):
     return s
 
 
-def run_threshold_geometry_metrics(refDSM, refDTM, refMask, REF_CLS_VALUE, testDSM, testDTM, testMask, TEST_CLS_VALUE,
+def run_threshold_geometry_metrics(refDSM, refDTM, refMask, testDSM, testDTM, testMask,
                                    tform, ignoreMask):
-    refMask = (refMask == REF_CLS_VALUE)
     refHgt = (refDSM - refDTM)
     refObj = refHgt
     refObj[~refMask] = 0
 
-    testMask = (testMask == TEST_CLS_VALUE)
     testHgt = (testDSM - testDTM)
     testObj = np.copy(testHgt)
     testObj[~testMask] = 0
