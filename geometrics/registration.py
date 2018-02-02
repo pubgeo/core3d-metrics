@@ -10,13 +10,14 @@ import gdal
 
 def align3d(reference_filename, test_filename, exec_path=None):
 
-    # default location of the align3d executable.
-    if exec_path is None: exec_path = os.path.dirname(os.path.realpath(__file__))
+    # align3d executable (typically on the system $PATH)
+    exec_filename = 'align3d'
 
     # locate align3d executable
-    exec_filename = os.path.abspath(os.path.join(exec_path,'align3d'))
-    if not os.path.isfile(exec_filename):
-        raise IOError('"align3d" executable not found at <{}>'.format(exec_filename))
+    if exec_path: 
+        exec_filename = os.path.abspath(os.path.join(exec_path,exec_filename))
+        if not os.path.isfile(exec_filename):
+            raise IOError('"align3d" executable not found at <{}>'.format(exec_filename))
 
     # In case file names have relative paths, convert to absolute paths.
     reference_filename = os.path.abspath(reference_filename)
