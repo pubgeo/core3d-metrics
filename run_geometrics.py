@@ -247,7 +247,7 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None):
         plot.make(refDSM, 'refDSM', 112, colorbar=True, badValue=newRefFillValue)
         plot.make(refDTM, 'refDTM', 113, colorbar=True, badValue=newRefFillValue)
 
-        plot.make(testMask, 'testMask', 151, colorbar=True)
+        plot.make(testMask, 'testMask', 151)
         plot.make(testDSM, 'testDSM', 152, colorbar=True, badValue=newTestFillValue)
         plot.make(testDTM, 'testDSM', 153, colorbar=True, badValue=newTestFillValue)
 
@@ -257,7 +257,7 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None):
 
         
     # Run the threshold geometry metrics and report results.
- 	metrics = dict()
+    metrics = dict()
     metrics['threshold_geometry'] = geo.run_threshold_geometry_metrics(refDSM, refDTM, refMask, testDSM, testDTM, testMask,
                                        tform, ignoreMask, plot=plot)
 

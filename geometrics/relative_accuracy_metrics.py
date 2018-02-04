@@ -15,7 +15,15 @@ def run_relative_accuracy_metrics(refDSM, testDSM, refMask, testMask, plot=None)
     zrmse = np.sqrt(np.sum(delta * delta) / delta.size)
 
     if PLOTS_ENABLE:
-        plot.make(delta, 'Terrain Model - Height Error', 581, saveName="relVertAcc_hgtErr", colorbar=True)
+        errorMap = delta;
+        delta[evalMask == 0] = np.nan
+        plot.make(errorMap, 'Terrain Model - Height Error', 581, saveName="relVertAcc_hgtErr", colorbar=True)
+
+        errorMap[errorMap > 5] = 5
+        errorMap[errorMap < -5] = -5
+        plot.make(errorMap, 'Terrain Model - Height Error', 582, saveName="relVertAcc_hgtErr_clipped", colorbar=True)
+
+
 
 
     metrics = {
