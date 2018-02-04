@@ -1,19 +1,8 @@
 import numpy as np
 import os
 
-
-def calcMops(true_positives, false_negatives, false_positives):
-    s = {
-        'recall': true_positives / (true_positives + false_negatives),
-        'precision': true_positives / (true_positives + false_positives),
-        'jaccardIndex': true_positives / (true_positives + false_negatives + false_positives),
-        'branchingFactor': false_positives / true_positives,
-        'missFactor': false_negatives / true_positives,
-    }
-    s['completeness'] = s['recall']
-    s['correctness'] = s['precision']
-    s['fscore'] = (2 * s['recall'] * s['precision']) / (s['recall'] + s['precision'])
-    return s
+from .metrics_util import calcMops
+from .metrics_util import getUnitArea
 
 
 def run_threshold_geometry_metrics(refDSM, refDTM, refMask, testDSM, testDTM, testMask,
@@ -55,7 +44,7 @@ def run_threshold_geometry_metrics(refDSM, refDTM, refMask, testDSM, testDTM, te
     
     
     # Determine evaluation units.
-    unitArea = abs(tform[1] * tform[5])
+    unitArea = getUnitArea(tform)
 
     # --- Hard Error ------------------------------------------------------
     # Regions that are 2D False Positives or False Negatives, are
@@ -125,6 +114,6 @@ def run_threshold_geometry_metrics(refDSM, refDTM, refMask, testDSM, testDTM, te
         tmp = deltaTop
         tmp[ignoreMask] = np.nan
         plot.make(tmp, 'DTM Error', 294, saveName='errDTM', colorbar=True)
-    
-    
+
+
     return metrics
