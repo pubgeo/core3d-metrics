@@ -2,6 +2,7 @@ import numpy as np
 import os
 
 from .metrics_util import calcMops
+from .metrics_util import getUnitArea
 
 
 def run_threshold_geometry_metrics(refDSM, refDTM, refMask, testDSM, testDTM, testMask,
@@ -43,7 +44,7 @@ def run_threshold_geometry_metrics(refDSM, refDTM, refMask, testDSM, testDTM, te
     
     
     # Determine evaluation units.
-    unitArea = abs(tform[1] * tform[5])
+    unitArea = getUnitArea(tform)
 
     # --- Hard Error ------------------------------------------------------
     # Regions that are 2D False Positives or False Negatives, are

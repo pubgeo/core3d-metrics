@@ -227,7 +227,7 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None):
     # If quantizing to voxels, then match vertical spacing to horizontal spacing.
     QUANTIZE = config['OPTIONS']['QuantizeHeight']
     if QUANTIZE:
-        unitHgt = (np.abs(tform[1]) + abs(tform[5])) / 2
+        unitHgt = geo.getUnitHeight(tform)
         refDSM = np.round(refDSM / unitHgt) * unitHgt
         refDTM = np.round(refDTM / unitHgt) * unitHgt
         testDSM = np.round(testDSM / unitHgt) * unitHgt
@@ -243,7 +243,7 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None):
             newTestFillValue = np.round(newTestFillValue / unitHgt) * unitHgt
             newRefFillValue = np.round(newRefFillValue / unitHgt) * unitHgt
     
-        plot.make(refMask, 'refMask', 111,)
+        plot.make(refMask, 'refMask', 111)
         plot.make(refDSM, 'refDSM', 112, colorbar=True, badValue=newRefFillValue)
         plot.make(refDTM, 'refDTM', 113, colorbar=True, badValue=newRefFillValue)
 
@@ -257,8 +257,14 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None):
 
         
     # Run the threshold geometry metrics and report results.
-    metrics = geo.run_threshold_geometry_metrics(refDSM, refDTM, refMask, testDSM, testDTM, testMask,
+ 	metrics = dict()
+    metrics['geometry'] = geo.run_threshold_geometry_metrics(refDSM, refDTM, refMask, testDSM, testDTM, testMask,
                                        tform, ignoreMask, plot=plot)
+
+	# Run the terrain model metrics and report results.
+    # TODO: makea a real parameter
+    threshold = unitHgt*4 # meters height
+    metrics['terrain'] = geo.run_terrain_accuracy_metrics(refDTM, testDTM, refMask, testMask, threshold, geo.getUnitArea(tform), plot=plot)
 
     metrics['offset'] = xyzOffset
     
@@ -270,6 +276,9 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None):
     # Run the threshold material metrics and report results.
     geo.run_material_metrics(refNDX, refMTL, testMTL, materialNames, materialIndicesToIgnore)
 
+    #  If displaying figures, wait for user before existing
+    if PLOTS_SHOW:
+            input("Press Enter to continue...")
 
 # command line function
 def main():
