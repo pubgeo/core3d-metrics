@@ -95,8 +95,10 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None):
         # special section/item parsing
         s = 'INPUT.TEST'; i = 'CLSMatchValue'; config[s][i] = [int(v) for v in config[s][i].split(',')]
         s = 'INPUT.REF'; i = 'CLSMatchValue'; config[s][i] = [int(v) for v in config[s][i].split(',')]
-        s = 'OPTIONS'; i = 'QuantizeHeight'; config[s][i] = bool(config[s][i])
-        s = 'PLOTS'; i = 'DoPlots'; config[s][i] = bool(config[s][i])
+        # bool(config[s][i]) does not interpret 'true'/'false' strings
+        s = 'OPTIONS'; i = 'QuantizeHeight'; config[s][i] = parser.getboolean(s,i)  
+        s = 'PLOTS'; i = 'ShowPlots'; config[s][i] = parser.getboolean(s,i) 
+        s = 'PLOTS'; i = 'SavePlots'; config[s][i] = parser.getboolean(s,i)
         s = 'MATERIALS.REF'; i = 'MaterialNames'; config[s][i] = config[s][i].split(',')
         s = 'MATERIALS.REF'; i = 'MaterialIndicesToIgnore'; config[s][i] = [int(v) for v in config[s][i].split(',')]
 
@@ -144,11 +146,23 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None):
     # Get material label names and list of material labels to ignore in evaluation.
     materialNames = config['MATERIALS.REF']['MaterialNames']
     materialIndicesToIgnore = config['MATERIALS.REF']['MaterialIndicesToIgnore']
+    
+    # Get plot settings from configuration file
+    PLOTS_SHOW   = config['PLOTS']['ShowPlots']
+    PLOTS_SAVE   = config['PLOTS']['SavePlots']
+    PLOTS_ENABLE = PLOTS_SHOW or PLOTS_SAVE
 
     # default output path
     if outputpath is None:
         outputpath = os.path.dirname(testDSMFilename)
 
+    # Configure plotting
+    basename = os.path.basename(testDSMFilename)
+    if PLOTS_ENABLE:
+        plot = geo.plot(saveDir=outputpath, autoSave=PLOTS_SAVE, savePrefix=basename+'_', badColor='black',showPlots=PLOTS_SHOW)
+    else:
+        plot = None
+        
     # copy testDSM to the output path
     # this is a workaround for the "align3d" function with currently always
     # saves new files to the same path as the testDSM
@@ -165,21 +179,24 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None):
         align3d_path = None
     xyzOffset = geo.align3d(refDSMFilename, testDSMFilename_copy, exec_path=align3d_path)
 
+    # Explicitly assign an new no data value to warped images to track filled pixels
+    noDataValue = -9999
+    
     # Read reference model files.
     print("")
     print("Reading reference model files...")
     refCLS, tform = geo.imageLoad(refCLSFilename)
-    refDSM = geo.imageWarp(refDSMFilename, refCLSFilename)
-    refDTM = geo.imageWarp(refDTMFilename, refCLSFilename)
+    refDSM = geo.imageWarp(refDSMFilename, refCLSFilename, noDataValue=noDataValue)
+    refDTM = geo.imageWarp(refDTMFilename, refCLSFilename, noDataValue=noDataValue)
     refNDX = geo.imageWarp(refNDXFilename, refCLSFilename, interp_method=gdalconst.GRA_NearestNeighbour).astype(np.uint16)
     refMTL = geo.imageWarp(refMTLFilename, refCLSFilename, interp_method=gdalconst.GRA_NearestNeighbour).astype(np.uint8)
 
     # Read test model files and apply XYZ offsets.
     print("Reading test model files...")
     print("")
-    testDTM = geo.imageWarp(testDTMFilename, refCLSFilename, xyzOffset)
+    testDTM = geo.imageWarp(testDTMFilename, refCLSFilename, xyzOffset, noDataValue=noDataValue)
     testCLS = geo.imageWarp(testCLSFilename, refCLSFilename, xyzOffset, gdalconst.GRA_NearestNeighbour)
-    testDSM = geo.imageWarp(testDSMFilename, refCLSFilename, xyzOffset)
+    testDSM = geo.imageWarp(testDSMFilename, refCLSFilename, xyzOffset, noDataValue=noDataValue)
     testMTL = geo.imageWarp(testMTLFilename, refCLSFilename, xyzOffset, gdalconst.GRA_NearestNeighbour).astype(np.uint8)
 
     testDSM = testDSM + xyzOffset[2]
@@ -216,9 +233,32 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None):
         testDSM = np.round(testDSM / unitHgt) * unitHgt
         testDTM = np.round(testDTM / unitHgt) * unitHgt
 
+        
+    if PLOTS_ENABLE:
+        
+        # geo.imwarp sets no data value to -9999.  Adjust for offset and quantization
+        newTestFillValue = noDataValue+xyzOffset[2]
+        newRefFillValue  = noDataValue
+        if QUANTIZE:
+            newTestFillValue = np.round(newTestFillValue / unitHgt) * unitHgt
+            newRefFillValue = np.round(newRefFillValue / unitHgt) * unitHgt
+    
+        plot.make(refMask, 'refMask', 111,)
+        plot.make(refDSM, 'refDSM', 112, colorbar=True, badValue=newRefFillValue)
+        plot.make(refDTM, 'refDTM', 113, colorbar=True, badValue=newRefFillValue)
+
+        plot.make(testMask, 'testMask', 151, colorbar=True)
+        plot.make(testDSM, 'testDSM', 152, colorbar=True, badValue=newTestFillValue)
+        plot.make(testDTM, 'testDSM', 153, colorbar=True, badValue=newTestFillValue)
+
+        plot.make(ignoreMask, 'ignoreMask', 181)
+
+        
+
+        
     # Run the threshold geometry metrics and report results.
     metrics = geo.run_threshold_geometry_metrics(refDSM, refDTM, refMask, testDSM, testDTM, testMask,
-                                       tform, ignoreMask)
+                                       tform, ignoreMask, plot=plot)
 
     metrics['offset'] = xyzOffset
     

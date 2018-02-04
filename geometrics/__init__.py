@@ -1,6 +1,7 @@
 
 
 from .image import *
+from .plot import *
 from .threshold_material_metrics import *
 from .threshold_geometry_metrics import *
 from .registration import *

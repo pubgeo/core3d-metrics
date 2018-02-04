@@ -17,7 +17,11 @@ def calcMops(true_positives, false_negatives, false_positives):
 
 
 def run_threshold_geometry_metrics(refDSM, refDTM, refMask, testDSM, testDTM, testMask,
-                                   tform, ignoreMask):
+                                   tform, ignoreMask, plot=None):
+                     
+    PLOTS_ENABLE = True                        
+    if plot is None: PLOTS_ENABLE = False
+                                   
     refHgt = (refDSM - refDTM)
     refObj = refHgt
     refObj[~refMask] = 0
@@ -36,6 +40,20 @@ def run_threshold_geometry_metrics(refDSM, refDTM, refMask, testDSM, testDTM, te
     testOnlyMask = testOnlyMask & ~ignoreMask
     overlapMask = overlapMask & ~ignoreMask
 
+    
+    if PLOTS_ENABLE:
+        plot.make(refMask, 'Reference Object Mask', 211, saveName="refMask")
+        plot.make(refObj,  'refObj', 212, colorbar=True)
+        
+        plot.make(testMask, 'Test Object Mask', 251, saveName="testMask")
+        plot.make(testObj, 'testObj', 252, colorbar=True)
+    
+        plot.make(refOnlyMask,  'False Negative Mask', 281, saveName='FN')
+        plot.make(testOnlyMask, 'False Positive Mask', 282, saveName='FP')
+        plot.make(overlapMask,  'True Positive Mask',  283, saveName='TP')
+    
+    
+    
     # Determine evaluation units.
     unitArea = abs(tform[1] * tform[5])
 
@@ -85,4 +103,28 @@ def run_threshold_geometry_metrics(refDSM, refDTM, refMask, testDSM, testDTM, te
         '3D': calcMops(tolTP, tolFN, tolFP),
     }
 
+    if PLOTS_ENABLE:
+        errorMap = np.empty(refOnlyMask.shape)
+        errorMap[:] = np.nan
+        errorMap[testOnlyMask == 1] =  testObj[testOnlyMask == 1]
+        errorMap[refOnlyMask == 1]  = -refObj[refOnlyMask == 1]
+
+        overlap = overlapMask * (testDSM - refDSM)
+        errorMap[overlapMask == 1]  =  overlap[overlapMask == 1]
+
+        plot.make(errorMap, '3D Error', 291, saveName='err3D', colorbar=True)
+
+        errorMap[errorMap > 5] = 5
+        errorMap[errorMap < -5] = -5
+        plot.make(errorMap, '3D Error', 292, saveName='err3D_Clipped', colorbar=True)
+
+        tmp = deltaTop
+        tmp[ignoreMask] = np.nan
+        plot.make(tmp, 'DSM Error', 293, saveName='errDSM', colorbar=True)
+
+        tmp = deltaTop
+        tmp[ignoreMask] = np.nan
+        plot.make(tmp, 'DTM Error', 294, saveName='errDTM', colorbar=True)
+    
+    
     return metrics
