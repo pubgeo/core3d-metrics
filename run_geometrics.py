@@ -253,18 +253,20 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None):
 
         plot.make(ignoreMask, 'ignoreMask', 181)
 
-        
+
 
         
     # Run the threshold geometry metrics and report results.
  	metrics = dict()
-    metrics['geometry'] = geo.run_threshold_geometry_metrics(refDSM, refDTM, refMask, testDSM, testDTM, testMask,
+    metrics['threshold_geometry'] = geo.run_threshold_geometry_metrics(refDSM, refDTM, refMask, testDSM, testDTM, testMask,
                                        tform, ignoreMask, plot=plot)
 
-	# Run the terrain model metrics and report results.
+    # Run the terrain model metrics and report results.
     # TODO: makea a real parameter
     threshold = unitHgt*4 # meters height
     metrics['terrain'] = geo.run_terrain_accuracy_metrics(refDTM, testDTM, refMask, testMask, threshold, geo.getUnitArea(tform), plot=plot)
+
+    metrics['relative_accuracy'] = geo.run_relative_accuracy_metrics(refDSM, testDSM, refMask, testMask, plot=plot)
 
     metrics['offset'] = xyzOffset
     
