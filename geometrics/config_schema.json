@@ -63,7 +63,6 @@
             "DSMFilename",
             "DTMFilename",
             "CLSFilename",
-            "MTLFilename",
             "CLSMatchValue"
          ],
          "additionalProperties": false,
@@ -78,7 +77,14 @@
                "type": "string"
             },
             "MTLFilename": {
-               "type": "string"
+               "oneOf": [
+                  {
+                     "type": "string"
+                  }, 
+                  {
+                     "type": "null"
+                  }
+               ]
             },
             "CLSMatchValue": {
                "oneOf": [

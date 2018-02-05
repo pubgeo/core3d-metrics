@@ -33,7 +33,7 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None):
     testDSMFilename = config['INPUT.TEST']['DSMFilename']
     testDTMFilename = config['INPUT.TEST']['DTMFilename']
     testCLSFilename = config['INPUT.TEST']['CLSFilename']
-    testMTLFilename = config['INPUT.TEST']['MTLFilename']
+    testMTLFilename = config['INPUT.TEST'].get('MTLFilename',None)
 
     # Get reference model information from configuration file.
     refDSMFilename = config['INPUT.REF']['DSMFilename']
@@ -81,7 +81,9 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None):
     testDTM = geo.imageWarp(testDTMFilename, refCLSFilename, xyzOffset)
     testCLS = geo.imageWarp(testCLSFilename, refCLSFilename, xyzOffset, gdalconst.GRA_NearestNeighbour)
     testDSM = geo.imageWarp(testDSMFilename, refCLSFilename, xyzOffset)
-    testMTL = geo.imageWarp(testMTLFilename, refCLSFilename, xyzOffset, gdalconst.GRA_NearestNeighbour).astype(np.uint8)
+
+    if testMTLFilename:
+        testMTL = geo.imageWarp(testMTLFilename, refCLSFilename, xyzOffset, gdalconst.GRA_NearestNeighbour).astype(np.uint8)
 
     testDSM = testDSM + xyzOffset[2]
     testDTM = testDTM + xyzOffset[2]
@@ -129,7 +131,10 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None):
     print(json.dumps(metrics,indent=2))
 
     # Run the threshold material metrics and report results.
-    geo.run_material_metrics(refNDX, refMTL, testMTL, materialNames, materialIndicesToIgnore)
+    if testMTLFilename:
+        geo.run_material_metrics(refNDX, refMTL, testMTL, materialNames, materialIndicesToIgnore)
+    else:
+        print('WARNING: No test MTL file, skipping material metrics')
 
 
 # command line function
