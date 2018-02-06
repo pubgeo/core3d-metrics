@@ -156,7 +156,6 @@ def main(args=None):
                             help='Test data folder', required=False, metavar='')
     parser.add_argument('-o', '--output', dest='outputpath', 
                             help='Output folder', required=False, metavar='')
-    args = parser.parse_args(args)
     
     group = parser.add_mutually_exclusive_group(required=False)
     group.add_argument('--align', dest='align', action='store_true')
