@@ -7,7 +7,7 @@ RUN apt update && apt upgrade -y && apt install -y --fix-missing --no-install-re
 	python3-tk \
 	python3-scipy
 RUN apt autoremove -y && rm -rf /var/lib/apt/lists/*
-RUN pip3 install matplotlib laspy "numpy>=1.13"
+RUN pip3 install matplotlib laspy setuptools "jsonschema==2.6.0" "numpy>=1.13"
 WORKDIR /
 RUN git clone https://github.com/pubgeo/GeoMetrics
 RUN apt purge -y \
