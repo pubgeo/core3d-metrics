@@ -21,17 +21,17 @@ The following python3 libraries (and their dependencies) are required:
 Alternatively, you can use the provided docker [container](Dockerfile).
 
 ### core3d-metrics Usage
-    python3 run_geometrics.py <AOI Configuration>
+    python3 -m core3dmetrics -c <AOI Configuration>
 One of the first steps is to align your dataset to the ground truth. This is performed using pubgeo's [ALIGN3D](https://github.com/pubgeo/pubgeo/#align3d) algorithm.
 The algorithm then calculates metrics for 2D, 3D, and spectral classification against the ground truth.
 
 #### Input
-_AOI Configuration_ is a configuration file using python's ConfigParser that is further described in [aoi-config.md].
+_AOI Configuration_ is a configuration file using python's ConfigParser that is further described in [aoi-config.md](aoi-example/aoi-config.md).
 This configuration file defines which files to analyze and what to compare against (ground truth). Additionally the config is
 to toggle various software settings.
 
 #### Example Output
-    python3 run_geometrics.py aoi.config
+    python3 -m core3dmetrics -c aoi.config
 This command would perform metric analysis on the test dataset provided by the aoi.config file. This analysis will also generate the following files (in place):
 * < test dataset >_2d_metrics.txt
 * < test dataset >_3d_metrics.txt

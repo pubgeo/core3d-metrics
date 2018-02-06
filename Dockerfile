@@ -9,9 +9,8 @@ RUN apt update && apt upgrade -y && apt install -y --fix-missing --no-install-re
 RUN apt autoremove -y && rm -rf /var/lib/apt/lists/*
 RUN pip3 install matplotlib laspy setuptools "jsonschema==2.6.0" "numpy>=1.13"
 WORKDIR /
-RUN git clone https://github.com/pubgeo/GeoMetrics
+RUN git clone https://github.com/pubgeo/GeoMetrics && cd GeoMetrics && python3 setup.py install
 RUN apt purge -y \
     git
-WORKDIR /GeoMetrics
 CMD echo "Please run GeoMetrics with an AOI configuration"\
-    echo "docker run --rm -v /home/ubuntu/annoteGeoExamples:/data jhuapl/geometrics python3 run_geometrics.py -c <aoi config>"
+    echo "docker run --rm -v /home/ubuntu/annoteGeoExamples:/data jhuapl/geometrics python3 -m core3dmetrics -c <aoi config>"
