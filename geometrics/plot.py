@@ -17,13 +17,10 @@ class plot:
     savePrefix = ''
     saveExe = '.png'
 
-    showPlots = True
-
     defaultCM = 'jet'
     badColor = 'white'   # Color used to display NaNs
 
-
-    doShow = True
+    showPlots = True
     autoSave = False  # Saves figure at end of call to plot.make()
 
     def __init__(self, **kwargs):
@@ -33,9 +30,6 @@ class plot:
 
         if 'saveDir' in kwargs:
             self.saveDir = kwargs['saveDir']
-
-        if 'doShow' in kwargs:
-            self.doShow = kwargs['doShow']
 
         if 'autoSave' in kwargs:
             self.autoSave = kwargs['autoSave']
@@ -49,18 +43,19 @@ class plot:
         if 'cmap' in kwargs:
             self.defaultCM = kwargs['cmap']
             
-        if (os.getenv('DISPLAY') is None) and self.doShow :
+        if (os.getenv('DISPLAY') is None) and self.showPlots:
             print('DISPLAY not set.  Disabling plot display')
-            self.doShow = False
+            self.showPlots = False
             
         plt.rcParams['image.cmap'] = self.defaultCM
 
+        print("showPlots = " + str(self.showPlots))
 
     def make(self, image, title='', fig=None, **kwargs):
     
         if 'badValue' in kwargs:
             image = np.array(image)
-            image[image == kwargs['badValue']] = np.nan;
+            image[image == kwargs['badValue']] = np.nan
                     
         plt.figure(fig)
         plt.clf()
@@ -86,13 +81,16 @@ class plot:
                     hCM.set_ticklabels(kwargs['cm_labels'], True)
 
 
-        if self.doShow:
+        if self.showPlots:
             plt.show(block=False)
 
         if self.autoSave:
             if "saveName" in kwargs:
                 title = kwargs['saveName']
             self.save(title)
+
+        if not self.showPlots:
+            plt.close(plt.gcf())
 
 
 
