@@ -31,7 +31,7 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None,align=T
 
     # Get test model information from configuration file.
     testDSMFilename = config['INPUT.TEST']['DSMFilename']
-    testDTMFilename = config['INPUT.TEST']['DTMFilename']
+    testDTMFilename = config['INPUT.TEST'].get('DTMFilename',None)
     testCLSFilename = config['INPUT.TEST']['CLSFilename']
     testMTLFilename = config['INPUT.TEST'].get('MTLFilename',None)
 
@@ -82,15 +82,19 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None,align=T
     # Read test model files and apply XYZ offsets.
     print("Reading test model files...")
     print("")
-    testDTM = geo.imageWarp(testDTMFilename, refCLSFilename, xyzOffset)
     testCLS = geo.imageWarp(testCLSFilename, refCLSFilename, xyzOffset, gdalconst.GRA_NearestNeighbour)
     testDSM = geo.imageWarp(testDSMFilename, refCLSFilename, xyzOffset)
+    testDSM = testDSM + xyzOffset[2]
+
+    if testDTMFilename:
+        testDTM = geo.imageWarp(testDTMFilename, refCLSFilename, xyzOffset)
+        testDTM = testDTM + xyzOffset[2]
+    else:
+        print('NO TEST DTM: defaults to reference DTM')
+        testDTM = refDTM
 
     if testMTLFilename:
         testMTL = geo.imageWarp(testMTLFilename, refCLSFilename, xyzOffset, gdalconst.GRA_NearestNeighbour).astype(np.uint8)
-
-    testDSM = testDSM + xyzOffset[2]
-    testDTM = testDTM + xyzOffset[2]
 
     # object masks based on CLSMatchValue(s)
     refMask = np.zeros_like(refCLS, np.bool)
