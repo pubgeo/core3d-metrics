@@ -13,7 +13,7 @@ import json
 
 
 # PRIMARY FUNCTION: RUN_GEOMETRICS
-def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None):
+def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None,align=True):
 
     # check inputs
     if not os.path.isfile(configfile):
@@ -59,12 +59,16 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None):
     testDSMFilename_copy = dst
 
     # Register test model to ground truth reference model.
-    print('\n=====REGISTRATION====='); sys.stdout.flush()
-    try:
-        align3d_path = config['REGEXEPATH']['Align3DPath']
-    except:
-        align3d_path = None
-    xyzOffset = geo.align3d(refDSMFilename, testDSMFilename_copy, exec_path=align3d_path)
+    if not align:
+        print('\nSKIPPING REGISTRATION')
+        xyzOffset = (0.0,0.0,0.0)
+    else:
+        print('\n=====REGISTRATION====='); sys.stdout.flush()
+        try:
+            align3d_path = config['REGEXEPATH']['Align3DPath']
+        except:
+            align3d_path = None
+        xyzOffset = geo.align3d(refDSMFilename, testDSMFilename_copy, exec_path=align3d_path)
 
     # Read reference model files.
     print("")
@@ -151,6 +155,11 @@ def main():
     parser.add_argument('-o', '--output', dest='outputpath', 
         help='Output folder', required=False)
 
+    group = parser.add_mutually_exclusive_group(required=False)
+    group.add_argument('--align', dest='align', action='store_true')
+    group.add_argument('--no-align', dest='align', action='store_false')
+    group.set_defaults(align=True)
+
     args = parser.parse_args()
 
     # gather optional arguments
@@ -160,7 +169,7 @@ def main():
     if args.outputpath: kwargs['outputpath'] = args.outputpath
 
     # run process
-    run_geometrics(configfile=args.config,**kwargs)
+    run_geometrics(configfile=args.config,align=args.align,**kwargs)
 
 
 if __name__ == "__main__":
