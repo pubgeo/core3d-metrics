@@ -15,7 +15,8 @@ setup(
     author='JHU/APL',
     author_email='john.doe@jhuapl.edu',
     packages=find_packages(exclude=['aoi-example']),
-    data_files=[('core3dmetrics/geometrics', ['core3dmetrics/geometrics/config_schema.json'])],
+    # data_files=[('core3dmetrics/geometrics', ['core3dmetrics/geometrics/config_schema.json'])],
+    include_package_data=True,
     install_requires=['gdal', 'laspy', 'matplotlib', 'numpy', 'scipy'],
     entry_points = {'console_scripts': ['core3d-metrics=core3dmetrics:main']},
     ## entry_points={  # Optional
