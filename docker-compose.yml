@@ -16,6 +16,5 @@ services:
         - DOCKER_DEPLOY=false
     image: jhuapl/geometrics-develop
     volumes:
-      - ./temp:/src/temp
       - .:/src:ro
     working_dir: /src
