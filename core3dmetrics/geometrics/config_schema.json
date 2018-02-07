@@ -61,7 +61,6 @@
          "type": "object",
          "required": [
             "DSMFilename",
-            "DTMFilename",
             "CLSFilename",
             "CLSMatchValue"
          ],
@@ -71,7 +70,14 @@
                "type": "string"
             },
             "DTMFilename": {
-               "type": "string"
+               "oneOf": [
+                  {
+                     "type": "string"
+                  }, 
+                  {
+                     "type": "null"
+                  }
+               ]
             },
             "CLSFilename": {
                "type": "string"
