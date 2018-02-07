@@ -1,10 +1,21 @@
 version: "2.3"
 
 services:
+
   geometrics:
     build:
       context: .
       dockerfile: Dockerfile
     image: jhuapl/geometrics
+
+  geometrics-develop:
+    extends:
+      service: geometrics
+    build:
+      args:
+        - DOCKER_DEPLOY=false
+    image: jhuapl/geometrics-develop
     volumes:
+      - ./temp:/src/temp
       - .:/src:ro
+    working_dir: /src

@@ -13,10 +13,15 @@ WORKDIR /
 ARG DOCKER_DEPLOY=true
 ENV DOCKER_DEPLOY=$DOCKER_DEPLOY
 RUN if [ "$DOCKER_DEPLOY" = true ] ; then \
-        pip3 install --no-deps git+https://github.com/drewgilliam/core3d-metrics@68da71899cdfd0576cc1368c428c12f2c4c53673; \
+        pip3 install --no-deps git+https://github.com/pubgeo/core3d-metrics; \
     fi
 
 RUN apt purge -y \
     git
+
+ADD entrypoint.bsh /
+RUN chmod 755 /entrypoint.bsh
+ENTRYPOINT ["/entrypoint.bsh"]
+
 CMD echo "Please run GeoMetrics with an AOI configuration"\
     echo "docker run --rm -v /home/ubuntu/annoteGeoExamples:/data jhuapl/geometrics python3 -m core3dmetrics -c <aoi config>"
