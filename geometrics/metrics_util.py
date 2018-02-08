@@ -11,7 +11,6 @@ def calcMops(true_positives, false_negatives, false_positives):
     s['completeness'] = s['recall']
     s['correctness'] = s['precision']
     s['fscore'] = (2 * s['recall'] * s['precision']) / (s['recall'] + s['precision'])
-    return s
 
     return s
 
