@@ -120,11 +120,21 @@
       "PLOTS": {
          "type": "object",
          "required": [
-            "DoPlots"
+            "SavePlots"
          ],
          "additionalProperties": false,
          "properties": {
-            "DoPlots": {
+            "SavePlots": {
+               "type": "boolean"
+            }
+         },
+         "type": "object",
+         "required": [
+            "ShowPlots"
+         ],
+         "additionalProperties": false,
+         "properties": {
+            "Showgit Plots": {
                "type": "boolean"
             }
          }
