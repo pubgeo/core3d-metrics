@@ -162,14 +162,16 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None,align=T
 
         
     # Run the threshold geometry metrics and report results.
- 	metrics = dict()
+    metrics = dict()
     metrics['geometry'] = geo.run_threshold_geometry_metrics(refDSM, refDTM, refMask, testDSM, testDTM, testMask,
                                        tform, ignoreMask, plot=plot)
 
     # Run the terrain model metrics and report results.
-    dtm_z_threshold = config['OPTIONS']['TerrainZErrorThreshold']
-    if dtm_z_threshold is None:
+    try:
+        dtm_z_threshold = config['OPTIONS']['TerrainZErrorThreshold']
+    except:
         dtm_z_threshold = unitHgt
+
     metrics['terrain'] = geo.run_terrain_accuracy_metrics(refDTM, testDTM, refMask, testMask, dtm_z_threshold, geo.getUnitArea(tform), plot=plot)
 
     metrics['offset'] = xyzOffset
@@ -180,6 +182,7 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None,align=T
     print(json.dumps(metrics,indent=2))
 
     # Run the threshold material metrics and report results.
+    print(testMTLFilename)
     if testMTLFilename:
         geo.run_material_metrics(refNDX, refMTL, testMTL, materialNames, materialIndicesToIgnore)
     else:
