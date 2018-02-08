@@ -1,8 +1,5 @@
-from laspy.file import File
 import gdal
 import numpy as np
-import os
-
 
 def imageLoad(filename):
     im = gdal.Open(filename, gdal.GA_ReadOnly)

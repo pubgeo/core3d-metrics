@@ -261,10 +261,11 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None):
     metrics['geometry'] = geo.run_threshold_geometry_metrics(refDSM, refDTM, refMask, testDSM, testDTM, testMask,
                                        tform, ignoreMask, plot=plot)
 
-	# Run the terrain model metrics and report results.
-    # TODO: makea a real parameter
-    threshold = unitHgt*4 # meters height
-    metrics['terrain'] = geo.run_terrain_accuracy_metrics(refDTM, testDTM, refMask, testMask, threshold, geo.getUnitArea(tform), plot=plot)
+    # Run the terrain model metrics and report results.
+    dtm_z_threshold = config['OPTIONS']['TerrainZErrorThreshold']
+    if dtm_z_threshold is None:
+        dtm_z_threshold = unitHgt
+    metrics['terrain'] = geo.run_terrain_accuracy_metrics(refDTM, testDTM, refMask, testMask, dtm_z_threshold, geo.getUnitArea(tform), plot=plot)
 
     metrics['offset'] = xyzOffset
     
