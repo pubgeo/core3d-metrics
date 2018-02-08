@@ -110,23 +110,32 @@
          "required": [
             "QuantizeHeight"
          ],
+         "optional": [
+            "TerrainZErrorThreshold"
+         ],
          "additionalProperties": false,
          "properties": {
             "QuantizeHeight": {
-               "type": "boolean"
+              "type": "boolean"
+            },
+            "TerrainZErrorThreshold": {
+              "type": "number"
             }
          }
       },
       "PLOTS": {
          "type": "object",
          "required": [
-            "DoPlots"
+            "ShowPlots",
+            "SavePlots"
          ],
-         "additionalProperties": false,
          "properties": {
-            "DoPlots": {
-               "type": "boolean"
-            }
+           "ShowPlots": {
+             "type": "boolean"
+           },
+           "SavePLots": {
+             "type": "boolean"
+           }
          }
       },
       "MATERIALS.REF": {
@@ -162,10 +171,9 @@
       },
       "REGEXEPATH": {
          "type": "object",
-         "required": [
+         "optional": [
             "Align3DPath"
          ],
-         "additionalProperties": false,
          "properties": {
             "Align3DPath": {
                "type": "string"
