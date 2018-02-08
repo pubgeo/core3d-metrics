@@ -43,14 +43,14 @@
                   {
                      "type":"integer",
                      "minimum": 0,
-                     "maximim": 255
+                     "maximum": 255
                   },
                   {
                      "type": "array",
                      "items": {
                         "type": "integer",
                         "minimum": 0,
-                        "maximim": 255
+                        "maximum": 255
                      }
                   }
                ]
@@ -91,14 +91,14 @@
                   {
                      "type":"integer",
                      "minimum": 0,
-                     "maximim": 255
+                     "maximum": 255
                   }, 
                   {
                      "type": "array",
                      "items": {
                         "type": "integer",
                         "minimum": 0,
-                        "maximim": 255
+                        "maximum": 255
                      }
                   }
                ]
@@ -109,9 +109,6 @@
          "type": "object",
          "required": [
             "QuantizeHeight"
-         ],
-         "optional": [
-            "TerrainZErrorThreshold"
          ],
          "additionalProperties": false,
          "properties": {
@@ -124,16 +121,17 @@
          }
       },
       "PLOTS": {
-         "type": "object",
-         "required": [
-            "ShowPlots",
-            "SavePlots"
+          "type": "object",
+          "required": [
+              "ShowPlots",
+              "SavePlots"
          ],
+		 "additionalProperties": false,
          "properties": {
            "ShowPlots": {
              "type": "boolean"
            },
-           "SavePLots": {
+           "SavePlots": {
              "type": "boolean"
            }
          }
@@ -171,9 +169,7 @@
       },
       "REGEXEPATH": {
          "type": "object",
-         "optional": [
-            "Align3DPath"
-         ],
+         "additionalProperties": false,
          "properties": {
             "Align3DPath": {
                "type": "string"

@@ -3,13 +3,8 @@
 # This is called by run_core3d_metrics.py
 #
 
-import gdal
 import numpy as np
-import configparser
-import sys
 from collections import defaultdict
-import gdal, gdalconst
-
 
 # Define building information data structure.
 class Building:
