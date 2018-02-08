@@ -3,7 +3,7 @@ import os
 
 from .metrics_util import calcMops
 
-def run_terrain_accuracy_metrics(refDTM, testDTM, retMask, testMask, threshold, unitArea, plot=None):
+def run_terrain_accuracy_metrics(refDTM, testDTM, retMask, testMask, threshold=1, unitArea=1, plot=None):
 
     PLOTS_ENABLE = True
     if plot is None: PLOTS_ENABLE = False

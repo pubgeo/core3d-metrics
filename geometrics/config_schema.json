@@ -43,14 +43,14 @@
                   {
                      "type":"integer",
                      "minimum": 0,
-                     "maximim": 255
+                     "maximum": 255
                   },
                   {
                      "type": "array",
                      "items": {
                         "type": "integer",
                         "minimum": 0,
-                        "maximim": 255
+                        "maximum": 255
                      }
                   }
                ]
@@ -91,14 +91,14 @@
                   {
                      "type":"integer",
                      "minimum": 0,
-                     "maximim": 255
+                     "maximum": 255
                   }, 
                   {
                      "type": "array",
                      "items": {
                         "type": "integer",
                         "minimum": 0,
-                        "maximim": 255
+                        "maximum": 255
                      }
                   }
                ]
@@ -113,30 +113,27 @@
          "additionalProperties": false,
          "properties": {
             "QuantizeHeight": {
-               "type": "boolean"
+              "type": "boolean"
+            },
+            "TerrainZErrorThreshold": {
+              "type": "number"
             }
          }
       },
       "PLOTS": {
-         "type": "object",
-         "required": [
-            "SavePlots"
+          "type": "object",
+          "required": [
+              "ShowPlots",
+              "SavePlots"
          ],
-         "additionalProperties": false,
+		 "additionalProperties": false,
          "properties": {
-            "SavePlots": {
-               "type": "boolean"
-            }
-         },
-         "type": "object",
-         "required": [
-            "ShowPlots"
-         ],
-         "additionalProperties": false,
-         "properties": {
-            "Showgit Plots": {
-               "type": "boolean"
-            }
+           "ShowPlots": {
+             "type": "boolean"
+           },
+           "SavePlots": {
+             "type": "boolean"
+           }
          }
       },
       "MATERIALS.REF": {
@@ -172,9 +169,6 @@
       },
       "REGEXEPATH": {
          "type": "object",
-         "required": [
-            "Align3DPath"
-         ],
          "additionalProperties": false,
          "properties": {
             "Align3DPath": {

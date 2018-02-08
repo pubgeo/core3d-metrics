@@ -2,8 +2,6 @@
 import gdal
 import numpy as np
 
-
-
 def imageLoad(filename):
     im = gdal.Open(filename, gdal.GA_ReadOnly)
     band = im.GetRasterBand(1)
