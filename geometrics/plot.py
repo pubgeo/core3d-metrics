@@ -1,9 +1,9 @@
 import os
-
+import platform
 import numpy as np
 
 import matplotlib  as mpl
-if os.getenv('DISPLAY') is None:
+if os.getenv('DISPLAY') is None and not platform.system() == "Windows":
     import matplotlib
     matplotlib.use('Agg')
 
@@ -44,14 +44,15 @@ class plot:
             self.defaultCM = kwargs['cmap']
             
         if (os.getenv('DISPLAY') is None) and self.showPlots:
-            print('DISPLAY not set.  Disabling plot display')
-            self.showPlots = False
+            if not platform.system() == "Windows":
+                print('DISPLAY not set.  Disabling plot display')
+                self.showPlots = False
             
         plt.rcParams['image.cmap'] = self.defaultCM
 
         print("showPlots = " + str(self.showPlots))
 
-    def make(self, image, title='', fig=None, **kwargs):
+    def make(self, image=None, title='', fig=None, **kwargs):
     
         if 'badValue' in kwargs:
             image = np.array(image)
@@ -59,9 +60,13 @@ class plot:
                     
         plt.figure(fig)
         plt.clf()
-        hImg = plt.imshow(image)
         plt.title(title)
 
+		# When no image is provided, just setup figure and return handle to matplotlib
+        if image is None:
+            return plt
+
+        hImg = plt.imshow(image)
         mpl.cm.get_cmap().set_bad(color=self.badColor)
 
         if 'cmap' in kwargs:
@@ -104,7 +109,7 @@ class plot:
             plt.figure(figNum)
 
         if len(self.savePrefix) > 0:
-            saveName  = self.savePrefix + saveName
+            saveName = self.savePrefix + saveName
 
-        fn  = os.path.join(self.saveDir, saveName + self.saveExe)
-        plt.savefig(fn)
+        fn = os.path.join(self.saveDir, saveName + self.saveExe)
+        plt.savefig(fn, dpi=800)
