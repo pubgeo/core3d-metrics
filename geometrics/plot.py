@@ -57,12 +57,12 @@ class plot:
         if 'badValue' in kwargs:
             image = np.array(image)
             image[image == kwargs['badValue']] = np.nan
-                    
+
         plt.figure(fig)
         plt.clf()
         plt.title(title)
 
-		# When no image is provided, just setup figure and return handle to matplotlib
+        # When no image is provided, just setup figure and return handle to matplotlib
         if image is None:
             return plt
 
@@ -73,7 +73,7 @@ class plot:
             cmap = kwargs['cmap']
             if type(cmap) is list:
                 cmap = mpl.colors.ListedColormap(cmap)
-            hImg.cmap = cmap
+            hImg.set_cmap('Greys')
 
         if 'colorbar' in kwargs:
             if kwargs['colorbar'] is True:
@@ -112,4 +112,4 @@ class plot:
             saveName = self.savePrefix + saveName
 
         fn = os.path.join(self.saveDir, saveName + self.saveExe)
-        plt.savefig(fn, dpi=800)
+        plt.savefig(fn, dpi=900)

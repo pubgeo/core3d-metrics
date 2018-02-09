@@ -1,11 +1,7 @@
 
 import numpy as np
 from scipy.signal import convolve2d
-from scipy.misc import imsave
 from scipy.spatial import cKDTree
-
-import matplotlib
-
 
 def run_relative_accuracy_metrics(refDSM, testDSM, refMask, testMask, plot=None):
 
@@ -32,8 +28,6 @@ def run_relative_accuracy_metrics(refDSM, testDSM, refMask, testMask, plot=None)
         errorMap[errorMap < -5] = -5
         plot.make(errorMap, 'Terrain Model - Height Error', 582, saveName="relVertAcc_hgtErr_clipped", colorbar=True)
 
-
-
     # Compute relative horizontal accuracy
 
     # Find region edge pixels
@@ -53,18 +47,18 @@ def run_relative_accuracy_metrics(refDSM, testDSM, refMask, testMask, plot=None)
 
     # Generate relative horizontal accuracy plots
     if PLOTS_ENABLE:
-        plot.make(refEdge, 'Reference Model Perimeters', 591, saveName="relHorzAcc_edgeMapRef")
-        plot.make(testEdge, 'Test Model Perimeters', 592, saveName="relHorzAcc_edgeMapTest")
+        plot.make(refEdge, 'Reference Model Perimeters', 591,
+                  saveName="relHorzAcc_edgeMapRef", cmap='Greys')
+        plot.make(testEdge, 'Test Model Perimeters', 592,
+                  saveName="relHorzAcc_edgeMapTest", cmap='Greys')
 
         plt = plot.make(None,'Relative Horizontal Accuracy')
-        plt.plot(refPts[0], refPts[1], 'r.', markersize=1)
-        plt.plot(testPts[0], testPts[1], 'b.', markersize=1)
-        plt.plot((refPts[0], testPts[0][indexes]), (refPts[1], testPts[1][indexes]), 'k', linewidth=0.1)
+        plt.imshow(refMask, cmap='Greys')
+        plt.plot(refPts[1], refPts[0], 'r,')
+        plt.plot(testPts[1], testPts[0], 'b,')
+
+        plt.plot((refPts[1], testPts[1][indexes]), (refPts[0], testPts[0][indexes]), 'y', linewidth=0.05)
         plot.save("relHorzAcc_nearestPoints")
-        #imsave("plots//refMask.gif", refMask.astype(np.int) * 255)
-        #imsave("plots//testMask.gif", testMask.astype(np.int) * 255)
-        #imsave("plots//refEdge.gif", refEdge.astype(np.int) * 255)
-        #imsave("plots//testEdge.gif", testEdge.astype(np.int) * 255)
 
     metrics = {
         'zrmse': zrmse,
