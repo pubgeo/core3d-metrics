@@ -19,13 +19,15 @@ def run_terrain_accuracy_metrics(refDSM, refDTM, testDSM, testDTM, refMask, test
 # assume normal distribution and report the 68th percentile
 # ignore under buildings
     deltaWithoutBldgs = delta[np.where(refMask == 0)];
-    zrmse = np.percentile(abs(deltaWithoutBldgs),68);
+    z68 = np.percentile(abs(deltaWithoutBldgs),68);
+    z50 = np.percentile(abs(deltaWithoutBldgs),50);
+    z90 = np.percentile(abs(deltaWithoutBldgs),90);
 	
 # also print percentiles for now so we can look at them
-    print('DTM comparisons...');
-    print('90% = ', np.percentile(abs(deltaWithoutBldgs),90));	
-    print('50% = ', np.percentile(abs(deltaWithoutBldgs),50));
-    print('68% = ', np.percentile(abs(deltaWithoutBldgs),68));
+#    print('DTM comparisons...');
+#    print('90% = ', np.percentile(abs(deltaWithoutBldgs),90));	
+#    print('50% = ', np.percentile(abs(deltaWithoutBldgs),50));
+#    print('68% = ', np.percentile(abs(deltaWithoutBldgs),68));
 
 	# Define ground/not-ground in reference using threshold distance.
     groundTruth = abs(refDSM - refDTM) < threshold;
@@ -64,15 +66,17 @@ def run_terrain_accuracy_metrics(refDSM, refDTM, testDSM, testDTM, refMask, test
     unitCountFN = np.sum(FN)
 
     # Compute positive volumes for 3D metrics
-    delta = np.abs(delta)
-    volumeTP = np.sum(TP * delta) * unitArea
-    volumeFN = np.sum(FP * delta) * unitArea
-    volumeFP = np.sum(FN * delta) * unitArea
+#    delta = np.abs(delta)
+#    volumeTP = np.sum(TP * delta) * unitArea
+#    volumeFN = np.sum(FP * delta) * unitArea
+#    volumeFP = np.sum(FN * delta) * unitArea
 
     metrics = {
-        'zrmse': zrmse,
+        'z50': z50,
+		'z68 (zrmse approximation, assuming normal with zero mean)': z68,
+		'z90': z90,
         '2D': calcMops(unitCountTP, unitCountFN, unitCountFP),
-        '3D': calcMops(volumeTP, volumeFN, volumeFP),
+ #       '3D': calcMops(volumeTP, volumeFN, volumeFP),
     }
 
     return metrics
