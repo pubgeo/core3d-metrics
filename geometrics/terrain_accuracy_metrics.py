@@ -1,45 +1,24 @@
 import numpy as np
 import os
 
-import sys
-
 from .metrics_util import calcMops
 
-def run_terrain_accuracy_metrics(refDSM, refDTM, testDSM, testDTM, refMask, testMask, threshold=1, unitArea=1, plot=None):
+def run_terrain_accuracy_metrics(refDTM, testDTM, retMask, testMask, threshold=1, unitArea=1, plot=None):
 
     PLOTS_ENABLE = True
     if plot is None: PLOTS_ENABLE = False
 
     # TODO: Should we mask out made-made object? /  Only do ground?
-    ignorMask = refMask | testMask
+    ignorMask = retMask | testMask
 
     # Compute Z-RMS Error
     delta = testDTM - refDTM
-#    zrmse = np.sqrt(np.sum(delta*delta)/delta.size)
-# assume normal distribution and report the 68th percentile
-# ignore under buildings
-    deltaWithoutBldgs = delta[np.where(refMask == 0)];
-    z68 = np.percentile(abs(deltaWithoutBldgs),68);
-    z50 = np.percentile(abs(deltaWithoutBldgs),50);
-    z90 = np.percentile(abs(deltaWithoutBldgs),90);
-	
-# also print percentiles for now so we can look at them
-#    print('DTM comparisons...');
-#    print('90% = ', np.percentile(abs(deltaWithoutBldgs),90));	
-#    print('50% = ', np.percentile(abs(deltaWithoutBldgs),50));
-#    print('68% = ', np.percentile(abs(deltaWithoutBldgs),68));
+    zrmse = np.sqrt(np.sum(delta*delta)/delta.size)
 
-	# Define ground/not-ground in reference using threshold distance.
-    groundTruth = abs(refDSM - refDTM) < threshold;
-    groundTest = abs(testDSM - testDTM) < threshold;
-	
-    # Compute correctness and completeness
-#    TP = np.abs(delta) <= threshold
-#    FP = delta > threshold
-#    FN = delta < -threshold
-    TP = groundTruth & groundTest;
-    FP = (groundTruth == 0) & groundTest;
-    FN = groundTruth & (groundTest == 0);
+    # Compute a correctness and completeness
+    TP = np.abs(delta) <= threshold
+    FP = delta > threshold
+    FN = delta < -threshold
 
     if PLOTS_ENABLE:
         plot.make(delta, 'Terrain Model - Height Error', 481, saveName="dtm_HgtErr", colorbar=True)
@@ -66,17 +45,15 @@ def run_terrain_accuracy_metrics(refDSM, refDTM, testDSM, testDTM, refMask, test
     unitCountFN = np.sum(FN)
 
     # Compute positive volumes for 3D metrics
-#    delta = np.abs(delta)
-#    volumeTP = np.sum(TP * delta) * unitArea
-#    volumeFN = np.sum(FP * delta) * unitArea
-#    volumeFP = np.sum(FN * delta) * unitArea
+    delta = np.abs(delta)
+    volumeTP = np.sum(TP * delta) * unitArea
+    volumeFN = np.sum(FP * delta) * unitArea
+    volumeFP = np.sum(FN * delta) * unitArea
 
     metrics = {
-        'z50': z50,
-		'z68 (zrmse approximation, assuming normal with zero mean)': z68,
-		'z90': z90,
+        'zrmse': zrmse,
         '2D': calcMops(unitCountTP, unitCountFN, unitCountFP),
- #       '3D': calcMops(volumeTP, volumeFN, volumeFP),
+        '3D': calcMops(volumeTP, volumeFN, volumeFP),
     }
 
     return metrics
