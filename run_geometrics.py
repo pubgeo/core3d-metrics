@@ -149,12 +149,12 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None,align=T
             newRefFillValue = np.round(newRefFillValue / unitHgt) * unitHgt
     
         plot.make(refMask, 'refMask', 111)
-        plot.make(refDSM, 'refDSM', 112, colorbar=True, badValue=newRefFillValue)
-        plot.make(refDTM, 'refDTM', 113, colorbar=True, badValue=newRefFillValue)
+        plot.make(refDSM, 'refDSM', 112, colorbar=True, badValue=newRefFillValue+1)
+        plot.make(refDTM, 'refDTM', 113, colorbar=True, badValue=newRefFillValue+1)
 
         plot.make(testMask, 'testMask', 151)
-        plot.make(testDSM, 'testDSM', 152, colorbar=True, badValue=newTestFillValue)
-        plot.make(testDTM, 'testDSM', 153, colorbar=True, badValue=newTestFillValue)
+        plot.make(testDSM, 'testDSM', 152, colorbar=True, badValue=newTestFillValue+1)
+        plot.make(testDTM, 'testDTM', 153, colorbar=True, badValue=newTestFillValue+1)
 
         plot.make(ignoreMask, 'ignoreMask', 181)
 
