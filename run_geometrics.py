@@ -109,7 +109,7 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None,align=T
 
     # object masks based on CLSMatchValue(s)
     refMask = np.zeros_like(refCLS, np.bool)
-    if config['INPUT.RED']['CLSMatchValue'] == 100:
+    if config['INPUT.REF']['CLSMatchValue'] == 100:
         refMask[refCLS != 0] = True
     else:
         for v in config['INPUT.REF']['CLSMatchValue']:
