@@ -109,15 +109,18 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None,align=T
 
     # object masks based on CLSMatchValue(s)
     refMask = np.zeros_like(refCLS, np.bool)
-    if config['INPUT.REF']['CLSMatchValue'] == 100:
+    if config['INPUT.REF']['CLSMatchValue'] == [100]:
         refMask[refCLS != 0] = True
     else:
         for v in config['INPUT.REF']['CLSMatchValue']:
             refMask[refCLS == v] = True
 
     testMask = np.zeros_like(testCLS, np.bool)
-    for v in config['INPUT.TEST']['CLSMatchValue']:
-        testMask[testCLS == v] = True    
+    if config['INPUT.TEST']['CLSMatchValue'] == [100]:
+        testMask[testCLS != 0] = True
+    else:
+        for v in config['INPUT.TEST']['CLSMatchValue']:
+            testMask[testCLS == v] = True
 
     # Create mask for ignoring points labeled NoData in reference files.
     refDSM_NoDataValue = geo.getNoDataValue(refDSMFilename)
