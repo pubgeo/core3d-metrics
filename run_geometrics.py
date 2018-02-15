@@ -188,8 +188,10 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None):
     testDSM = geo.imageWarp(testDSMFilename, refCLSFilename, xyzOffset, noDataValue=noDataValue)
     testMTL = geo.imageWarp(testMTLFilename, refCLSFilename, xyzOffset, gdalconst.GRA_NearestNeighbour).astype(np.uint8)
 
-    testDSM = testDSM + xyzOffset[2]
-    testDTM = testDTM + xyzOffset[2]
+    # Apply registration offset, only to valid data to allow better tracking of bad data
+    testValidData = (testDSM != noDataValue) & (testDSM != noDataValue)
+    testDSM[testValidData] = testDSM[testValidData] + xyzOffset[2]
+    testDTM[testValidData] = testDTM[testValidData] + xyzOffset[2]
 
     # Create mask for ignoring points labeled NoData in reference files.
     refDSM_NoDataValue = geo.getNoDataValue(refDSMFilename)
@@ -212,35 +214,29 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None):
         refDTM = np.round(refDTM / unitHgt) * unitHgt
         testDSM = np.round(testDSM / unitHgt) * unitHgt
         testDTM = np.round(testDTM / unitHgt) * unitHgt
-
+        noDataValue = np.round(noDataValue / unitHgt) * unitHgt
         
     if PLOTS_ENABLE:
-        
-        # geo.imwarp sets no data value to -9999.  Adjust for offset and quantization
-        newTestFillValue = noDataValue+xyzOffset[2]
-        newRefFillValue  = noDataValue
-        if QUANTIZE:
-            newTestFillValue = np.round(newTestFillValue / unitHgt) * unitHgt
-            newRefFillValue = np.round(newRefFillValue / unitHgt) * unitHgt
-    
-        plot.make(refMask, 'refMask', 111,)
-        plot.make(refDSM, 'refDSM', 112, colorbar=True, badValue=newRefFillValue)
-        plot.make(refDTM, 'refDTM', 113, colorbar=True, badValue=newRefFillValue)
+        # Reference models can bad voids, so ignore bad data on display
+        plot.make(refDSM, 'refDSM', 111, colorbar=True, badValue=noDataValue)
+        plot.make(refDTM, 'refDTM', 112, colorbar=True, badValue=noDataValue)
+        plot.make(refMask, 'refMask', 113)
 
-        plot.make(testMask, 'testMask', 151, colorbar=True)
-        plot.make(testDSM, 'testDSM', 152, colorbar=True, badValue=newTestFillValue)
-        plot.make(testDTM, 'testDSM', 153, colorbar=True, badValue=newTestFillValue)
+        # Test models shouldn't have any bad data,
+        # so display the bad values to highlight them,
+        # unlike with the refSDM/refDTM
+        plot.make(testDSM, 'testDSM', 151, colorbar=True)
+        plot.make(testDTM, 'testDSM', 152, colorbar=True)
+        plot.make(testMask, 'testMask', 153, colorbar=True)
 
         plot.make(ignoreMask, 'ignoreMask', 181)
 
-        
 
-        
     # Run the threshold geometry metrics and report results.
     metrics = geo.run_threshold_geometry_metrics(refDSM, refDTM, refMask, REF_CLS_VALUE, testDSM, testDTM, testMask, TEST_CLS_VALUE,
                                        tform, ignoreMask, plot=plot)
 
-    metrics['offset'] = xyzOffset
+    metrics['registration_offset'] = xyzOffset
     
     fileout = os.path.join(outputpath,os.path.basename(testDSMFilename) + "_metrics.json")
     with open(fileout,'w') as fid:
