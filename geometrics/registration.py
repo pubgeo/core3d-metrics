@@ -4,6 +4,7 @@
 
 import os
 import stat
+import platform
 import numpy as np
 import gdal
 
@@ -15,6 +16,10 @@ def align3d(reference_filename, test_filename, exec_path=None):
 
     # locate align3d executable
     exec_filename = os.path.abspath(os.path.join(exec_path,'align3d'))
+
+    if platform.system() == "Windows":
+        exec_filename = exec_filename + ".exe"
+
     if not os.path.isfile(exec_filename):
         raise IOError('"align3d" executable not found at <{}>'.format(exec_filename))
 
