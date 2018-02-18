@@ -1,4 +1,3 @@
-
 import gdal
 import numpy as np
 

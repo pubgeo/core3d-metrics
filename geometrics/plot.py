@@ -22,6 +22,7 @@ class plot:
 
     showPlots = True
     autoSave = False  # Saves figure at end of call to plot.make()
+    dpi = 500
 
     def __init__(self, **kwargs):
 
@@ -42,7 +43,10 @@ class plot:
 
         if 'cmap' in kwargs:
             self.defaultCM = kwargs['cmap']
-            
+
+        if 'dpi' in kwargs:
+                self.dpi = kwargs['dpi']
+
         if (os.getenv('DISPLAY') is None) and self.showPlots:
             if not platform.system() == "Windows":
                 print('DISPLAY not set.  Disabling plot display')
@@ -62,7 +66,7 @@ class plot:
         plt.clf()
         plt.title(title)
 
-        # When no image is provided, just setup figure and return handle to matplotlib
+        # When no image is provided, setup figure and return handle to matplotlib
         if image is None:
             return plt
 
@@ -99,7 +103,6 @@ class plot:
 
 
 
-
     def save(self, saveName, figNum=None):
 
         if saveName is None:
@@ -111,5 +114,5 @@ class plot:
         if len(self.savePrefix) > 0:
             saveName = self.savePrefix + saveName
 
-        fn = os.path.join(self.saveDir, saveName + self.saveExe)
-        plt.savefig(fn, dpi=900)
+        fn  = os.path.join(self.saveDir, saveName + self.saveExe)
+        plt.savefig(fn, dpi=self.dpi)
