@@ -22,6 +22,7 @@ class plot:
 
     showPlots = True
     autoSave = False  # Saves figure at end of call to plot.make()
+    dpi = 900
 
     def __init__(self, **kwargs):
 
@@ -42,7 +43,10 @@ class plot:
 
         if 'cmap' in kwargs:
             self.defaultCM = kwargs['cmap']
-            
+
+        if 'dpi' in kwargs:
+                self.dpi = kwargs['dpi']
+
         if (os.getenv('DISPLAY') is None) and self.showPlots:
             print('DISPLAY not set.  Disabling plot display')
             self.showPlots = False
@@ -107,4 +111,4 @@ class plot:
             saveName  = self.savePrefix + saveName
 
         fn  = os.path.join(self.saveDir, saveName + self.saveExe)
-        plt.savefig(fn)
+        plt.savefig(fn, dpi=self.dpi)
