@@ -151,7 +151,7 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None):
     # Configure plotting
     basename = os.path.basename(testDSMFilename)
     if PLOTS_ENABLE:
-        plot = geo.plot(saveDir=outputpath, autoSave=PLOTS_SAVE, savePrefix=basename+'_', badColor='black',showPlots=PLOTS_SHOW)
+        plot = geo.plot(saveDir=outputpath, autoSave=PLOTS_SAVE, savePrefix=basename+'_', badColor='black',showPlots=PLOTS_SHOW, dpi=900)
     else:
         plot = None
         

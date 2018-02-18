@@ -22,7 +22,7 @@ class plot:
 
     showPlots = True
     autoSave = False  # Saves figure at end of call to plot.make()
-    dpi = 900
+    dpi = 500
 
     def __init__(self, **kwargs):
 
