@@ -19,8 +19,12 @@ def calcMops(true_positives, false_negatives, false_positives):
 def run_threshold_geometry_metrics(refDSM, refDTM, refMask, REF_CLS_VALUE, testDSM, testDTM, testMask, TEST_CLS_VALUE,
                                    tform, ignoreMask, plot=None):
                      
-    PLOTS_ENABLE = True                        
-    if plot is None: PLOTS_ENABLE = False
+
+    if plot is None:
+        PLOTS_ENABLE = False
+    else:
+        PLOTS_ENABLE = True
+        PLOTS_SAVE_PREFIX = "thresholdGeometry_"
                                    
     refMask = (refMask == REF_CLS_VALUE)
     refHgt = (refDSM - refDTM)
@@ -44,15 +48,15 @@ def run_threshold_geometry_metrics(refDSM, refDTM, refMask, REF_CLS_VALUE, testD
 
     
     if PLOTS_ENABLE:
-        plot.make(refMask, 'Reference Object Mask', 211, saveName="refMask")
-        plot.make(refObj,  'refObj', 212, colorbar=True)
+        plot.make(refMask, 'Reference Object Regions', 211, saveName=PLOTS_SAVE_PREFIX+"refObjMask")
+        plot.make(refObj,  'Reference Object Height', 212, saveName=PLOTS_SAVE_PREFIX+"refObjHgt", colorbar=True)
         
-        plot.make(testMask, 'Test Object Mask', 251, saveName="testMask")
-        plot.make(testObj, 'testObj', 252, colorbar=True)
+        plot.make(testMask, 'Test Object Regions', 251, saveName=PLOTS_SAVE_PREFIX+"testObjHgt")
+        plot.make(testObj, 'Test Object  Height', 252, saveName=PLOTS_SAVE_PREFIX+"testObjHgt", colorbar=True)
     
-        plot.make(refOnlyMask,  'False Negative Mask', 281, saveName='FN')
-        plot.make(testOnlyMask, 'False Positive Mask', 282, saveName='FP')
-        plot.make(overlapMask,  'True Positive Mask',  283, saveName='TP')
+        plot.make(refOnlyMask,  'False Negative Regions', 281, saveName=PLOTS_SAVE_PREFIX+"falseNegetive")
+        plot.make(testOnlyMask, 'False Positive Regions', 282, saveName=PLOTS_SAVE_PREFIX+"falsePositive")
+        plot.make(overlapMask,  'True Positive Regions',  283, saveName=PLOTS_SAVE_PREFIX+"truePositive")
     
     
     
@@ -114,19 +118,19 @@ def run_threshold_geometry_metrics(refDSM, refDTM, refMask, REF_CLS_VALUE, testD
         overlap = overlapMask * (testDSM - refDSM)
         errorMap[overlapMask == 1]  =  overlap[overlapMask == 1]
 
-        plot.make(errorMap, '3D Error', 291, saveName='err3D', colorbar=True)
+        plot.make(errorMap, '3D Error', 291, saveName=PLOTS_SAVE_PREFIX+"errHgt", colorbar=True)
 
         errorMap[errorMap > 5] = 5
         errorMap[errorMap < -5] = -5
-        plot.make(errorMap, '3D Error', 292, saveName='err3D_Clipped', colorbar=True)
+        plot.make(errorMap, '3D Error', 292, saveName=PLOTS_SAVE_PREFIX+"errHgtClipped", colorbar=True)
 
         tmp = deltaTop
         tmp[ignoreMask] = np.nan
-        plot.make(tmp, 'DSM Error', 293, saveName='errDSM', colorbar=True)
+        plot.make(tmp, 'DSM Error', 293, saveName=PLOTS_SAVE_PREFIX+"errHgtDSM", colorbar=True)
 
-        tmp = deltaTop
+        tmp = deltaBot
         tmp[ignoreMask] = np.nan
-        plot.make(tmp, 'DTM Error', 294, saveName='errDTM', colorbar=True)
+        plot.make(tmp, 'DTM Error', 294, saveName=PLOTS_SAVE_PREFIX+"errHgtDTM", colorbar=True)
     
     
     return metrics

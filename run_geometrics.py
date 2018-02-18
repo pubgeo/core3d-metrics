@@ -166,8 +166,8 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None):
     # Register test model to ground truth reference model.
     print('\n=====REGISTRATION====='); sys.stdout.flush()
     align3d_path = config['REGEXEPATH']['Align3DPath']
-    xyzOffset = geo.align3d(refDSMFilename, testDSMFilename_copy, exec_path=align3d_path)
-
+    #xyzOffset = geo.align3d(refDSMFilename, testDSMFilename_copy, exec_path=align3d_path)
+    xyzOffset = [0,0,0]
     # Explicitly assign an new no data value to warped images to track filled pixels
     noDataValue = -9999
     
@@ -218,18 +218,18 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None):
         
     if PLOTS_ENABLE:
         # Reference models can bad voids, so ignore bad data on display
-        plot.make(refDSM, 'refDSM', 111, colorbar=True, badValue=noDataValue)
-        plot.make(refDTM, 'refDTM', 112, colorbar=True, badValue=noDataValue)
-        plot.make(refMask, 'refMask', 113)
+        plot.make(refDSM, 'Reference DSM', 111, colorbar=True, saveName="input_refDSM", badValue=noDataValue)
+        plot.make(refDTM, 'Reference DTM', 112, colorbar=True, saveName="input_refDTM", badValue=noDataValue)
+        plot.make(refMask, 'Reference Classification', 113,  colorbar=True, saveName="input_refClass")
 
         # Test models shouldn't have any bad data,
         # so display the bad values to highlight them,
         # unlike with the refSDM/refDTM
-        plot.make(testDSM, 'testDSM', 151, colorbar=True)
-        plot.make(testDTM, 'testDSM', 152, colorbar=True)
-        plot.make(testMask, 'testMask', 153, colorbar=True)
+        plot.make(testDSM, 'Test DSM', 151, colorbar=True, saveName="input_testDSM")
+        plot.make(testDTM, 'Test DTM', 152, colorbar=True, saveName="input_testDTM")
+        plot.make(testMask, 'Test Classification', 153, colorbar=True, saveName="input_testClass")
 
-        plot.make(ignoreMask, 'ignoreMask', 181)
+        plot.make(ignoreMask, 'Ignore Mask', 181, saveName="input_ignoreMask")
 
 
     # Run the threshold geometry metrics and report results.
