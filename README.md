@@ -11,6 +11,7 @@ For more information on this and other efforts, please visit [JHU/APL](http://ww
 
 ### Requirements
 The following python3 libraries (and their dependencies) are required:
+
 * gdal
 * laspy
 * matplotlib
@@ -20,18 +21,40 @@ The following python3 libraries (and their dependencies) are required:
 
 Alternatively, you can use the provided docker [container](Dockerfile).
 
-### core3d-metrics Usage
+### Installation
+Recommend: use a [virtual environment](https://docs.python.org/3/tutorial/venv.html)
+
+    python3 setup.py install
+    python3 setup.py install --prefix=$MY_ROOT
+
+### Usage
+If installed
+
+    # from command line
+    core3d-metrics --help
+    core3d-metrics <AOI Configuration>
+    python3 -m core3dmetrics <AOI Configuration>
+
+    # in use code:
+    import core3dmetrics.geometrics as geo
+    geo.registration.align3d(reference_filename, test_filename)
+    core3dmetrics.main(['--help"])
+
+If not installed
+
+    cd core3dmetrics
     python3 run_geometrics.py <AOI Configuration>
+
 One of the first steps is to align your dataset to the ground truth. This is performed using pubgeo's [ALIGN3D](https://github.com/pubgeo/pubgeo/#align3d) algorithm.
 The algorithm then calculates metrics for 2D, 3D, and spectral classification against the ground truth.
 
 #### Input
-_AOI Configuration_ is a configuration file using python's ConfigParser that is further described in [aoi-config.md].
+_AOI Configuration_ is a configuration file using python's ConfigParser that is further described in [aoi-config.md](aoi-example/aoi-config.md).
 This configuration file defines which files to analyze and what to compare against (ground truth). Additionally the config is
 to toggle various software settings.
 
 #### Example Output
-    python3 run_geometrics.py aoi.config
+    python3 -m core3dmetrics -c aoi.config
 This command would perform metric analysis on the test dataset provided by the aoi.config file. This analysis will also generate the following files (in place):
 * < test dataset >_2d_metrics.txt
 * < test dataset >_3d_metrics.txt

@@ -7,9 +7,14 @@ import sys
 import shutil
 import gdalconst
 import numpy as np
-import geometrics as geo
 import argparse
 import json
+
+
+try:
+    import core3dmetrics.geometrics as geo
+except:
+    import geometrics as geo
 
 
 # PRIMARY FUNCTION: RUN_GEOMETRICS
@@ -31,7 +36,7 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None,align=T
 
     # Get test model information from configuration file.
     testDSMFilename = config['INPUT.TEST']['DSMFilename']
-    testDTMFilename = config['INPUT.TEST']['DTMFilename']
+    testDTMFilename = config['INPUT.TEST'].get('DTMFilename',None)
     testCLSFilename = config['INPUT.TEST']['CLSFilename']
     testMTLFilename = config['INPUT.TEST'].get('MTLFilename',None)
 
@@ -97,9 +102,15 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None,align=T
     # Read test model files and apply XYZ offsets.
     print("Reading test model files...")
     print("")
-    testDTM = geo.imageWarp(testDTMFilename, refCLSFilename, xyzOffset, noDataValue=noDataValue)
     testCLS = geo.imageWarp(testCLSFilename, refCLSFilename, xyzOffset, gdalconst.GRA_NearestNeighbour)
     testDSM = geo.imageWarp(testDSMFilename, refCLSFilename, xyzOffset, noDataValue=noDataValue)
+    testDSM = testDSM + xyzOffset[2]
+
+    if testDTMFilename:
+        testDTM = geo.imageWarp(testDTMFilename, refCLSFilename, xyzOffset, noDataValue=noDataValue)
+    else:
+        print('NO TEST DTM: defaults to reference DTM')
+        testDTM = refDTM
 
     if testMTLFilename:
         testMTL = geo.imageWarp(testMTLFilename, refCLSFilename, xyzOffset, gdalconst.GRA_NearestNeighbour).astype(np.uint8)
@@ -107,7 +118,8 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None,align=T
     # Apply registration offset, only to valid data to allow better tracking of bad data
     testValidData = (testDSM != noDataValue) & (testDSM != noDataValue)
     testDSM[testValidData] = testDSM[testValidData] + xyzOffset[2]
-    testDTM[testValidData] = testDTM[testValidData] + xyzOffset[2]
+    if testDTMFilename:
+        testDTM[testValidData] = testDTM[testValidData] + xyzOffset[2]
 
     # object masks based on CLSMatchValue(s)
     refMask = np.zeros_like(refCLS, np.bool)
@@ -200,35 +212,36 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None,align=T
             input("Press Enter to continue...")
 
 # command line function
-def main():
-
+def main(args=None):
+    if args is None:
+        args = sys.argv[1:]
+        
     # parse inputs
-    parser = argparse.ArgumentParser()
-    parser.add_argument('-c', '--config', dest='config', 
-        help='Configuration file', required=True)
+    parser = argparse.ArgumentParser(description='core3dmetrics entry point', prog='core3dmetrics')
+    parser.add_argument('-c', '--config', dest='config',
+                            help='Configuration file', required=True, metavar='')
     parser.add_argument('-r', '--reference', dest='refpath', 
-        help='Reference data folder', required=False)
+                            help='Reference data folder', required=False, metavar='')
     parser.add_argument('-t', '--test', dest='testpath', 
-        help='Test data folder', required=False)
+                            help='Test data folder', required=False, metavar='')
     parser.add_argument('-o', '--output', dest='outputpath', 
-        help='Output folder', required=False)
-
+                            help='Output folder', required=False, metavar='')
+    
     group = parser.add_mutually_exclusive_group(required=False)
     group.add_argument('--align', dest='align', action='store_true')
     group.add_argument('--no-align', dest='align', action='store_false')
     group.set_defaults(align=True)
 
     args = parser.parse_args()
-
+    
     # gather optional arguments
     kwargs = {}
     if args.refpath: kwargs['refpath'] = args.refpath
     if args.testpath: kwargs['testpath'] = args.testpath
     if args.outputpath: kwargs['outputpath'] = args.outputpath
-
+    
     # run process
     run_geometrics(configfile=args.config,align=args.align,**kwargs)
-
 
 if __name__ == "__main__":
     main()
