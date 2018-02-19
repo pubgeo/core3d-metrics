@@ -111,12 +111,22 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None,align=T
 
     # object masks based on CLSMatchValue(s)
     refMask = np.zeros_like(refCLS, np.bool)
-    for v in config['INPUT.REF']['CLSMatchValue']:
-        refMask[refCLS == v] = True
+    # For CLS value 256, evaluate against all non-zero pixels
+    # CLS values should range from 0 to 255 per ASPRS
+    # (American Society for Photogrammetry and Remote Sensing)
+    # LiDAR point cloud classification LAS standard
+    if config['INPUT.REF']['CLSMatchValue'] == [256]:
+        refMask[refCLS != 0] = True
+    else:
+        for v in config['INPUT.REF']['CLSMatchValue']:
+            refMask[refCLS == v] = True
 
     testMask = np.zeros_like(testCLS, np.bool)
-    for v in config['INPUT.TEST']['CLSMatchValue']:
-        testMask[testCLS == v] = True    
+    if config['INPUT.TEST']['CLSMatchValue'] == [256]:
+        testMask[testCLS != 0] = True
+    else:
+        for v in config['INPUT.TEST']['CLSMatchValue']:
+            testMask[testCLS == v] = True
 
     # Create mask for ignoring points labeled NoData in reference files.
     refDSM_NoDataValue = geo.getNoDataValue(refDSMFilename)
