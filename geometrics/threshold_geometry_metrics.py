@@ -105,11 +105,11 @@ def run_threshold_geometry_metrics(refDSM, refDTM, refMask, testDSM, testDTM, te
         overlap = overlapMask * (testDSM - refDSM)
         errorMap[overlapMask == 1]  =  overlap[overlapMask == 1]
 
-        plot.make(errorMap, '3D Error', 291, saveName=PLOTS_SAVE_PREFIX+"errHgt", colorbar=True)
+        plot.make(errorMap, 'Height Error', 291, saveName=PLOTS_SAVE_PREFIX+"errHgt", colorbar=True)
 
         errorMap[errorMap > 5] = 5
         errorMap[errorMap < -5] = -5
-        plot.make(errorMap, '3D Error', 292, saveName=PLOTS_SAVE_PREFIX+"errHgtClipped", colorbar=True)
+        plot.make(errorMap, 'Height Error', 292, saveName=PLOTS_SAVE_PREFIX+"errHgtClipped", colorbar=True)
 
         tmp = deltaTop
         tmp[ignoreMask] = np.nan

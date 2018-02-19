@@ -101,6 +101,9 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None,align=T
     testCLS = geo.imageWarp(testCLSFilename, refCLSFilename, xyzOffset, gdalconst.GRA_NearestNeighbour)
     testDSM = geo.imageWarp(testDSMFilename, refCLSFilename, xyzOffset, noDataValue=noDataValue)
 
+    if testMTLFilename:
+        testMTL = geo.imageWarp(testMTLFilename, refCLSFilename, xyzOffset, gdalconst.GRA_NearestNeighbour).astype(np.uint8)
+
     # Apply registration offset, only to valid data to allow better tracking of bad data
     testValidData = (testDSM != noDataValue) & (testDSM != noDataValue)
     testDSM[testValidData] = testDSM[testValidData] + xyzOffset[2]
@@ -142,14 +145,16 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None,align=T
         # Reference models can bad voids, so ignore bad data on display
         plot.make(refDSM, 'Reference DSM', 111, colorbar=True, saveName="input_refDSM", badValue=noDataValue)
         plot.make(refDTM, 'Reference DTM', 112, colorbar=True, saveName="input_refDTM", badValue=noDataValue)
-        plot.make(refMask, 'Reference Classification', 113,  colorbar=True, saveName="input_refClass")
+        plot.make(testCLS, 'Reference Classification', 113,  colorbar=True, saveName="input_refClass")
+        plot.make(testMask.astype(np.int), 'Reference Evaluation Mask', 114, colorbar=True, saveName="input_refMask")
 
         # Test models shouldn't have any bad data,
         # so display the bad values to highlight them,
         # unlike with the refSDM/refDTM
         plot.make(testDSM, 'Test DSM', 151, colorbar=True, saveName="input_testDSM")
         plot.make(testDTM, 'Test DTM', 152, colorbar=True, saveName="input_testDTM")
-        plot.make(testMask, 'Test Classification', 153, colorbar=True, saveName="input_testClass")
+        plot.make(testCLS, 'Test Classification', 153, colorbar=True, saveName="input_testClass")
+        plot.make(testMask.astype(np.int), 'Test Evaluation Mask', 154, colorbar=True, saveName="input_testMask")
 
         plot.make(ignoreMask, 'Ignore Mask', 181, saveName="input_ignoreMask")
 

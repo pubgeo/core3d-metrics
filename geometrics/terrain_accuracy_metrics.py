@@ -21,23 +21,23 @@ def run_terrain_accuracy_metrics(refDTM, testDTM, retMask, testMask, threshold=1
     FN = delta < -threshold
 
     if PLOTS_ENABLE:
-        plot.make(delta, 'Terrain Model - Height Error', 481, saveName="dtm_HgtErr", colorbar=True)
+        plot.make(delta, 'Terrain Model - Height Error', 481, saveName="terrainAcc_HgtErr", colorbar=True)
 
-        plot.make(TP, 'Terrain Model - True Positive', 482, saveName="dtmTP_Mask")
-        plot.make(FP, 'Terrain Model - False Positive', 483, saveName="dtmFP_Mask")
-        plot.make(FN, 'Terrain Model - False Negetive', 484, saveName="dtmFN_Mask")
+        plot.make(TP, 'Terrain Model - True Positive', 482, saveName="terrainAcc_truePositive")
+        plot.make(FP, 'Terrain Model - False Positive', 483, saveName="terrainAcc_falsePositive")
+        plot.make(FN, 'Terrain Model - False Negetive', 484, saveName="terrainAcc_falseNegetive")
 
         errorMap = TP*delta
         errorMap[TP == 0] = np.nan
-        plot.make(errorMap, 'Terrain Model - True Positive - Height Error', 492, saveName='dtmTP_HgtErr', colorbar=True)
+        plot.make(errorMap, 'Terrain Model - True Positive - Height Error', 492, saveName='terrainAcc_truePositive_HgtErr', colorbar=True)
 
         errorMap = FP*delta
         errorMap[FP == 0] = np.nan
-        plot.make(errorMap, 'Terrain Model - False Positive - Height Error', 493, saveName='dtmFP_HgtErr', colorbar=True)
+        plot.make(errorMap, 'Terrain Model - False Positive - Height Error', 493, saveName='terrainAcc_falsePositive_HgtErr', colorbar=True)
 
         errorMap = FN*delta
         errorMap[FN == 0] = np.nan
-        plot.make(errorMap, 'Terrain Model - False Negetive - Height Error', 494, saveName='dtmFN_HgtErr', colorbar=True)
+        plot.make(errorMap, 'Terrain Model - False Negetive - Height Error', 494, saveName='terrainAcc_falseNegetive_HgtErr', colorbar=True)
 
     # Count number of pixels for 2D metrics
     unitCountTP = np.sum(TP)
