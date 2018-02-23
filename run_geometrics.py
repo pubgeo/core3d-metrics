@@ -172,7 +172,7 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None,align=T
     except:
         dtm_z_threshold = unitHgt
 
-    metrics['terrain'] = geo.run_terrain_accuracy_metrics(refDTM, testDTM, refMask, testMask, dtm_z_threshold, geo.getUnitArea(tform), plot=plot)
+    metrics['terrain'] = geo.run_terrain_accuracy_metrics(refDSM, refDTM, testDSM, testDTM, refMask, testMask, dtm_z_threshold, geo.getUnitArea(tform), plot=plot)
 
     metrics['offset'] = xyzOffset
     

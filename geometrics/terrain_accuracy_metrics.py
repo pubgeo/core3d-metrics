@@ -1,24 +1,35 @@
 import numpy as np
 import os
+import sys
 
 from .metrics_util import calcMops
 
-def run_terrain_accuracy_metrics(refDTM, testDTM, retMask, testMask, threshold=1, unitArea=1, plot=None):
+def run_terrain_accuracy_metrics(refDSM, refDTM, testDSM, testDTM, refMask, testMask, threshold=1, unitArea=1, plot=None):
 
     PLOTS_ENABLE = True
     if plot is None: PLOTS_ENABLE = False
 
-    # TODO: Should we mask out made-made object? /  Only do ground?
-    ignorMask = retMask | testMask
-
-    # Compute Z-RMS Error
+    # Compute Z error percentiles.
+    # Ignore objects identified by the reference mask because the
+    # ground is not expected to be observable under those objects.
     delta = testDTM - refDTM
-    zrmse = np.sqrt(np.sum(delta*delta)/delta.size)
+    delta_minus_mask = delta[np.where(refMask == 0)]
+    z68 = np.percentile(abs(delta_minus_mask),68)
+    z50 = np.percentile(abs(delta_minus_mask),50)
+    z90 = np.percentile(abs(delta_minus_mask),90)
 
-    # Compute a correctness and completeness
-    TP = np.abs(delta) <= threshold
-    FP = delta > threshold
-    FN = delta < -threshold
+    # Determine ground and not-ground using threshold distance between DSM and DTM.
+    # It would be more accurate to define this explicitly in the reference 
+    # and test classification labels, but we currently don't require ground to be
+    # explicitly labeled in the input files. We should consider changing this, but
+    # this is a close approximation for now.
+    groundTruth = abs(refDSM - refDTM) < threshold
+    groundTest = abs(testDSM - testDTM) < threshold
+
+    # Compute correctness and completeness
+    TP = groundTruth & groundTest;
+    FP = (groundTruth == 0) & groundTest;
+    FN = groundTruth & (groundTest == 0);
 
     if PLOTS_ENABLE:
         plot.make(delta, 'Terrain Model - Height Error', 481, saveName="dtm_HgtErr", colorbar=True)
@@ -44,16 +55,11 @@ def run_terrain_accuracy_metrics(refDTM, testDTM, retMask, testMask, threshold=1
     unitCountFP = np.sum(FP)
     unitCountFN = np.sum(FN)
 
-    # Compute positive volumes for 3D metrics
-    delta = np.abs(delta)
-    volumeTP = np.sum(TP * delta) * unitArea
-    volumeFN = np.sum(FP * delta) * unitArea
-    volumeFP = np.sum(FN * delta) * unitArea
-
     metrics = {
-        'zrmse': zrmse,
-        '2D': calcMops(unitCountTP, unitCountFN, unitCountFP),
-        '3D': calcMops(volumeTP, volumeFN, volumeFP),
+        'z50': z50,
+        'zrmse': z68,
+        'z90': z90,
+        '2D': calcMops(unitCountTP, unitCountFN, unitCountFP)
     }
 
     return metrics
