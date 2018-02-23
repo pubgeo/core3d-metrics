@@ -3,32 +3,33 @@ import numpy as np
 from scipy.signal import convolve2d
 from scipy.spatial import cKDTree
 
-def run_relative_accuracy_metrics(refDSM, testDSM, refMask, testMask, plot=None):
+def run_relative_accuracy_metrics(refDSM, testDSM, refMask, testMask, gsd, plot=None):
 
     PLOTS_ENABLE = True
     if plot is None: PLOTS_ENABLE = False
 
     # Compute relative vertical accuracy
+    # Consider only objects selected in reference mask.
 
-    # Evaluate only in overlap region
-    evalMask = refMask & testMask
-
-    # Calculate Z-RMS Error
+    # Calculate Z percentile errors.
+    # Z68 approximates ZRMSE assuming normal error distribution.
     delta = testDSM - refDSM
-    delta = delta*evalMask
-    zrmse = np.sqrt(np.sum(delta * delta) / delta.size)
+    z68 = np.percentile(abs(delta[np.where(refMask)]),68)
+    z50 = np.percentile(abs(delta[np.where(refMask)]),50)
+    z90 = np.percentile(abs(delta[np.where(refMask)]),90)
 
     # Generate relative vertical accuracy plots
     if PLOTS_ENABLE:
         errorMap = delta
-        delta[evalMask == 0] = np.nan
-        plot.make(errorMap, 'Terrain Model - Height Error', 581, saveName="relVertAcc_hgtErr", colorbar=True)
+        delta[refMask == 0] = np.nan
+        plot.make(errorMap, 'Surface Model - Height Error', 581, saveName="relVertAcc_hgtErr", colorbar=True)
 
         errorMap[errorMap > 5] = 5
         errorMap[errorMap < -5] = -5
-        plot.make(errorMap, 'Terrain Model - Height Error', 582, saveName="relVertAcc_hgtErr_clipped", colorbar=True)
+        plot.make(errorMap, 'Surface Model - Height Error', 582, saveName="relVertAcc_hgtErr_clipped", colorbar=True)
 
     # Compute relative horizontal accuracy
+    # Consider only objects selected in reference mask.
 
     # Find region edge pixels
     kernel = np.ones((3, 3), np.int)
@@ -42,8 +43,13 @@ def run_relative_accuracy_metrics(refDSM, testDSM, refMask, testMask, plot=None)
     # Use KD Tree to find test point nearest each reference point
     tree = cKDTree(np.transpose(testPts))
     dist, indexes = tree.query(np.transpose(refPts))
+    dist = dist * gsd
 
-    hrmse = np.sqrt(np.sum(dist * dist) / dist.size)
+    # Calculate horizontal percentile errors.
+    # H63 approximates HRMSE assuming binormal error distribution.
+    h63 = np.percentile(abs(dist),63)
+    h50 = np.percentile(abs(dist),50)
+    h90 = np.percentile(abs(dist),90)
 
     # Generate relative horizontal accuracy plots
     if PLOTS_ENABLE:
@@ -61,7 +67,11 @@ def run_relative_accuracy_metrics(refDSM, testDSM, refMask, testMask, plot=None)
         plot.save("relHorzAcc_nearestPoints")
 
     metrics = {
-        'zrmse': zrmse,
-        'hrmse': hrmse
+        'z50': z50,
+        'zrmse': z68,
+        'z90': z90,
+		'h50': h50,
+        'hrmse': h63,
+        'h90': h90
     }
     return metrics
