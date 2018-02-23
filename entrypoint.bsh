@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+
+set -eu
+
+# install current module in develop mode
+if [ "$DOCKER_DEPLOY" = false ] ; then
+  echo "ENTERING DEVELOP MODE"
+  echo "Installing local core3dmetrics code via 'pip install -e'" 
+
+  # install from linked shadow directory
+  # this avoids a "*.egg-info" directory being created in the source directory
+  mkdir -p /src-shadow
+  ln -s /src/* /src-shadow
+  pip3 install --no-deps -e /src-shadow
+
+  printf "\n\n"
+fi
+
+# run incoming command
+if [ "${@+$1}" == "some_app_name" ]; then
+  echo "some_app_name"
+else
+  exec "${@}"
+fi
+

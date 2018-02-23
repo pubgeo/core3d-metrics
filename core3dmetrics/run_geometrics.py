@@ -7,9 +7,14 @@ import sys
 import shutil
 import gdalconst
 import numpy as np
-import geometrics as geo
 import argparse
 import json
+
+
+try:
+    import core3dmetrics.geometrics as geo
+except:
+    import geometrics as geo
 
 
 # PRIMARY FUNCTION: RUN_GEOMETRICS
@@ -31,7 +36,7 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None,align=T
 
     # Get test model information from configuration file.
     testDSMFilename = config['INPUT.TEST']['DSMFilename']
-    testDTMFilename = config['INPUT.TEST']['DTMFilename']
+    testDTMFilename = config['INPUT.TEST'].get('DTMFilename',None)
     testCLSFilename = config['INPUT.TEST']['CLSFilename']
     testMTLFilename = config['INPUT.TEST'].get('MTLFilename',None)
 
@@ -58,7 +63,7 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None,align=T
     # Configure plotting
     basename = os.path.basename(testDSMFilename)
     if PLOTS_ENABLE:
-        plot = geo.plot(saveDir=outputpath, autoSave=PLOTS_SAVE, savePrefix=basename+'_', badColor='black',showPlots=PLOTS_SHOW)
+        plot = geo.plot(saveDir=outputpath, autoSave=PLOTS_SAVE, savePrefix=basename+'_', badColor='black',showPlots=PLOTS_SHOW, dpi=900)
     else:
         plot = None
         
@@ -97,24 +102,43 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None,align=T
     # Read test model files and apply XYZ offsets.
     print("Reading test model files...")
     print("")
-    testDTM = geo.imageWarp(testDTMFilename, refCLSFilename, xyzOffset, noDataValue=noDataValue)
     testCLS = geo.imageWarp(testCLSFilename, refCLSFilename, xyzOffset, gdalconst.GRA_NearestNeighbour)
     testDSM = geo.imageWarp(testDSMFilename, refCLSFilename, xyzOffset, noDataValue=noDataValue)
+    testDSM = testDSM + xyzOffset[2]
+
+    if testDTMFilename:
+        testDTM = geo.imageWarp(testDTMFilename, refCLSFilename, xyzOffset, noDataValue=noDataValue)
+    else:
+        print('NO TEST DTM: defaults to reference DTM')
+        testDTM = refDTM
 
     if testMTLFilename:
         testMTL = geo.imageWarp(testMTLFilename, refCLSFilename, xyzOffset, gdalconst.GRA_NearestNeighbour).astype(np.uint8)
 
-    testDSM = testDSM + xyzOffset[2]
-    testDTM = testDTM + xyzOffset[2]
+    # Apply registration offset, only to valid data to allow better tracking of bad data
+    testValidData = (testDSM != noDataValue) & (testDSM != noDataValue)
+    testDSM[testValidData] = testDSM[testValidData] + xyzOffset[2]
+    if testDTMFilename:
+        testDTM[testValidData] = testDTM[testValidData] + xyzOffset[2]
 
     # object masks based on CLSMatchValue(s)
     refMask = np.zeros_like(refCLS, np.bool)
-    for v in config['INPUT.REF']['CLSMatchValue']:
-        refMask[refCLS == v] = True
+    # For CLS value 256, evaluate against all non-zero pixels
+    # CLS values should range from 0 to 255 per ASPRS
+    # (American Society for Photogrammetry and Remote Sensing)
+    # LiDAR point cloud classification LAS standard
+    if config['INPUT.REF']['CLSMatchValue'] == [256]:
+        refMask[refCLS != 0] = True
+    else:
+        for v in config['INPUT.REF']['CLSMatchValue']:
+            refMask[refCLS == v] = True
 
     testMask = np.zeros_like(testCLS, np.bool)
-    for v in config['INPUT.TEST']['CLSMatchValue']:
-        testMask[testCLS == v] = True    
+    if config['INPUT.TEST']['CLSMatchValue'] == [256]:
+        testMask[testCLS != 0] = True
+    else:
+        for v in config['INPUT.TEST']['CLSMatchValue']:
+            testMask[testCLS == v] = True
 
     # Create mask for ignoring points labeled NoData in reference files.
     refDSM_NoDataValue = geo.getNoDataValue(refDSMFilename)
@@ -137,28 +161,24 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None,align=T
         refDTM = np.round(refDTM / unitHgt) * unitHgt
         testDSM = np.round(testDSM / unitHgt) * unitHgt
         testDTM = np.round(testDTM / unitHgt) * unitHgt
-
-    # Get ground sample distance.
-    gsd = geo.getUnitHeight(tform)
-        
+        noDataValue = np.round(noDataValue / unitHgt) * unitHgt
+       
     if PLOTS_ENABLE:
-        
-        # geo.imwarp sets no data value to -9999.  Adjust for offset and quantization
-        newTestFillValue = noDataValue+xyzOffset[2]
-        newRefFillValue  = noDataValue
-        if QUANTIZE:
-            newTestFillValue = np.round(newTestFillValue / unitHgt) * unitHgt
-            newRefFillValue = np.round(newRefFillValue / unitHgt) * unitHgt
-    
-        plot.make(refMask, 'refMask', 111)
-        plot.make(refDSM, 'refDSM', 112, colorbar=True, badValue=newRefFillValue)
-        plot.make(refDTM, 'refDTM', 113, colorbar=True, badValue=newRefFillValue)
+        # Reference models can bad voids, so ignore bad data on display
+        plot.make(refDSM, 'Reference DSM', 111, colorbar=True, saveName="input_refDSM", badValue=noDataValue)
+        plot.make(refDTM, 'Reference DTM', 112, colorbar=True, saveName="input_refDTM", badValue=noDataValue)
+        plot.make(testCLS, 'Reference Classification', 113,  colorbar=True, saveName="input_refClass")
+        plot.make(testMask.astype(np.int), 'Reference Evaluation Mask', 114, colorbar=True, saveName="input_refMask")
 
-        plot.make(testMask, 'testMask', 151)
-        plot.make(testDSM, 'testDSM', 152, colorbar=True, badValue=newTestFillValue)
-        plot.make(testDTM, 'testDSM', 153, colorbar=True, badValue=newTestFillValue)
+        # Test models shouldn't have any bad data,
+        # so display the bad values to highlight them,
+        # unlike with the refSDM/refDTM
+        plot.make(testDSM, 'Test DSM', 151, colorbar=True, saveName="input_testDSM")
+        plot.make(testDTM, 'Test DTM', 152, colorbar=True, saveName="input_testDTM")
+        plot.make(testCLS, 'Test Classification', 153, colorbar=True, saveName="input_testClass")
+        plot.make(testMask.astype(np.int), 'Test Evaluation Mask', 154, colorbar=True, saveName="input_testMask")
 
-        plot.make(ignoreMask, 'ignoreMask', 181)
+        plot.make(ignoreMask, 'Ignore Mask', 181, saveName="input_ignoreMask")
 
 
     # Run the threshold geometry metrics and report results.
@@ -166,13 +186,11 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None,align=T
     metrics['threshold_geometry'] = geo.run_threshold_geometry_metrics(refDSM, refDTM, refMask, testDSM, testDTM, testMask,
                                        tform, ignoreMask, plot=plot)
 
+    metrics['registration_offset'] = xyzOffset
     # Run the terrain model metrics and report results.
-    try:
-        dtm_z_threshold = config['OPTIONS']['TerrainZErrorThreshold']
-    except:
-        dtm_z_threshold = 1
+    dtm_z_threshold = config['OPTIONS'].get('TerrainZErrorThreshold',1)
     metrics['terrain_accuracy'] = geo.run_terrain_accuracy_metrics(refDSM, refDTM, testDSM, testDTM, refMask, testMask, dtm_z_threshold, geo.getUnitArea(tform), plot=plot)
-    metrics['relative_accuracy'] = geo.run_relative_accuracy_metrics(refDSM, testDSM, refMask, testMask, gsd, plot=plot)
+    metrics['relative_accuracy'] = geo.run_relative_accuracy_metrics(refDSM, testDSM, refMask, testMask, geo.getUnitWidth(tform), plot=plot)
     metrics['offset'] = xyzOffset
     
     fileout = os.path.join(outputpath,os.path.basename(testDSMFilename) + "_metrics.json")
@@ -191,35 +209,36 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None,align=T
             input("Press Enter to continue...")
 
 # command line function
-def main():
-
+def main(args=None):
+    if args is None:
+        args = sys.argv[1:]
+        
     # parse inputs
-    parser = argparse.ArgumentParser()
-    parser.add_argument('-c', '--config', dest='config', 
-        help='Configuration file', required=True)
+    parser = argparse.ArgumentParser(description='core3dmetrics entry point', prog='core3dmetrics')
+    parser.add_argument('-c', '--config', dest='config',
+                            help='Configuration file', required=True, metavar='')
     parser.add_argument('-r', '--reference', dest='refpath', 
-        help='Reference data folder', required=False)
+                            help='Reference data folder', required=False, metavar='')
     parser.add_argument('-t', '--test', dest='testpath', 
-        help='Test data folder', required=False)
+                            help='Test data folder', required=False, metavar='')
     parser.add_argument('-o', '--output', dest='outputpath', 
-        help='Output folder', required=False)
-
+                            help='Output folder', required=False, metavar='')
+    
     group = parser.add_mutually_exclusive_group(required=False)
     group.add_argument('--align', dest='align', action='store_true')
     group.add_argument('--no-align', dest='align', action='store_false')
     group.set_defaults(align=True)
 
     args = parser.parse_args()
-
+    
     # gather optional arguments
     kwargs = {}
     if args.refpath: kwargs['refpath'] = args.refpath
     if args.testpath: kwargs['testpath'] = args.testpath
     if args.outputpath: kwargs['outputpath'] = args.outputpath
-
+    
     # run process
     run_geometrics(configfile=args.config,align=args.align,**kwargs)
-
 
 if __name__ == "__main__":
     main()

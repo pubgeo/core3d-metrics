@@ -4,6 +4,7 @@
 
 import os
 import stat
+import platform
 import numpy as np
 import gdal
 
@@ -12,6 +13,8 @@ def align3d(reference_filename, test_filename, exec_path=None):
 
     # align3d executable (typically on the system $PATH)
     exec_filename = 'align3d'
+    if platform.system() == "Windows":
+        exec_filename = exec_filename + ".exe"
 
     # locate align3d executable
     if exec_path: 
