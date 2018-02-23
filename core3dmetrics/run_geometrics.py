@@ -162,7 +162,7 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None,align=T
         testDSM = np.round(testDSM / unitHgt) * unitHgt
         testDTM = np.round(testDTM / unitHgt) * unitHgt
         noDataValue = np.round(noDataValue / unitHgt) * unitHgt
-        
+       
     if PLOTS_ENABLE:
         # Reference models can bad voids, so ignore bad data on display
         plot.make(refDSM, 'Reference DSM', 111, colorbar=True, saveName="input_refDSM", badValue=noDataValue)
@@ -188,12 +188,9 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None,align=T
 
     metrics['registration_offset'] = xyzOffset
     # Run the terrain model metrics and report results.
-    
     dtm_z_threshold = config['OPTIONS'].get('TerrainZErrorThreshold',1)
-    metrics['terrain_accuracy'] = geo.run_terrain_accuracy_metrics(refDTM, testDTM, refMask, testMask, dtm_z_threshold, geo.getUnitArea(tform), plot=plot)
-
-    metrics['relative_accuracy'] = geo.run_relative_accuracy_metrics(refDSM, testDSM, refMask, testMask, plot=plot)
-
+    metrics['terrain_accuracy'] = geo.run_terrain_accuracy_metrics(refDSM, refDTM, testDSM, testDTM, refMask, testMask, dtm_z_threshold, geo.getUnitArea(tform), plot=plot)
+    metrics['relative_accuracy'] = geo.run_relative_accuracy_metrics(refDSM, testDSM, refMask, testMask, geo.getUnitWidth(tform), plot=plot)
     metrics['offset'] = xyzOffset
     
     fileout = os.path.join(outputpath,os.path.basename(testDSMFilename) + "_metrics.json")

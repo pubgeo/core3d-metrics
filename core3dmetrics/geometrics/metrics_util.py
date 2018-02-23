@@ -21,3 +21,6 @@ def getUnitArea(tform):
 
 def getUnitHeight(tform):
     return (abs(tform[1]) + abs(tform[5])) / 2
+
+def getUnitWidth(tform):
+    return (abs(tform[1]) + abs(tform[5])) / 2
