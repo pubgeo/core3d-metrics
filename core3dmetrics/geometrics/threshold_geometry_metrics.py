@@ -19,7 +19,7 @@ def run_threshold_geometry_metrics(refDSM, refDTM, refMask, testDSM, testDTM, te
     refObj = refHgt
     refObj[~refMask] = 0
 
-    testHgt = (testDSM - testDTM)
+    testHgt = (testDSM - refDTM)
     testObj = np.copy(testHgt)
     testObj[~testMask] = 0
 
