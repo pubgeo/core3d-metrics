@@ -65,7 +65,7 @@ def parse_config(configfile,refpath=None,testpath=None):
 
     # create schema validator object (& check schema itself)
     schema = json.loads(pkg_resources.resource_string(
-        resource_package, 'config_schema.json'))
+        resource_package, 'config_schema.json').decode('utf-8'))
     validator = jsonschema.Draft4Validator(schema)
     validator.check_schema(schema)
     
