@@ -33,7 +33,6 @@ to toggle various software settings.
 #### Example Output
     python3 run_geometrics.py -c aoi.config
 This command would perform metric analysis on the test dataset provided by the aoi.config file. This analysis will also generate the following files (in place):
-* < test dataset >_2d_metrics.txt
-* < test dataset >_3d_metrics.txt
+* < test dataset >_metrics.json
 
 These files contain the determined metrics for completeness, correctness, f-score, Jaccard Index, Branching Factor, and the Align3d offsets.
