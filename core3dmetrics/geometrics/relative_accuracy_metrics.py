@@ -3,30 +3,29 @@ import numpy as np
 from scipy.signal import convolve2d
 from scipy.spatial import cKDTree
 
-def run_relative_accuracy_metrics(refDSM, testDSM, refMask, testMask, gsd, plot=None):
+def run_relative_accuracy_metrics(refDSM, testDSM, refMask, testMask, ignoreMask, gsd, plot=None):
 
     PLOTS_ENABLE = True
     if plot is None: PLOTS_ENABLE = False
 
     # Compute relative vertical accuracy
-    # Consider only objects selected in reference mask.
+    # Consider only objects selected in both reference and test masks.
 
     # Calculate Z percentile errors.
     # Z68 approximates ZRMSE assuming normal error distribution.
     delta = testDSM - refDSM
-    z68 = np.percentile(abs(delta[np.where(refMask)]),68)
-    z50 = np.percentile(abs(delta[np.where(refMask)]),50)
-    z90 = np.percentile(abs(delta[np.where(refMask)]),90)
+    z68 = np.percentile(abs(delta[np.where(refMask & testMask & ~ignoreMask)]),68)
+    z50 = np.percentile(abs(delta[np.where(refMask & testMask & ~ignoreMask)]),50)
+    z90 = np.percentile(abs(delta[np.where(refMask & testMask & ~ignoreMask)]),90)
 
     # Generate relative vertical accuracy plots
     if PLOTS_ENABLE:
         errorMap = delta
         delta[refMask == 0] = np.nan
-        plot.make(errorMap, 'Surface Model - Height Error', 581, saveName="relVertAcc_hgtErr", colorbar=True)
-
+        plot.make(errorMap, 'Object Height Error', 581, saveName="relVertAcc_hgtErr", colorbar=True)
         errorMap[errorMap > 5] = 5
         errorMap[errorMap < -5] = -5
-        plot.make(errorMap, 'Surface Model - Height Error', 582, saveName="relVertAcc_hgtErr_clipped", colorbar=True)
+        plot.make(errorMap, 'Object Height Error (Clipped)', 582, saveName="relVertAcc_hgtErr_clipped", colorbar=True)
 
     # Compute relative horizontal accuracy
     # Consider only objects selected in reference mask.

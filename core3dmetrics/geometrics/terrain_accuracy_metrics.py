@@ -18,48 +18,30 @@ def run_terrain_accuracy_metrics(refDSM, refDTM, testDSM, testDTM, refMask, test
     z50 = np.percentile(abs(delta_minus_mask),50)
     z90 = np.percentile(abs(delta_minus_mask),90)
 
-    # Determine ground and not-ground using threshold distance between DSM and DTM.
-    # It would be more accurate to define this explicitly in the reference 
-    # and test classification labels, but we currently don't require ground to be
-    # explicitly labeled in the input files. We should consider changing this, but
-    # this is a close approximation for now.
-    groundTruth = abs(refDSM - refDTM) < threshold
-    groundTest = abs(testDSM - testDTM) < threshold
+    # Compute DTM completeness.
+    match = abs(testDTM - refDTM) < threshold
+    completeness = np.sum(match)/np.size(match)
 
-    # Compute correctness and completeness
-    TP = groundTruth & groundTest;
-    FP = (groundTruth == 0) & groundTest;
-    FN = groundTruth & (groundTest == 0);
-
+    # This is a hack to avoid water flattening at z = -1 in reference DTM files from 133 US Cities 
+    # from corrupting the results. The water should be properly labeled instead, but this
+    # is unlikely to cause problems for our test areas. Just keep an eye on it.
+    distanceFromWater = abs(refDTM + 1.0);
+    match = match[np.where(distanceFromWater > 0.2)]
+    completeness_water_removed = np.sum(match)/np.size(match)
+	
     if PLOTS_ENABLE:
+
+        errorMap = delta;
+        errorMap[errorMap > 5] = 5
+        errorMap[errorMap < -5] = -5
         plot.make(delta, 'Terrain Model - Height Error', 481, saveName="terrainAcc_HgtErr", colorbar=True)
-
-        plot.make(TP, 'Terrain Model - True Positive', 482, saveName="terrainAcc_truePositive")
-        plot.make(FP, 'Terrain Model - False Positive', 483, saveName="terrainAcc_falsePositive")
-        plot.make(FN, 'Terrain Model - False Negetive', 484, saveName="terrainAcc_falseNegetive")
-
-        errorMap = TP*delta
-        errorMap[TP == 0] = np.nan
-        plot.make(errorMap, 'Terrain Model - True Positive - Height Error', 492, saveName='terrainAcc_truePositive_HgtErr', colorbar=True)
-
-        errorMap = FP*delta
-        errorMap[FP == 0] = np.nan
-        plot.make(errorMap, 'Terrain Model - False Positive - Height Error', 493, saveName='terrainAcc_falsePositive_HgtErr', colorbar=True)
-
-        errorMap = FN*delta
-        errorMap[FN == 0] = np.nan
-        plot.make(errorMap, 'Terrain Model - False Negetive - Height Error', 494, saveName='terrainAcc_falseNegetive_HgtErr', colorbar=True)
-
-    # Count number of pixels for 2D metrics
-    unitCountTP = np.sum(TP)
-    unitCountFP = np.sum(FP)
-    unitCountFN = np.sum(FN)
 
     metrics = {
         'z50': z50,
         'zrmse': z68,
         'z90': z90,
-        '2D': calcMops(unitCountTP, unitCountFN, unitCountFP)
+		'completeness': completeness,
+		'completeness_water_removed': completeness_water_removed
     }
 
     return metrics

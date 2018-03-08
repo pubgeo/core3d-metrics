@@ -87,7 +87,7 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None,align=T
             align3d_path = None
         xyzOffset = geo.align3d(refDSMFilename, testDSMFilename_copy, exec_path=align3d_path)
 
-    # Explicitly assign an new no data value to warped images to track filled pixels
+    # Explicitly assign a no data value to warped images to track filled pixels
     noDataValue = -9999
     
     # Read reference model files.
@@ -104,7 +104,6 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None,align=T
     print("")
     testCLS = geo.imageWarp(testCLSFilename, refCLSFilename, xyzOffset, gdalconst.GRA_NearestNeighbour)
     testDSM = geo.imageWarp(testDSMFilename, refCLSFilename, xyzOffset, noDataValue=noDataValue)
-    testDSM = testDSM + xyzOffset[2]
 
     if testDTMFilename:
         testDTM = geo.imageWarp(testDTMFilename, refCLSFilename, xyzOffset, noDataValue=noDataValue)
@@ -153,6 +152,9 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None,align=T
     if refCLS_NoDataValue is not None:
         ignoreMask[refCLS == refCLS_NoDataValue] = True
 
+    numDataVoids = np.sum(ignoreMask > 0)
+    print('Number of data voids in reference files = ', numDataVoids)
+		
     # If quantizing to voxels, then match vertical spacing to horizontal spacing.
     QUANTIZE = config['OPTIONS']['QuantizeHeight']
     if QUANTIZE:
@@ -164,14 +166,14 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None,align=T
         noDataValue = np.round(noDataValue / unitHgt) * unitHgt
        
     if PLOTS_ENABLE:
-        # Reference models can bad voids, so ignore bad data on display
+        # Reference models can include data voids, so ignore invalid data on display
         plot.make(refDSM, 'Reference DSM', 111, colorbar=True, saveName="input_refDSM", badValue=noDataValue)
         plot.make(refDTM, 'Reference DTM', 112, colorbar=True, saveName="input_refDTM", badValue=noDataValue)
-        plot.make(testCLS, 'Reference Classification', 113,  colorbar=True, saveName="input_refClass")
-        plot.make(testMask.astype(np.int), 'Reference Evaluation Mask', 114, colorbar=True, saveName="input_refMask")
+        plot.make(refCLS, 'Reference Classification', 113,  colorbar=True, saveName="input_refClass")
+        plot.make(refMask.astype(np.int), 'Reference Evaluation Mask', 114, colorbar=True, saveName="input_refMask")
 
-        # Test models shouldn't have any bad data,
-        # so display the bad values to highlight them,
+        # Test models shouldn't have any invalid data
+        # so display the invalid values to highlight them,
         # unlike with the refSDM/refDTM
         plot.make(testDSM, 'Test DSM', 151, colorbar=True, saveName="input_testDSM")
         plot.make(testDTM, 'Test DTM', 152, colorbar=True, saveName="input_testDTM")
@@ -183,14 +185,15 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None,align=T
 
     # Run the threshold geometry metrics and report results.
     metrics = dict()
-    metrics['threshold_geometry'] = geo.run_threshold_geometry_metrics(refDSM, refDTM, refMask, testDSM, testDTM, testMask,
+    # Evaluate threshold geometry metrics using refDTM as the testDTM to mitigate effects of terrain modeling uncertainty 
+    metrics['threshold_geometry'] = geo.run_threshold_geometry_metrics(refDSM, refDTM, refMask, testDSM, refDTM, testMask,
                                        tform, ignoreMask, plot=plot)
 
     metrics['registration_offset'] = xyzOffset
     # Run the terrain model metrics and report results.
     dtm_z_threshold = config['OPTIONS'].get('TerrainZErrorThreshold',1)
     metrics['terrain_accuracy'] = geo.run_terrain_accuracy_metrics(refDSM, refDTM, testDSM, testDTM, refMask, testMask, dtm_z_threshold, geo.getUnitArea(tform), plot=plot)
-    metrics['relative_accuracy'] = geo.run_relative_accuracy_metrics(refDSM, testDSM, refMask, testMask, geo.getUnitWidth(tform), plot=plot)
+    metrics['relative_accuracy'] = geo.run_relative_accuracy_metrics(refDSM, testDSM, refMask, testMask, ignoreMask, geo.getUnitWidth(tform), plot=plot)
     metrics['offset'] = xyzOffset
     
     fileout = os.path.join(outputpath,os.path.basename(testDSMFilename) + "_metrics.json")
