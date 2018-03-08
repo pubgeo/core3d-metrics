@@ -21,7 +21,7 @@ The following python3 libraries (and their dependencies) are required:
 Alternatively, you can use the provided docker [container](Dockerfile).
 
 ### core3d-metrics Usage
-    python3 run_geometrics.py -c <AOI Configuration>
+    python3 run_geometrics.py -c <AOI Configuration> [-o <Output folder>  -r <Reference data folder> -t <Test data folder>]
 One of the first steps is to align your dataset to the ground truth. This is performed using pubgeo's [ALIGN3D](https://github.com/pubgeo/pubgeo/#align3d) algorithm.
 The algorithm then calculates metrics for 2D, 3D, and spectral classification against the ground truth.
 
