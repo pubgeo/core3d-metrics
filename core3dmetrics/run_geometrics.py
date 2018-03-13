@@ -45,7 +45,7 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None,align=T
     refDTMFilename = config['INPUT.REF']['DTMFilename']
     refCLSFilename = config['INPUT.REF']['CLSFilename']
     refNDXFilename = config['INPUT.REF']['NDXFilename']
-    refMTLFilename = config['INPUT.REF']['MTLFilename']
+    refMTLFilename = config['INPUT.REF'].get('MTLFilename',None)
 
     # Get material label names and list of material labels to ignore in evaluation.
     materialNames = config['MATERIALS.REF']['MaterialNames']
@@ -97,7 +97,9 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None,align=T
     refDSM = geo.imageWarp(refDSMFilename, refCLSFilename, noDataValue=noDataValue)
     refDTM = geo.imageWarp(refDTMFilename, refCLSFilename, noDataValue=noDataValue)
     refNDX = geo.imageWarp(refNDXFilename, refCLSFilename, interp_method=gdalconst.GRA_NearestNeighbour).astype(np.uint16)
-    refMTL = geo.imageWarp(refMTLFilename, refCLSFilename, interp_method=gdalconst.GRA_NearestNeighbour).astype(np.uint8)
+
+    if refMTLFilename:
+        refMTL = geo.imageWarp(refMTLFilename, refCLSFilename, interp_method=gdalconst.GRA_NearestNeighbour).astype(np.uint8)
 
     # Read test model files and apply XYZ offsets.
     print("Reading test model files...")
@@ -194,19 +196,18 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None,align=T
     dtm_z_threshold = config['OPTIONS'].get('TerrainZErrorThreshold',1)
     metrics['terrain_accuracy'] = geo.run_terrain_accuracy_metrics(refDSM, refDTM, testDSM, testDTM, refMask, testMask, dtm_z_threshold, geo.getUnitArea(tform), plot=plot)
     metrics['relative_accuracy'] = geo.run_relative_accuracy_metrics(refDSM, testDSM, refMask, testMask, ignoreMask, geo.getUnitWidth(tform), plot=plot)
-    metrics['offset'] = xyzOffset
-    
-    fileout = os.path.join(outputpath,os.path.basename(testDSMFilename) + "_metrics.json")
-    with open(fileout,'w') as fid:
-        json.dump(metrics,fid,indent=2)
-    print(json.dumps(metrics,indent=2))
 
     # Run the threshold material metrics and report results.
     if testMTLFilename:
-        geo.run_material_metrics(refNDX, refMTL, testMTL, materialNames, materialIndicesToIgnore)
+            metrics['threshold_materials'] = geo.run_material_metrics(refNDX, refMTL, testMTL, materialNames, materialIndicesToIgnore)
     else:
         print('WARNING: No test MTL file, skipping material metrics')
 
+    fileout = os.path.join(outputpath,os.path.basename(configfile) + "_metrics.json")
+    with open(fileout,'w') as fid:
+        json.dump(metrics,fid,indent=2)
+    print(json.dumps(metrics,indent=2))		
+		
     #  If displaying figures, wait for user before existing
     if PLOTS_SHOW:
             input("Press Enter to continue...")
