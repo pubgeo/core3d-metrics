@@ -10,7 +10,11 @@ import numpy as np
 import argparse
 import json
 
-import core3dmetrics.geometrics as geo
+
+try:
+    import core3dmetrics.geometrics as geo
+except:
+    import geometrics as geo
 
 
 # PRIMARY FUNCTION: RUN_GEOMETRICS
@@ -41,16 +45,28 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None,align=T
     refDTMFilename = config['INPUT.REF']['DTMFilename']
     refCLSFilename = config['INPUT.REF']['CLSFilename']
     refNDXFilename = config['INPUT.REF']['NDXFilename']
-    refMTLFilename = config['INPUT.REF']['MTLFilename']
+    refMTLFilename = config['INPUT.REF'].get('MTLFilename',None)
 
     # Get material label names and list of material labels to ignore in evaluation.
     materialNames = config['MATERIALS.REF']['MaterialNames']
     materialIndicesToIgnore = config['MATERIALS.REF']['MaterialIndicesToIgnore']
+    
+    # Get plot settings from configuration file
+    PLOTS_SHOW   = config['PLOTS']['ShowPlots']
+    PLOTS_SAVE   = config['PLOTS']['SavePlots']
+    PLOTS_ENABLE = PLOTS_SHOW or PLOTS_SAVE
 
     # default output path
     if outputpath is None:
         outputpath = os.path.dirname(testDSMFilename)
 
+    # Configure plotting
+    basename = os.path.basename(testDSMFilename)
+    if PLOTS_ENABLE:
+        plot = geo.plot(saveDir=outputpath, autoSave=PLOTS_SAVE, savePrefix=basename+'_', badColor='black',showPlots=PLOTS_SHOW, dpi=900)
+    else:
+        plot = None
+        
     # copy testDSM to the output path
     # this is a workaround for the "align3d" function with currently always
     # saves new files to the same path as the testDSM
@@ -71,25 +87,28 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None,align=T
             align3d_path = None
         xyzOffset = geo.align3d(refDSMFilename, testDSMFilename_copy, exec_path=align3d_path)
 
+    # Explicitly assign a no data value to warped images to track filled pixels
+    noDataValue = -9999
+    
     # Read reference model files.
     print("")
     print("Reading reference model files...")
     refCLS, tform = geo.imageLoad(refCLSFilename)
-    refDSM = geo.imageWarp(refDSMFilename, refCLSFilename)
-    refDTM = geo.imageWarp(refDTMFilename, refCLSFilename)
+    refDSM = geo.imageWarp(refDSMFilename, refCLSFilename, noDataValue=noDataValue)
+    refDTM = geo.imageWarp(refDTMFilename, refCLSFilename, noDataValue=noDataValue)
     refNDX = geo.imageWarp(refNDXFilename, refCLSFilename, interp_method=gdalconst.GRA_NearestNeighbour).astype(np.uint16)
-    refMTL = geo.imageWarp(refMTLFilename, refCLSFilename, interp_method=gdalconst.GRA_NearestNeighbour).astype(np.uint8)
+
+    if refMTLFilename:
+        refMTL = geo.imageWarp(refMTLFilename, refCLSFilename, interp_method=gdalconst.GRA_NearestNeighbour).astype(np.uint8)
 
     # Read test model files and apply XYZ offsets.
     print("Reading test model files...")
     print("")
     testCLS = geo.imageWarp(testCLSFilename, refCLSFilename, xyzOffset, gdalconst.GRA_NearestNeighbour)
-    testDSM = geo.imageWarp(testDSMFilename, refCLSFilename, xyzOffset)
-    testDSM = testDSM + xyzOffset[2]
+    testDSM = geo.imageWarp(testDSMFilename, refCLSFilename, xyzOffset, noDataValue=noDataValue)
 
     if testDTMFilename:
-        testDTM = geo.imageWarp(testDTMFilename, refCLSFilename, xyzOffset)
-        testDTM = testDTM + xyzOffset[2]
+        testDTM = geo.imageWarp(testDTMFilename, refCLSFilename, xyzOffset, noDataValue=noDataValue)
     else:
         print('NO TEST DTM: defaults to reference DTM')
         testDTM = refDTM
@@ -97,14 +116,30 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None,align=T
     if testMTLFilename:
         testMTL = geo.imageWarp(testMTLFilename, refCLSFilename, xyzOffset, gdalconst.GRA_NearestNeighbour).astype(np.uint8)
 
+    # Apply registration offset, only to valid data to allow better tracking of bad data
+    testValidData = (testDSM != noDataValue) & (testDSM != noDataValue)
+    testDSM[testValidData] = testDSM[testValidData] + xyzOffset[2]
+    if testDTMFilename:
+        testDTM[testValidData] = testDTM[testValidData] + xyzOffset[2]
+
     # object masks based on CLSMatchValue(s)
     refMask = np.zeros_like(refCLS, np.bool)
-    for v in config['INPUT.REF']['CLSMatchValue']:
-        refMask[refCLS == v] = True
+    # For CLS value 256, evaluate against all non-zero pixels
+    # CLS values should range from 0 to 255 per ASPRS
+    # (American Society for Photogrammetry and Remote Sensing)
+    # LiDAR point cloud classification LAS standard
+    if config['INPUT.REF']['CLSMatchValue'] == [256]:
+        refMask[refCLS != 0] = True
+    else:
+        for v in config['INPUT.REF']['CLSMatchValue']:
+            refMask[refCLS == v] = True
 
     testMask = np.zeros_like(testCLS, np.bool)
-    for v in config['INPUT.TEST']['CLSMatchValue']:
-        testMask[testCLS == v] = True    
+    if config['INPUT.TEST']['CLSMatchValue'] == [256]:
+        testMask[testCLS != 0] = True
+    else:
+        for v in config['INPUT.TEST']['CLSMatchValue']:
+            testMask[testCLS == v] = True
 
     # Create mask for ignoring points labeled NoData in reference files.
     refDSM_NoDataValue = geo.getNoDataValue(refDSMFilename)
@@ -119,31 +154,63 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None,align=T
     if refCLS_NoDataValue is not None:
         ignoreMask[refCLS == refCLS_NoDataValue] = True
 
+    numDataVoids = np.sum(ignoreMask > 0)
+    print('Number of data voids in reference files = ', numDataVoids)
+		
     # If quantizing to voxels, then match vertical spacing to horizontal spacing.
     QUANTIZE = config['OPTIONS']['QuantizeHeight']
     if QUANTIZE:
-        unitHgt = (np.abs(tform[1]) + abs(tform[5])) / 2
+        unitHgt = geo.getUnitHeight(tform)
         refDSM = np.round(refDSM / unitHgt) * unitHgt
         refDTM = np.round(refDTM / unitHgt) * unitHgt
         testDSM = np.round(testDSM / unitHgt) * unitHgt
         testDTM = np.round(testDTM / unitHgt) * unitHgt
+        noDataValue = np.round(noDataValue / unitHgt) * unitHgt
+       
+    if PLOTS_ENABLE:
+        # Reference models can include data voids, so ignore invalid data on display
+        plot.make(refDSM, 'Reference DSM', 111, colorbar=True, saveName="input_refDSM", badValue=noDataValue)
+        plot.make(refDTM, 'Reference DTM', 112, colorbar=True, saveName="input_refDTM", badValue=noDataValue)
+        plot.make(refCLS, 'Reference Classification', 113,  colorbar=True, saveName="input_refClass")
+        plot.make(refMask.astype(np.int), 'Reference Evaluation Mask', 114, colorbar=True, saveName="input_refMask")
+
+        # Test models shouldn't have any invalid data
+        # so display the invalid values to highlight them,
+        # unlike with the refSDM/refDTM
+        plot.make(testDSM, 'Test DSM', 151, colorbar=True, saveName="input_testDSM")
+        plot.make(testDTM, 'Test DTM', 152, colorbar=True, saveName="input_testDTM")
+        plot.make(testCLS, 'Test Classification', 153, colorbar=True, saveName="input_testClass")
+        plot.make(testMask.astype(np.int), 'Test Evaluation Mask', 154, colorbar=True, saveName="input_testMask")
+
+        plot.make(ignoreMask, 'Ignore Mask', 181, saveName="input_ignoreMask")
+
 
     # Run the threshold geometry metrics and report results.
-    metrics = geo.run_threshold_geometry_metrics(refDSM, refDTM, refMask, testDSM, testDTM, testMask,
-                                       tform, ignoreMask)
+    metrics = dict()
+    # Evaluate threshold geometry metrics using refDTM as the testDTM to mitigate effects of terrain modeling uncertainty 
+    metrics['threshold_geometry'] = geo.run_threshold_geometry_metrics(refDSM, refDTM, refMask, testDSM, refDTM, testMask,
+                                       tform, ignoreMask, plot=plot)
 
-    metrics['offset'] = xyzOffset
-    
-    fileout = os.path.join(outputpath,os.path.basename(testDSMFilename) + "_metrics.json")
-    with open(fileout,'w') as fid:
-        json.dump(metrics,fid,indent=2)
-    print(json.dumps(metrics,indent=2))
+    metrics['registration_offset'] = xyzOffset
+    # Run the terrain model metrics and report results.
+    dtm_z_threshold = config['OPTIONS'].get('TerrainZErrorThreshold',1)
+    metrics['terrain_accuracy'] = geo.run_terrain_accuracy_metrics(refDSM, refDTM, testDSM, testDTM, refMask, testMask, dtm_z_threshold, geo.getUnitArea(tform), plot=plot)
+    metrics['relative_accuracy'] = geo.run_relative_accuracy_metrics(refDSM, testDSM, refMask, testMask, ignoreMask, geo.getUnitWidth(tform), plot=plot)
 
     # Run the threshold material metrics and report results.
     if testMTLFilename:
-        geo.run_material_metrics(refNDX, refMTL, testMTL, materialNames, materialIndicesToIgnore)
+            metrics['threshold_materials'] = geo.run_material_metrics(refNDX, refMTL, testMTL, materialNames, materialIndicesToIgnore)
     else:
         print('WARNING: No test MTL file, skipping material metrics')
+
+    fileout = os.path.join(outputpath,os.path.basename(configfile) + "_metrics.json")
+    with open(fileout,'w') as fid:
+        json.dump(metrics,fid,indent=2)
+    print(json.dumps(metrics,indent=2))		
+		
+    #  If displaying figures, wait for user before existing
+    if PLOTS_SHOW:
+            input("Press Enter to continue...")
 
 # command line function
 def main(args=None):

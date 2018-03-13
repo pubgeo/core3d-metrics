@@ -1,8 +1,5 @@
-from laspy.file import File
 import gdal
 import numpy as np
-import os
-
 
 def imageLoad(filename):
     im = gdal.Open(filename, gdal.GA_ReadOnly)
@@ -19,7 +16,7 @@ def getNoDataValue(filename):
     return nodata
 
 
-def imageWarp(file_from: str, file_to: str, offset=None, interp_method: int = gdal.gdalconst.GRA_Bilinear):
+def imageWarp(file_from: str, file_to: str, offset=None, interp_method: int = gdal.gdalconst.GRA_Bilinear, noDataValue=None):
     image_from = gdal.Open(file_from, gdal.GA_ReadOnly)
     image_to = gdal.Open(file_to, gdal.GA_ReadOnly)
 
@@ -47,7 +44,7 @@ def imageWarp(file_from: str, file_to: str, offset=None, interp_method: int = gd
     else:
         image_tmp = image_from
 
-    # Create outout image
+    # Create output image
     mem_drv = gdal.GetDriverByName('MEM')
     destination = mem_drv.Create('', image_to.RasterXSize, image_to.RasterYSize, 1,
                           gdal.GDT_Float32)
@@ -55,6 +52,11 @@ def imageWarp(file_from: str, file_to: str, offset=None, interp_method: int = gd
     destination.SetProjection(image_to.GetProjection())
     destination.SetGeoTransform(image_to.GetGeoTransform())
 
+    if noDataValue is not None:
+        band = destination.GetRasterBand(1);
+        band.SetNoDataValue(noDataValue)
+        band.Fill(noDataValue)
+    
     gdal.ReprojectImage(image_tmp, destination, image_from.GetProjection(),
                         image_to.GetProjection(), interp_method)
 
