@@ -32,8 +32,8 @@ If installed
 
     # from command line
     core3d-metrics --help
-    core3d-metrics <AOI Configuration>
-    python3 -m core3dmetrics <AOI Configuration>
+    core3d-metrics -c <AOI Configuration>
+    python3 -m core3dmetrics -c <AOI Configuration>
 
     # in use code:
     import core3dmetrics.geometrics as geo
