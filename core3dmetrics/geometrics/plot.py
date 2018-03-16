@@ -70,7 +70,13 @@ class plot:
         if image is None:
             return plt
 
-        hImg = plt.imshow(image)
+        imshow_kwargs = {}
+        keys = ['vmin','vmax']
+        for key in keys:
+            if key in kwargs:
+                imshow_kwargs[key] = kwargs[key]
+
+        hImg = plt.imshow(image,**imshow_kwargs)
         mpl.cm.get_cmap().set_bad(color=self.badColor)
 
         if 'cmap' in kwargs:

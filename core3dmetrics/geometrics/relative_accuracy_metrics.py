@@ -23,9 +23,8 @@ def run_relative_accuracy_metrics(refDSM, testDSM, refMask, testMask, ignoreMask
         errorMap = delta
         delta[refMask == 0] = np.nan
         plot.make(errorMap, 'Object Height Error', 581, saveName="relVertAcc_hgtErr", colorbar=True)
-        errorMap[errorMap > 5] = 5
-        errorMap[errorMap < -5] = -5
-        plot.make(errorMap, 'Object Height Error (Clipped)', 582, saveName="relVertAcc_hgtErr_clipped", colorbar=True)
+        plot.make(errorMap, 'Object Height Error (Clipped)', 582, saveName="relVertAcc_hgtErr_clipped", colorbar=True,
+            vmin=-5,vmax=5)
 
     # Compute relative horizontal accuracy
     # Consider only objects selected in reference mask.
