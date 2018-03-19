@@ -40,13 +40,10 @@ def imageWarp(file_src: str, file_dst: str, offset=None, interp_method: int = gd
     NDV = band.GetNoDataValue()
 
     if noDataValue is not None and noDataValue != NDV:
-        band = dataset_src.GetRasterBand(1)
-
         if NDV is not None:            
             img = band.ReadAsArray()
             img[img==NDV] = noDataValue
             band.WriteArray(img)
-
         band.SetNoDataValue(noDataValue)        
         NDV = noDataValue
 
@@ -67,6 +64,7 @@ def imageWarp(file_src: str, file_dst: str, offset=None, interp_method: int = gd
         band.SetNoDataValue(NDV)
         band.Fill(NDV)
     
+    # reproject src data to dst coordinate space
     gdal.ReprojectImage(dataset_src, dataset_dst, dataset_src.GetProjection(),
                         prj, interp_method)
 
