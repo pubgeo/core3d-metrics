@@ -18,7 +18,8 @@ except:
 
 
 # PRIMARY FUNCTION: RUN_GEOMETRICS
-def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None,align=True):
+def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None,
+    align=True,allow_test_ignore=False):
 
     # check inputs
     if not os.path.isfile(configfile):
@@ -154,6 +155,13 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None,align=T
     if refCLS_NoDataValue is not None:
         ignoreMask[refCLS == refCLS_NoDataValue] = True
 
+    # optionally ignore testCLS NoDataValue
+    if allow_test_ignore:
+        testCLS_NoDataValue = geo.getNoDataValue(testCLSFilename)
+        if testCLS_NoDataValue is not None:
+            ignoreMask[testCLS == testCLS_NoDataValue] = True
+
+    # report "data voids"
     numDataVoids = np.sum(ignoreMask > 0)
     print('Number of data voids in reference files = ', numDataVoids)
 		
@@ -240,16 +248,23 @@ def main(args=None):
     group.add_argument('--no-align', dest='align', action='store_false')
     group.set_defaults(align=True)
 
+    group = parser.add_mutually_exclusive_group(required=False)
+    group.add_argument('--test-ignore', dest='testignore', action='store_true')
+    group.add_argument('--no-test-ignore', dest='testignore', action='store_false')
+    group.set_defaults(test_ignore=False)
+
     args = parser.parse_args()
     
     # gather optional arguments
     kwargs = {}
+    kwargs['align'] = args.align
+    kwargs['allow_test_ignore'] = args.testignore 
     if args.refpath: kwargs['refpath'] = args.refpath
     if args.testpath: kwargs['testpath'] = args.testpath
     if args.outputpath: kwargs['outputpath'] = args.outputpath
     
     # run process
-    run_geometrics(configfile=args.config,align=args.align,**kwargs)
+    run_geometrics(configfile=args.config,**kwargs)
 
 if __name__ == "__main__":
     main()
