@@ -142,8 +142,8 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None,align=T
             testMask[testCLS == v] = True
 
     # Create mask for ignoring points labeled NoData in reference files.
-    refDSM_NoDataValue = geo.getNoDataValue(refDSMFilename)
-    refDTM_NoDataValue = geo.getNoDataValue(refDTMFilename)
+    refDSM_NoDataValue = noDataValue
+    refDTM_NoDataValue = noDataValue
     refCLS_NoDataValue = geo.getNoDataValue(refCLSFilename)
     ignoreMask = np.zeros_like(refCLS, np.bool)
 
