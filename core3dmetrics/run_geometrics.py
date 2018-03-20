@@ -251,7 +251,7 @@ def main(args=None):
     group = parser.add_mutually_exclusive_group(required=False)
     group.add_argument('--test-ignore', dest='testignore', action='store_true')
     group.add_argument('--no-test-ignore', dest='testignore', action='store_false')
-    group.set_defaults(test_ignore=False)
+    group.set_defaults(testignore=False)
 
     args = parser.parse_args()
     
