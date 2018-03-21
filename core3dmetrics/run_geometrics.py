@@ -123,25 +123,6 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None,
     if testDTMFilename:
         testDTM[testValidData] = testDTM[testValidData] + xyzOffset[2]
 
-    # object masks based on CLSMatchValue(s)
-    refMask = np.zeros_like(refCLS, np.bool)
-    # For CLS value 256, evaluate against all non-zero pixels
-    # CLS values should range from 0 to 255 per ASPRS
-    # (American Society for Photogrammetry and Remote Sensing)
-    # LiDAR point cloud classification LAS standard
-    if config['INPUT.REF']['CLSMatchValue'] == [256]:
-        refMask[refCLS != 0] = True
-    else:
-        for v in config['INPUT.REF']['CLSMatchValue']:
-            refMask[refCLS == v] = True
-
-    testMask = np.zeros_like(testCLS, np.bool)
-    if config['INPUT.TEST']['CLSMatchValue'] == [256]:
-        testMask[testCLS != 0] = True
-    else:
-        for v in config['INPUT.TEST']['CLSMatchValue']:
-            testMask[testCLS == v] = True
-
     # Create mask for ignoring points labeled NoData in reference files.
     refDSM_NoDataValue = noDataValue
     refDTM_NoDataValue = noDataValue
@@ -164,7 +145,7 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None,
     # report "data voids"
     numDataVoids = np.sum(ignoreMask > 0)
     print('Number of data voids in reference files = ', numDataVoids)
-		
+
     # If quantizing to voxels, then match vertical spacing to horizontal spacing.
     QUANTIZE = config['OPTIONS']['QuantizeHeight']
     if QUANTIZE:
@@ -180,7 +161,6 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None,
         plot.make(refDSM, 'Reference DSM', 111, colorbar=True, saveName="input_refDSM", badValue=noDataValue)
         plot.make(refDTM, 'Reference DTM', 112, colorbar=True, saveName="input_refDTM", badValue=noDataValue)
         plot.make(refCLS, 'Reference Classification', 113,  colorbar=True, saveName="input_refClass")
-        plot.make(refMask.astype(np.int), 'Reference Evaluation Mask', 114, colorbar=True, saveName="input_refMask")
 
         # Test models shouldn't have any invalid data
         # so display the invalid values to highlight them,
@@ -188,16 +168,63 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None,
         plot.make(testDSM, 'Test DSM', 151, colorbar=True, saveName="input_testDSM")
         plot.make(testDTM, 'Test DTM', 152, colorbar=True, saveName="input_testDTM")
         plot.make(testCLS, 'Test Classification', 153, colorbar=True, saveName="input_testClass")
-        plot.make(testMask.astype(np.int), 'Test Evaluation Mask', 154, colorbar=True, saveName="input_testMask")
 
         plot.make(ignoreMask, 'Ignore Mask', 181, saveName="input_ignoreMask")
 
 
     # Run the threshold geometry metrics and report results.
     metrics = dict()
-    # Evaluate threshold geometry metrics using refDTM as the testDTM to mitigate effects of terrain modeling uncertainty 
-    metrics['threshold_geometry'] = geo.run_threshold_geometry_metrics(refDSM, refDTM, refMask, testDSM, refDTM, testMask,
-                                       tform, ignoreMask, plot=plot)
+
+    # Threshold geometry and relative accuracy use CLS values
+    refCLS_classes = np.unique(refCLS)
+    testCLS_classes = np.unique(testCLS)
+
+    if True:  # TODO: Implement for-loop for sets of CLS values
+
+        refMatchValue  = config['INPUT.REF']['CLSMatchValue']
+        testMatchValue = config['INPUT.TEST']['CLSMatchValue']
+
+        missingCLS = False
+        if not np.any(refCLS_classes == refMatchValue):
+            missingCLS = True
+
+        if not np.any(testCLS_classes == testMatchValue):
+            missingCLS = True
+
+        if missingCLS:
+            print("Skipping threshold_geometry and relative_accuracy metrics")
+        else:
+            # object masks based on CLSMatchValue(s)
+            refMask = np.zeros_like(refCLS, np.bool)
+            # For CLS value 256, evaluate against all non-zero pixels
+            # CLS values should range from 0 to 255 per ASPRS
+            # (American Society for Photogrammetry and Remote Sensing)
+            # LiDAR point cloud classification LAS standard
+            if refMatchValue == [256]:
+                refMask[refCLS != 0] = True
+            else:
+                for v in refMatchValue:
+                    refMask[refCLS == v] = True
+
+            testMask = np.zeros_like(testCLS, np.bool)
+            if testMatchValue == [256]:
+                testMask[testCLS != 0] = True
+            else:
+                for v in testMatchValue:
+                    testMask[testCLS == v] = True
+
+            if PLOTS_ENABLE:
+                plot.make(testMask.astype(np.int), 'Test Evaluation Mask', 154, colorbar=True, saveName="input_testMask")
+                plot.make(refMask.astype(np.int), 'Reference Evaluation Mask', 114, colorbar=True, saveName="input_refMask")
+
+
+            # Evaluate threshold geometry metrics using refDTM as the testDTM to mitigate effects of terrain modeling uncertainty
+            metrics['threshold_geometry'] = geo.run_threshold_geometry_metrics(refDSM, refDTM, refMask, testDSM, refDTM, testMask,
+                                               tform, ignoreMask, plot=plot)
+
+            # Run the relative accuracy metrics and report results.
+            metrics['relative_accuracy'] = geo.run_relative_accuracy_metrics(refDSM, testDSM, refMask, testMask, ignoreMask, geo.getUnitWidth(tform), plot=plot)
+
 
     if align:
         metrics['registration_offset'] = xyzOffset
@@ -209,9 +236,6 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None,
     else:
         print('WARNING: No test DTM file, skipping terrain accuracy metrics')
 
-    # Run the relative accuracy metrics and report results. 
-    metrics['relative_accuracy'] = geo.run_relative_accuracy_metrics(refDSM, testDSM, refMask, testMask, ignoreMask, geo.getUnitWidth(tform), plot=plot)
-
     # Run the threshold material metrics and report results.
     if testMTLFilename:
         metrics['threshold_materials'] = geo.run_material_metrics(refNDX, refMTL, testMTL, materialNames, materialIndicesToIgnore)
@@ -221,7 +245,8 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None,
     fileout = os.path.join(outputpath,os.path.basename(configfile) + "_metrics.json")
     with open(fileout,'w') as fid:
         json.dump(metrics,fid,indent=2)
-    print(json.dumps(metrics,indent=2))		
+    print(json.dumps(metrics,indent=2))
+    print("Metrics report: " + fileout)
 		
     #  If displaying figures, wait for user before existing
     if PLOTS_SHOW:
