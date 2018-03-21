@@ -16,53 +16,61 @@ def getNoDataValue(filename):
     return nodata
 
 
-def imageWarp(file_from: str, file_to: str, offset=None, interp_method: int = gdal.gdalconst.GRA_Bilinear, noDataValue=None):
-    image_from = gdal.Open(file_from, gdal.GA_ReadOnly)
-    image_to = gdal.Open(file_to, gdal.GA_ReadOnly)
+def imageWarp(file_src: str, file_dst: str, offset=None, interp_method: int = gdal.gdalconst.GRA_Bilinear, noDataValue=None):
+
+    # GDAL memory driver
+    mem_drv = gdal.GetDriverByName('MEM')
+
+    # copy source to memory
+    tmp = gdal.Open(file_src, gdal.GA_ReadOnly)
+    dataset_src = mem_drv.CreateCopy('',tmp)   
+    tmp = None
+
+    # destination metadata
+    tmp = gdal.Open(file_dst, gdal.GA_ReadOnly)
+    xsz = tmp.RasterXSize
+    ysz = tmp.RasterYSize
+    prj = tmp.GetProjection()
+    geo = tmp.GetGeoTransform()  
+    tmp = None
+
+    # change no data value to new "noDataValue" input if necessary,
+    # making sure to adjust the underlying pixel values
+    band = dataset_src.GetRasterBand(1)
+    NDV = band.GetNoDataValue()
+
+    if noDataValue is not None and noDataValue != NDV:
+        if NDV is not None:            
+            img = band.ReadAsArray()
+            img[img==NDV] = noDataValue
+            band.WriteArray(img)
+        band.SetNoDataValue(noDataValue)        
+        NDV = noDataValue
 
     # Apply registration offset
     if offset is not None:
-        # Move input to memory to apply registration offset
-        mem_drv0 = gdal.GetDriverByName('MEM')
-        image_tmp = mem_drv0.Create('', image_from.RasterXSize,
-                                    image_from.RasterYSize, 1, gdal.GDT_Float32)
-        image_tmp.SetGeoTransform(image_from.GetGeoTransform())
-        image_tmp.SetProjection(image_from.GetProjection())
-        image_tmp.GetRasterBand(1).WriteArray(
-            image_from.ReadAsArray(0, 0, image_from.RasterXSize,
-                                   image_from.RasterYSize))
-        NDV = image_from.GetRasterBand(1).GetNoDataValue()
-        if NDV is not None:
-            image_tmp.GetRasterBand(1).SetNoDataValue(NDV)
-
-        offset = np.asarray(offset)
-        transform = image_from.GetGeoTransform()
-        transform = np.asarray(transform)
+        transform = np.array(dataset_src.GetGeoTransform())
         transform[0] += offset[0]
         transform[3] += offset[1]
-        image_tmp.SetGeoTransform(transform)
-    else:
-        image_tmp = image_from
+        dataset_src.SetGeoTransform(tuple(transform))
 
-    # Create output image
-    mem_drv = gdal.GetDriverByName('MEM')
-    destination = mem_drv.Create('', image_to.RasterXSize, image_to.RasterYSize, 1,
-                          gdal.GDT_Float32)
+    # Create output dataset
+    dataset_dst = mem_drv.Create('',xsz,ysz,1,gdal.GDT_Float32)
+    dataset_dst.SetProjection(prj)
+    dataset_dst.SetGeoTransform(geo)
 
-    destination.SetProjection(image_to.GetProjection())
-    destination.SetGeoTransform(image_to.GetGeoTransform())
-
-    if noDataValue is not None:
-        band = destination.GetRasterBand(1);
-        band.SetNoDataValue(noDataValue)
-        band.Fill(noDataValue)
+    if NDV is not None:
+        band = dataset_dst.GetRasterBand(1);
+        band.SetNoDataValue(NDV)
+        band.Fill(NDV)
     
-    gdal.ReprojectImage(image_tmp, destination, image_from.GetProjection(),
-                        image_to.GetProjection(), interp_method)
+    # reproject src data to dst coordinate space
+    gdal.ReprojectImage(dataset_src, dataset_dst, dataset_src.GetProjection(),
+                        prj, interp_method)
 
-    image_out = destination.GetRasterBand(1).ReadAsArray(0, 0, destination.RasterXSize, destination.RasterYSize)
-
-    return image_out
+    # read & return image data
+    img = dataset_dst.GetRasterBand(1).ReadAsArray()    
+    return img
 
 
 def arrayToGeotiff(image_array, out_file_name, reference_file_name, NODATA_VALUE):

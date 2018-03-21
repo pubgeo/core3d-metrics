@@ -3,7 +3,6 @@
 #
 
 import os
-import stat
 import platform
 import numpy as np
 import gdal
@@ -65,4 +64,4 @@ def getXYZoffsetFilename(testFilename):
 
 
 def unroot(filename):
-    os.chmod(filename, stat.S_IRGRP | stat.S_IWGRP)
+    os.chmod(filename, 0o644)

@@ -18,7 +18,8 @@ except:
 
 
 # PRIMARY FUNCTION: RUN_GEOMETRICS
-def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None,align=True):
+def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None,
+    align=True,allow_test_ignore=False):
 
     # check inputs
     if not os.path.isfile(configfile):
@@ -142,8 +143,8 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None,align=T
             testMask[testCLS == v] = True
 
     # Create mask for ignoring points labeled NoData in reference files.
-    refDSM_NoDataValue = geo.getNoDataValue(refDSMFilename)
-    refDTM_NoDataValue = geo.getNoDataValue(refDTMFilename)
+    refDSM_NoDataValue = noDataValue
+    refDTM_NoDataValue = noDataValue
     refCLS_NoDataValue = geo.getNoDataValue(refCLSFilename)
     ignoreMask = np.zeros_like(refCLS, np.bool)
 
@@ -154,6 +155,13 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None,align=T
     if refCLS_NoDataValue is not None:
         ignoreMask[refCLS == refCLS_NoDataValue] = True
 
+    # optionally ignore testCLS NoDataValue
+    if allow_test_ignore:
+        testCLS_NoDataValue = geo.getNoDataValue(testCLSFilename)
+        if testCLS_NoDataValue is not None:
+            ignoreMask[testCLS == testCLS_NoDataValue] = True
+
+    # report "data voids"
     numDataVoids = np.sum(ignoreMask > 0)
     print('Number of data voids in reference files = ', numDataVoids)
 		
@@ -191,15 +199,22 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None,align=T
     metrics['threshold_geometry'] = geo.run_threshold_geometry_metrics(refDSM, refDTM, refMask, testDSM, refDTM, testMask,
                                        tform, ignoreMask, plot=plot)
 
-    metrics['registration_offset'] = xyzOffset
+    if align:
+        metrics['registration_offset'] = xyzOffset
+
     # Run the terrain model metrics and report results.
-    dtm_z_threshold = config['OPTIONS'].get('TerrainZErrorThreshold',1)
-    metrics['terrain_accuracy'] = geo.run_terrain_accuracy_metrics(refDSM, refDTM, testDSM, testDTM, refMask, testMask, dtm_z_threshold, geo.getUnitArea(tform), plot=plot)
+    if testDTMFilename:
+        dtm_z_threshold = config['OPTIONS'].get('TerrainZErrorThreshold',1)
+        metrics['terrain_accuracy'] = geo.run_terrain_accuracy_metrics(refDSM, refDTM, testDSM, testDTM, refMask, testMask, dtm_z_threshold, geo.getUnitArea(tform), plot=plot)
+    else:
+        print('WARNING: No test DTM file, skipping terrain accuracy metrics')
+
+    # Run the relative accuracy metrics and report results. 
     metrics['relative_accuracy'] = geo.run_relative_accuracy_metrics(refDSM, testDSM, refMask, testMask, ignoreMask, geo.getUnitWidth(tform), plot=plot)
 
     # Run the threshold material metrics and report results.
     if testMTLFilename:
-            metrics['threshold_materials'] = geo.run_material_metrics(refNDX, refMTL, testMTL, materialNames, materialIndicesToIgnore)
+        metrics['threshold_materials'] = geo.run_material_metrics(refNDX, refMTL, testMTL, materialNames, materialIndicesToIgnore)
     else:
         print('WARNING: No test MTL file, skipping material metrics')
 
@@ -233,16 +248,23 @@ def main(args=None):
     group.add_argument('--no-align', dest='align', action='store_false')
     group.set_defaults(align=True)
 
+    group = parser.add_mutually_exclusive_group(required=False)
+    group.add_argument('--test-ignore', dest='testignore', action='store_true')
+    group.add_argument('--no-test-ignore', dest='testignore', action='store_false')
+    group.set_defaults(testignore=False)
+
     args = parser.parse_args()
     
     # gather optional arguments
     kwargs = {}
+    kwargs['align'] = args.align
+    kwargs['allow_test_ignore'] = args.testignore 
     if args.refpath: kwargs['refpath'] = args.refpath
     if args.testpath: kwargs['testpath'] = args.testpath
     if args.outputpath: kwargs['outputpath'] = args.outputpath
     
     # run process
-    run_geometrics(configfile=args.config,align=args.align,**kwargs)
+    run_geometrics(configfile=args.config,**kwargs)
 
 if __name__ == "__main__":
     main()
