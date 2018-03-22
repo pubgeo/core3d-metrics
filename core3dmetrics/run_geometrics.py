@@ -175,56 +175,53 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None,
     # Run the threshold geometry metrics and report results.
     metrics = dict()
 
-    # Threshold geometry and relative accuracy use CLS values
-    refCLS_classes = np.unique(refCLS)
-    testCLS_classes = np.unique(testCLS)
+    # Run threshold geometry and relative accuracy
+    threshold_geometry_results = []
+    relative_accuracy_results = []
+    
+    # Check that match values are valid
+    refCLS_matchSets, testCLS_matchSets = geo.getMatchValueSets(config['INPUT.REF']['CLSMatchValue'], config['INPUT.REF']['CLSMatchValue'], np.unique(refCLS).tolist(), np.unique(refCLS).tolist())
+    
+    # Loop through sets of CLS match values
+    for refMatchValue,testMatchValue in zip(refCLS_matchSets,testCLS_matchSets):
+        print("Evaluating CLS values")
+        print("  Reference match values: " + str(refMatchValue))
+        print("  Test match values: " + str(testMatchValue))
 
-    if True:  # TODO: Implement for-loop for sets of CLS values
+        # object masks based on CLSMatchValue(s)
+        refMask = np.zeros_like(refCLS, np.bool)
+        for v in refMatchValue:
+            refMask[refCLS == v] = True
 
-        refMatchValue  = config['INPUT.REF']['CLSMatchValue']
-        testMatchValue = config['INPUT.TEST']['CLSMatchValue']
+        testMask = np.zeros_like(testCLS, np.bool)
+        for v in testMatchValue:
+            testMask[testCLS == v] = True
 
-        missingCLS = False
-        if not np.any(refCLS_classes == refMatchValue):
-            missingCLS = True
+        if PLOTS_ENABLE:
+            plot.make(testMask.astype(np.int), 'Test Evaluation Mask', 154, colorbar=True, saveName="input_testMask")
+            plot.make(refMask.astype(np.int), 'Reference Evaluation Mask', 114, colorbar=True, saveName="input_refMask")
 
-        if not np.any(testCLS_classes == testMatchValue):
-            missingCLS = True
-
-        if missingCLS:
-            print("Skipping threshold_geometry and relative_accuracy metrics")
+        # Evaluate threshold geometry metrics using refDTM as the testDTM to mitigate effects of terrain modeling uncertainty
+        result = geo.run_threshold_geometry_metrics(refDSM, refDTM, refMask, testDSM, refDTM, testMask, tform, ignoreMask, plot=plot)
+        if refMatchValue == testMatchValue:
+            result['CLSValue'] = refMatchValue
         else:
-            # object masks based on CLSMatchValue(s)
-            refMask = np.zeros_like(refCLS, np.bool)
-            # For CLS value 256, evaluate against all non-zero pixels
-            # CLS values should range from 0 to 255 per ASPRS
-            # (American Society for Photogrammetry and Remote Sensing)
-            # LiDAR point cloud classification LAS standard
-            if refMatchValue == [256]:
-                refMask[refCLS != 0] = True
+            result['CLSValue'] = {'Ref': refMatchValue, "Test": testMatchValue}
+        threshold_geometry_results.append(result)
+
+        # Run the relative accuracy metrics and report results.
+        # Skip relative accuracy is all of testMask or refMask is assigned as "object"
+        if not (refMask.size == np.count_nonzero(refMask)) or (testMask.size == np.count_nonzero(testMask)):
+            result = geo.run_relative_accuracy_metrics(refDSM, testDSM, refMask, testMask, ignoreMask, geo.getUnitWidth(tform), plot=plot)
+            if refMatchValue == testMatchValue:
+                result['CLSValue'] = refMatchValue
             else:
-                for v in refMatchValue:
-                    refMask[refCLS == v] = True
-
-            testMask = np.zeros_like(testCLS, np.bool)
-            if testMatchValue == [256]:
-                testMask[testCLS != 0] = True
-            else:
-                for v in testMatchValue:
-                    testMask[testCLS == v] = True
-
-            if PLOTS_ENABLE:
-                plot.make(testMask.astype(np.int), 'Test Evaluation Mask', 154, colorbar=True, saveName="input_testMask")
-                plot.make(refMask.astype(np.int), 'Reference Evaluation Mask', 114, colorbar=True, saveName="input_refMask")
+                result['CLSValue'] = {'Ref': refMatchValue, "Test": testMatchValue}
+            relative_accuracy_results.append(result)
 
 
-            # Evaluate threshold geometry metrics using refDTM as the testDTM to mitigate effects of terrain modeling uncertainty
-            metrics['threshold_geometry'] = geo.run_threshold_geometry_metrics(refDSM, refDTM, refMask, testDSM, refDTM, testMask,
-                                               tform, ignoreMask, plot=plot)
-
-            # Run the relative accuracy metrics and report results.
-            metrics['relative_accuracy'] = geo.run_relative_accuracy_metrics(refDSM, testDSM, refMask, testMask, ignoreMask, geo.getUnitWidth(tform), plot=plot)
-
+    metrics['threshold_geometry'] = threshold_geometry_results
+    metrics['relative_accuracy'] = relative_accuracy_results
 
     if align:
         metrics['registration_offset'] = xyzOffset
@@ -259,24 +256,24 @@ def main(args=None):
         
     # parse inputs
     parser = argparse.ArgumentParser(description='core3dmetrics entry point', prog='core3dmetrics')
+
     parser.add_argument('-c', '--config', dest='config',
-                            help='Configuration file', required=True, metavar='')
-    parser.add_argument('-r', '--reference', dest='refpath', 
-                            help='Reference data folder', required=False, metavar='')
-    parser.add_argument('-t', '--test', dest='testpath', 
-                            help='Test data folder', required=False, metavar='')
-    parser.add_argument('-o', '--output', dest='outputpath', 
-                            help='Output folder', required=False, metavar='')
-    
+                        help='Configuration file', required=True, metavar='')
+    parser.add_argument('-r', '--reference', dest='refpath',
+                        help='Reference data folder', required=False, metavar='')
+    parser.add_argument('-t', '--test', dest='testpath',
+                        help='Test data folder', required=False, metavar='')
+    parser.add_argument('-o', '--output', dest='outputpath',
+                        help='Output folder', required=False, metavar='')
     group = parser.add_mutually_exclusive_group(required=False)
-    group.add_argument('--align', dest='align', action='store_true')
-    group.add_argument('--no-align', dest='align', action='store_false')
+    group.add_argument('--align', dest='align', action='store_true', help="Enable alignment (default)")
+    group.add_argument('--no-align', dest='align', action='store_false', help="Disable alignment")
     group.set_defaults(align=True)
 
     group = parser.add_mutually_exclusive_group(required=False)
-    group.add_argument('--test-ignore', dest='testignore', action='store_true')
-    group.add_argument('--no-test-ignore', dest='testignore', action='store_false')
+    group.add_argument('--test-ignore', dest='testignore', action='store_true', help="Enable NoDataValue pixels in test CLS image to be ignored during evaluation")
     group.set_defaults(testignore=False)
+
 
     args = parser.parse_args()
     

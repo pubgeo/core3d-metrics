@@ -7,7 +7,7 @@
           {
             "type": "integer",
             "minimum": 0,
-            "maximum": 255
+            "maximum": 256
           },
           {
             "type": "array",
@@ -16,14 +16,14 @@
                 {
                   "type": "integer",
                   "minimum": 0,
-                  "maximum": 255
+                  "maximum": 256
                 },
                 {
                   "type": "array",
                   "items": {
                     "type": "integer",
                     "minimum": 0,
-                    "maximum": 255
+                    "maximum": 256
                   }
                 }
               ]
