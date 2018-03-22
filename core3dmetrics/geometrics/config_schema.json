@@ -1,6 +1,39 @@
 {
    "$schema": "http://json-schema.org/draft-04/schema#",
    "name": "geometrics configuration schema",
+   "definitions": {
+      "CLSMatchValue": {
+        "oneOf": [
+          {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 255
+          },
+          {
+            "type": "array",
+            "items": {
+              "oneOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 255
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 255
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      }
+   },
+
+
    "type": "object",
    "required": [
       "INPUT.REF",
@@ -19,6 +52,9 @@
             "CLSFilename",
             "NDXFilename",
             "CLSMatchValue"
+         ],
+         "optional": [
+            "MTLFilename"
          ],
          "additionalProperties": false,
          "properties": {
@@ -44,22 +80,9 @@
                   }
                ]
             },
-            "CLSMatchValue": {
-               "oneOf": [
-                  {
-                     "type":"integer",
-                     "minimum": 0,
-                     "maximum": 255
-                  },
-                  {
-                     "type": "array",
-                     "items": {
-                        "type": "integer",
-                        "minimum": 0,
-                        "maximum": 255
-                     }
-                  }
-               ]
+
+           "CLSMatchValue": {
+              "$ref": "#/definitions/CLSMatchValue"
             }
          }
       },      
@@ -99,22 +122,9 @@
                ]
             },
             "CLSMatchValue": {
-               "oneOf": [
-                  {
-                     "type":"integer",
-                     "minimum": 0,
-                     "maximum": 255
-                  }, 
-                  {
-                     "type": "array",
-                     "items": {
-                        "type": "integer",
-                        "minimum": 0,
-                        "maximum": 255
-                     }
-                  }
-               ]
+              "$ref": "#/definitions/CLSMatchValue"
             }
+
          }
       },
       "OPTIONS": {
