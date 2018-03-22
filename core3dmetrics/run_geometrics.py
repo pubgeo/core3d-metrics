@@ -183,7 +183,7 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None,
     refCLS_matchSets, testCLS_matchSets = geo.getMatchValueSets(config['INPUT.REF']['CLSMatchValue'], config['INPUT.REF']['CLSMatchValue'], np.unique(refCLS).tolist(), np.unique(refCLS).tolist())
     
     # Loop through sets of CLS match values
-    for refMatchValue,testMatchValue in zip(refCLS_matchSets,testCLS_matchSets):
+    for index, (refMatchValue,testMatchValue) in enumerate(zip(refCLS_matchSets,testCLS_matchSets)):
         print("Evaluating CLS values")
         print("  Reference match values: " + str(refMatchValue))
         print("  Test match values: " + str(testMatchValue))
@@ -198,6 +198,9 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None,
             testMask[testCLS == v] = True
 
         if PLOTS_ENABLE:
+            # Update plot prefix include counter to be unique for each set of CLS value evaluated
+            original_save_prefix = plot.savePrefix
+            plot.savePrefix = plot.savePrefix + "%03d"%(index) + "_"
             plot.make(testMask.astype(np.int), 'Test Evaluation Mask', 154, colorbar=True, saveName="input_testMask")
             plot.make(refMask.astype(np.int), 'Reference Evaluation Mask', 114, colorbar=True, saveName="input_refMask")
 
@@ -219,6 +222,9 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None,
                 result['CLSValue'] = {'Ref': refMatchValue, "Test": testMatchValue}
             relative_accuracy_results.append(result)
 
+    if PLOTS_ENABLE:
+        # Reset plot prefix
+        plot.savePrefix = original_save_prefix
 
     metrics['threshold_geometry'] = threshold_geometry_results
     metrics['relative_accuracy'] = relative_accuracy_results
