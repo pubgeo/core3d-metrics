@@ -1,16 +1,31 @@
-
+import numpy as np
 
 def calcMops(true_positives, false_negatives, false_positives):
-    s = {
-        'recall': true_positives / (true_positives + false_negatives),
-        'precision': true_positives / (true_positives + false_positives),
-        'jaccardIndex': true_positives / (true_positives + false_negatives + false_positives),
-        'branchingFactor': false_positives / true_positives,
-        'missFactor': false_negatives / true_positives,
-    }
-    s['completeness'] = s['recall']
-    s['correctness'] = s['precision']
-    s['fscore'] = (2 * s['recall'] * s['precision']) / (s['recall'] + s['precision'])
+
+
+    if (true_positives == 0) and (false_positives == 0):
+        s = {
+            'recall': 0,
+            'precision': np.nan,
+            'jaccardIndex': 0,
+            'branchingFactor': np.nan,
+            'missFactor': np.inf,
+            'completeness': 0,
+            'correctness': np.nan,
+           'fscore': np.nan
+        }
+
+    else:
+        s = {
+            'recall': true_positives / (true_positives + false_negatives),
+            'precision': true_positives / (true_positives + false_positives),
+            'jaccardIndex': true_positives / (true_positives + false_negatives + false_positives),
+            'branchingFactor': false_positives / true_positives,
+            'missFactor': false_negatives / true_positives,
+        }
+        s['completeness'] = s['recall']
+        s['correctness'] = s['precision']
+        s['fscore'] = (2 * s['recall'] * s['precision']) / (s['recall'] + s['precision'])
 
     return s
 
@@ -66,7 +81,8 @@ def getMatchValueSets(refCLS_matchSets, testCLS_matchSets, refCLS_classes, testC
     for index, (refMatchValue, testMatchValue) in enumerate(zip(refCLS_matchSets, testCLS_matchSets)):
         refMatchValueValid = validateMatchValues(refMatchValue, refCLS_classes)
         testMatchValueValid = validateMatchValues(testMatchValue, testCLS_classes)
-        if len(refMatchValueValid) and len(testMatchValueValid):
+
+        if len(refMatchValueValid):
             refCLS_matchSetsValid.append(refMatchValueValid)
             testCLS_matchSetsValid.append(testMatchValueValid)
 
