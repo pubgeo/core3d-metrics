@@ -4,7 +4,7 @@ import sys
 
 from .metrics_util import calcMops
 
-def run_terrain_accuracy_metrics(refDSM, refDTM, testDSM, testDTM, refMask, testMask, threshold=1, unitArea=1, plot=None):
+def run_terrain_accuracy_metrics(refDTM, testDTM, refMask, threshold=1, plot=None):
 
     PLOTS_ENABLE = True
     if plot is None: PLOTS_ENABLE = False
@@ -25,13 +25,13 @@ def run_terrain_accuracy_metrics(refDSM, refDTM, testDSM, testDTM, refMask, test
     # This is a hack to avoid water flattening at z = -1 in reference DTM files from 133 US Cities 
     # from corrupting the results. The water should be properly labeled instead, but this
     # is unlikely to cause problems for our test areas. Just keep an eye on it.
-    distanceFromWater = abs(refDTM + 1.0);
+    distanceFromWater = abs(refDTM + 1.0)
     match = match[np.where(distanceFromWater > 0.2)]
     completeness_water_removed = np.sum(match)/np.size(match)
 	
     if PLOTS_ENABLE:
-
-        errorMap = delta;
+        errorMap = delta
+        errorMap[refMask] = np.nan
         errorMap[errorMap > 5] = 5
         errorMap[errorMap < -5] = -5
         plot.make(delta, 'Terrain Model - Height Error', 481, saveName="terrainAcc_HgtErr", colorbar=True)
