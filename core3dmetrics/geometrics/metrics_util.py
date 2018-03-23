@@ -52,7 +52,7 @@ def validateMatchValues(matchValues, clsValues):
 def getMatchValueSets(refCLS_matchSets, testCLS_matchSets, refCLS_classes, testCLS_classes):
 
     # Classes present in CLS input images
-    print("Reference classification values: " + str(testCLS_classes))
+    print("Reference classification values: " + str(refCLS_classes))
     print("Test classification values: " + str(testCLS_classes))
 
     # Sets of classes specified for evaluation

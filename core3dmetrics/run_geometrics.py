@@ -180,7 +180,7 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None,
     relative_accuracy_results = []
     
     # Check that match values are valid
-    refCLS_matchSets, testCLS_matchSets = geo.getMatchValueSets(config['INPUT.REF']['CLSMatchValue'], config['INPUT.REF']['CLSMatchValue'], np.unique(refCLS).tolist(), np.unique(refCLS).tolist())
+    refCLS_matchSets, testCLS_matchSets = geo.getMatchValueSets(config['INPUT.REF']['CLSMatchValue'], config['INPUT.REF']['CLSMatchValue'], np.unique(refCLS).tolist(), np.unique(testCLS).tolist())
 
     if PLOTS_ENABLE:
         # Update plot prefix include counter to be unique for each set of CLS value evaluated
@@ -202,7 +202,7 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None,
             testMask[testCLS == v] = True
 
         if PLOTS_ENABLE:
-            plot.savePrefix = plot.savePrefix + "%03d"%(index) + "_"
+            plot.savePrefix = original_save_prefix + "%03d"%(index) + "_"
             plot.make(testMask.astype(np.int), 'Test Evaluation Mask', 154, colorbar=True, saveName="input_testMask")
             plot.make(refMask.astype(np.int), 'Reference Evaluation Mask', 114, colorbar=True, saveName="input_refMask")
 
@@ -237,7 +237,16 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None,
     # Run the terrain model metrics and report results.
     if testDTMFilename:
         dtm_z_threshold = config['OPTIONS'].get('TerrainZErrorThreshold',1)
-        metrics['terrain_accuracy'] = geo.run_terrain_accuracy_metrics(refDSM, refDTM, testDSM, testDTM, refMask, testMask, dtm_z_threshold, geo.getUnitArea(tform), plot=plot)
+
+        # Make reference mask for terrain evaluation that identified elevated object where underlying terrain estimate
+        # is expected to be inaccurate
+        dtm_CLS_ignore_values = config['INPUT.REF'].get('TerrainCLSIgnoreValues', [6, 17]) # Default to building and bridge deck
+        dtm_CLS_ignore_values = geo.validateMatchValues(dtm_CLS_ignore_values,np.unique(refCLS).tolist())
+        refMaskTerrainAcc = np.zeros_like(refCLS, np.bool)
+        for v in dtm_CLS_ignore_values:
+            refMaskTerrainAcc[refCLS == v] = True
+
+        metrics['terrain_accuracy'] = geo.run_terrain_accuracy_metrics(refDTM, testDTM, refMaskTerrainAcc, dtm_z_threshold, plot=plot)
     else:
         print('WARNING: No test DTM file, skipping terrain accuracy metrics')
 
