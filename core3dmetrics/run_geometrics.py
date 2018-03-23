@@ -18,7 +18,8 @@ except:
 
 
 # PRIMARY FUNCTION: RUN_GEOMETRICS
-def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None,align=True):
+def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None,
+    align=True,allow_test_ignore=False):
 
     # check inputs
     if not os.path.isfile(configfile):
@@ -122,28 +123,9 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None,align=T
     if testDTMFilename:
         testDTM[testValidData] = testDTM[testValidData] + xyzOffset[2]
 
-    # object masks based on CLSMatchValue(s)
-    refMask = np.zeros_like(refCLS, np.bool)
-    # For CLS value 256, evaluate against all non-zero pixels
-    # CLS values should range from 0 to 255 per ASPRS
-    # (American Society for Photogrammetry and Remote Sensing)
-    # LiDAR point cloud classification LAS standard
-    if config['INPUT.REF']['CLSMatchValue'] == [256]:
-        refMask[refCLS != 0] = True
-    else:
-        for v in config['INPUT.REF']['CLSMatchValue']:
-            refMask[refCLS == v] = True
-
-    testMask = np.zeros_like(testCLS, np.bool)
-    if config['INPUT.TEST']['CLSMatchValue'] == [256]:
-        testMask[testCLS != 0] = True
-    else:
-        for v in config['INPUT.TEST']['CLSMatchValue']:
-            testMask[testCLS == v] = True
-
     # Create mask for ignoring points labeled NoData in reference files.
-    refDSM_NoDataValue = geo.getNoDataValue(refDSMFilename)
-    refDTM_NoDataValue = geo.getNoDataValue(refDTMFilename)
+    refDSM_NoDataValue = noDataValue
+    refDTM_NoDataValue = noDataValue
     refCLS_NoDataValue = geo.getNoDataValue(refCLSFilename)
     ignoreMask = np.zeros_like(refCLS, np.bool)
 
@@ -154,9 +136,16 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None,align=T
     if refCLS_NoDataValue is not None:
         ignoreMask[refCLS == refCLS_NoDataValue] = True
 
+    # optionally ignore testCLS NoDataValue
+    if allow_test_ignore:
+        testCLS_NoDataValue = geo.getNoDataValue(testCLSFilename)
+        if testCLS_NoDataValue is not None:
+            ignoreMask[testCLS == testCLS_NoDataValue] = True
+
+    # report "data voids"
     numDataVoids = np.sum(ignoreMask > 0)
     print('Number of data voids in reference files = ', numDataVoids)
-		
+
     # If quantizing to voxels, then match vertical spacing to horizontal spacing.
     QUANTIZE = config['OPTIONS']['QuantizeHeight']
     if QUANTIZE:
@@ -172,7 +161,6 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None,align=T
         plot.make(refDSM, 'Reference DSM', 111, colorbar=True, saveName="input_refDSM", badValue=noDataValue)
         plot.make(refDTM, 'Reference DTM', 112, colorbar=True, saveName="input_refDTM", badValue=noDataValue)
         plot.make(refCLS, 'Reference Classification', 113,  colorbar=True, saveName="input_refClass")
-        plot.make(refMask.astype(np.int), 'Reference Evaluation Mask', 114, colorbar=True, saveName="input_refMask")
 
         # Test models shouldn't have any invalid data
         # so display the invalid values to highlight them,
@@ -180,33 +168,99 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None,align=T
         plot.make(testDSM, 'Test DSM', 151, colorbar=True, saveName="input_testDSM")
         plot.make(testDTM, 'Test DTM', 152, colorbar=True, saveName="input_testDTM")
         plot.make(testCLS, 'Test Classification', 153, colorbar=True, saveName="input_testClass")
-        plot.make(testMask.astype(np.int), 'Test Evaluation Mask', 154, colorbar=True, saveName="input_testMask")
 
         plot.make(ignoreMask, 'Ignore Mask', 181, saveName="input_ignoreMask")
 
 
     # Run the threshold geometry metrics and report results.
     metrics = dict()
-    # Evaluate threshold geometry metrics using refDTM as the testDTM to mitigate effects of terrain modeling uncertainty 
-    metrics['threshold_geometry'] = geo.run_threshold_geometry_metrics(refDSM, refDTM, refMask, testDSM, refDTM, testMask,
-                                       tform, ignoreMask, plot=plot)
 
-    metrics['registration_offset'] = xyzOffset
+    # Run threshold geometry and relative accuracy
+    threshold_geometry_results = []
+    relative_accuracy_results = []
+    
+    # Check that match values are valid
+    refCLS_matchSets, testCLS_matchSets = geo.getMatchValueSets(config['INPUT.REF']['CLSMatchValue'], config['INPUT.REF']['CLSMatchValue'], np.unique(refCLS).tolist(), np.unique(testCLS).tolist())
+
+    if PLOTS_ENABLE:
+        # Update plot prefix include counter to be unique for each set of CLS value evaluated
+        original_save_prefix = plot.savePrefix
+
+    # Loop through sets of CLS match values
+    for index, (refMatchValue,testMatchValue) in enumerate(zip(refCLS_matchSets,testCLS_matchSets)):
+        print("Evaluating CLS values")
+        print("  Reference match values: " + str(refMatchValue))
+        print("  Test match values: " + str(testMatchValue))
+
+        # object masks based on CLSMatchValue(s)
+        refMask = np.zeros_like(refCLS, np.bool)
+        for v in refMatchValue:
+            refMask[refCLS == v] = True
+
+        testMask = np.zeros_like(testCLS, np.bool)
+        for v in testMatchValue:
+            testMask[testCLS == v] = True
+
+        if PLOTS_ENABLE:
+            plot.savePrefix = original_save_prefix + "%03d"%(index) + "_"
+            plot.make(testMask.astype(np.int), 'Test Evaluation Mask', 154, colorbar=True, saveName="input_testMask")
+            plot.make(refMask.astype(np.int), 'Reference Evaluation Mask', 114, colorbar=True, saveName="input_refMask")
+
+        # Evaluate threshold geometry metrics using refDTM as the testDTM to mitigate effects of terrain modeling uncertainty
+        result = geo.run_threshold_geometry_metrics(refDSM, refDTM, refMask, testDSM, refDTM, testMask, tform, ignoreMask, plot=plot)
+        if refMatchValue == testMatchValue:
+            result['CLSValue'] = refMatchValue
+        else:
+            result['CLSValue'] = {'Ref': refMatchValue, "Test": testMatchValue}
+        threshold_geometry_results.append(result)
+
+        # Run the relative accuracy metrics and report results.
+        # Skip relative accuracy is all of testMask or refMask is assigned as "object"
+        if not (refMask.size == np.count_nonzero(refMask)) or (testMask.size == np.count_nonzero(testMask)):
+            result = geo.run_relative_accuracy_metrics(refDSM, testDSM, refMask, testMask, ignoreMask, geo.getUnitWidth(tform), plot=plot)
+            if refMatchValue == testMatchValue:
+                result['CLSValue'] = refMatchValue
+            else:
+                result['CLSValue'] = {'Ref': refMatchValue, "Test": testMatchValue}
+            relative_accuracy_results.append(result)
+
+    if PLOTS_ENABLE:
+        # Reset plot prefix
+        plot.savePrefix = original_save_prefix
+
+    metrics['threshold_geometry'] = threshold_geometry_results
+    metrics['relative_accuracy'] = relative_accuracy_results
+
+    if align:
+        metrics['registration_offset'] = xyzOffset
+
     # Run the terrain model metrics and report results.
-    dtm_z_threshold = config['OPTIONS'].get('TerrainZErrorThreshold',1)
-    metrics['terrain_accuracy'] = geo.run_terrain_accuracy_metrics(refDSM, refDTM, testDSM, testDTM, refMask, testMask, dtm_z_threshold, geo.getUnitArea(tform), plot=plot)
-    metrics['relative_accuracy'] = geo.run_relative_accuracy_metrics(refDSM, testDSM, refMask, testMask, ignoreMask, geo.getUnitWidth(tform), plot=plot)
+    if testDTMFilename:
+        dtm_z_threshold = config['OPTIONS'].get('TerrainZErrorThreshold',1)
+
+        # Make reference mask for terrain evaluation that identified elevated object where underlying terrain estimate
+        # is expected to be inaccurate
+        dtm_CLS_ignore_values = config['INPUT.REF'].get('TerrainCLSIgnoreValues', [6, 17]) # Default to building and bridge deck
+        dtm_CLS_ignore_values = geo.validateMatchValues(dtm_CLS_ignore_values,np.unique(refCLS).tolist())
+        refMaskTerrainAcc = np.zeros_like(refCLS, np.bool)
+        for v in dtm_CLS_ignore_values:
+            refMaskTerrainAcc[refCLS == v] = True
+
+        metrics['terrain_accuracy'] = geo.run_terrain_accuracy_metrics(refDTM, testDTM, refMaskTerrainAcc, dtm_z_threshold, plot=plot)
+    else:
+        print('WARNING: No test DTM file, skipping terrain accuracy metrics')
 
     # Run the threshold material metrics and report results.
     if testMTLFilename:
-            metrics['threshold_materials'] = geo.run_material_metrics(refNDX, refMTL, testMTL, materialNames, materialIndicesToIgnore)
+        metrics['threshold_materials'] = geo.run_material_metrics(refNDX, refMTL, testMTL, materialNames, materialIndicesToIgnore)
     else:
         print('WARNING: No test MTL file, skipping material metrics')
 
     fileout = os.path.join(outputpath,os.path.basename(configfile) + "_metrics.json")
     with open(fileout,'w') as fid:
         json.dump(metrics,fid,indent=2)
-    print(json.dumps(metrics,indent=2))		
+    print(json.dumps(metrics,indent=2))
+    print("Metrics report: " + fileout)
 		
     #  If displaying figures, wait for user before existing
     if PLOTS_SHOW:
@@ -219,30 +273,37 @@ def main(args=None):
         
     # parse inputs
     parser = argparse.ArgumentParser(description='core3dmetrics entry point', prog='core3dmetrics')
+
     parser.add_argument('-c', '--config', dest='config',
-                            help='Configuration file', required=True, metavar='')
-    parser.add_argument('-r', '--reference', dest='refpath', 
-                            help='Reference data folder', required=False, metavar='')
-    parser.add_argument('-t', '--test', dest='testpath', 
-                            help='Test data folder', required=False, metavar='')
-    parser.add_argument('-o', '--output', dest='outputpath', 
-                            help='Output folder', required=False, metavar='')
-    
+                        help='Configuration file', required=True, metavar='')
+    parser.add_argument('-r', '--reference', dest='refpath',
+                        help='Reference data folder', required=False, metavar='')
+    parser.add_argument('-t', '--test', dest='testpath',
+                        help='Test data folder', required=False, metavar='')
+    parser.add_argument('-o', '--output', dest='outputpath',
+                        help='Output folder', required=False, metavar='')
     group = parser.add_mutually_exclusive_group(required=False)
-    group.add_argument('--align', dest='align', action='store_true')
-    group.add_argument('--no-align', dest='align', action='store_false')
+    group.add_argument('--align', dest='align', action='store_true', help="Enable alignment (default)")
+    group.add_argument('--no-align', dest='align', action='store_false', help="Disable alignment")
     group.set_defaults(align=True)
+
+    group = parser.add_mutually_exclusive_group(required=False)
+    group.add_argument('--test-ignore', dest='testignore', action='store_true', help="Enable NoDataValue pixels in test CLS image to be ignored during evaluation")
+    group.set_defaults(testignore=False)
+
 
     args = parser.parse_args()
     
     # gather optional arguments
     kwargs = {}
+    kwargs['align'] = args.align
+    kwargs['allow_test_ignore'] = args.testignore 
     if args.refpath: kwargs['refpath'] = args.refpath
     if args.testpath: kwargs['testpath'] = args.testpath
     if args.outputpath: kwargs['outputpath'] = args.outputpath
     
     # run process
-    run_geometrics(configfile=args.config,align=args.align,**kwargs)
+    run_geometrics(configfile=args.config,**kwargs)
 
 if __name__ == "__main__":
     main()

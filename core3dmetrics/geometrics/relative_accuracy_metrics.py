@@ -8,24 +8,27 @@ def run_relative_accuracy_metrics(refDSM, testDSM, refMask, testMask, ignoreMask
     PLOTS_ENABLE = True
     if plot is None: PLOTS_ENABLE = False
 
+    # valid mask (opposite of ignore mask)
+    validMask = ~ignoreMask
+
     # Compute relative vertical accuracy
     # Consider only objects selected in both reference and test masks.
 
     # Calculate Z percentile errors.
     # Z68 approximates ZRMSE assuming normal error distribution.
     delta = testDSM - refDSM
-    z68 = np.percentile(abs(delta[np.where(refMask & testMask & ~ignoreMask)]),68)
-    z50 = np.percentile(abs(delta[np.where(refMask & testMask & ~ignoreMask)]),50)
-    z90 = np.percentile(abs(delta[np.where(refMask & testMask & ~ignoreMask)]),90)
+    overlap = refMask & testMask & validMask
+    z68 = np.percentile(abs(delta[overlap]),68)
+    z50 = np.percentile(abs(delta[overlap]),50)
+    z90 = np.percentile(abs(delta[overlap]),90)
 
     # Generate relative vertical accuracy plots
     if PLOTS_ENABLE:
-        errorMap = delta
-        delta[refMask == 0] = np.nan
+        errorMap = np.copy(delta)
+        errorMap[~overlap] = np.nan
         plot.make(errorMap, 'Object Height Error', 581, saveName="relVertAcc_hgtErr", colorbar=True)
-        errorMap[errorMap > 5] = 5
-        errorMap[errorMap < -5] = -5
-        plot.make(errorMap, 'Object Height Error (Clipped)', 582, saveName="relVertAcc_hgtErr_clipped", colorbar=True)
+        plot.make(errorMap, 'Object Height Error (Clipped)', 582, saveName="relVertAcc_hgtErr_clipped", colorbar=True,
+            vmin=-5,vmax=5)
 
     # Compute relative horizontal accuracy
     # Consider only objects selected in reference mask.
@@ -34,8 +37,9 @@ def run_relative_accuracy_metrics(refDSM, testDSM, refMask, testMask, ignoreMask
     kernel = np.ones((3, 3), np.int)
     refEdge = convolve2d(refMask.astype(np.int), kernel, mode="same", boundary="symm")
     testEdge = convolve2d(testMask.astype(np.int), kernel, mode="same", boundary="symm")
-    refEdge = (refEdge < 9) & refMask
-    testEdge = (testEdge < 9) & testMask
+    validEdge = convolve2d(validMask.astype(np.int), kernel, mode="same", boundary="symm")
+    refEdge = (refEdge < 9) & refMask & (validEdge == 9) 
+    testEdge = (testEdge < 9) & testMask & (validEdge == 9)
     refPts = refEdge.nonzero()
     testPts = testEdge.nonzero()
 
@@ -58,7 +62,7 @@ def run_relative_accuracy_metrics(refDSM, testDSM, refMask, testMask, ignoreMask
                   saveName="relHorzAcc_edgeMapTest", cmap='Greys')
 
         plt = plot.make(None,'Relative Horizontal Accuracy')
-        plt.imshow(refMask, cmap='Greys')
+        plt.imshow(refMask & validMask, cmap='Greys')
         plt.plot(refPts[1], refPts[0], 'r,')
         plt.plot(testPts[1], testPts[0], 'b,')
 

@@ -4,15 +4,15 @@
     "DTMFilename": "/path_to/ground_truth-DTM.tif",
     "CLSFilename": "/path_to/ground_truth-CLS.tif",
     "NDXFilename": "/path_to/ground_truth-NDX.tif",
-    "MTLFilename": "/path_to/ground_truth--MTL.tif",
-    "CLSMatchValue": [6,65]
+    "MTLFilename": "/path_to/ground_truth-MTL.tif",
+    "CLSMatchValue": [[6,65], [17], [6,17,65]]
   },
   "INPUT.TEST": {
     "DSMFilename": "/path_to/test_model-DSM.tif",
     "DTMFilename": "/path_to/test_model-DTM.tif",
     "CLSFilename": "/path_to/test_model-CLS.tif",
     "MTLFilename": "/path_to/test_model-MTL.tif",
-    "CLSMatchValue": 6
+    "CLSMatchValue": [[6], [17], [6,17]]
   },
   "OPTIONS": {
     "QuantizeHeight": true
@@ -25,8 +25,8 @@
     "Align3DPath": ""
   },
   "MATERIALS.REF": {
-    "MaterialIndices": [0,1,2,3,4,5,6,7,8,9,10,11],
-    "MaterialNames": ["Unclassified","Asphalt","Concrete/Stone","Glass","Tree","Non-tree vegetation","Metal","Red ceramic","Soil","Solar panel","Water","Polymer"],
-    "MaterialIndicesToIgnore": [12]
+    "MaterialIndices": [0,1,2,3,4,5,6,7,8,9,10,11,12,13],
+    "MaterialNames": ["Unclassified","Asphalt","Concrete/Stone","Glass","Tree","Non-tree vegetation","Metal","Ceramic","Soil","Solar panel","Water","Polymer","Unscored","Indeterminate"],
+    "MaterialIndicesToIgnore": [0,12,13]
   }
 }

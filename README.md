@@ -32,8 +32,8 @@ If installed
 
     # from command line
     core3d-metrics --help
-    core3d-metrics <AOI Configuration>
-    python3 -m core3dmetrics <AOI Configuration>
+    core3d-metrics -c <AOI Configuration>
+    python3 -m core3dmetrics -c <AOI Configuration>
 
     # in use code:
     import core3dmetrics.geometrics as geo
@@ -47,6 +47,20 @@ If not installed
 
 One of the first steps is to align your dataset to the ground truth. This is performed using pubgeo's [ALIGN3D](https://github.com/pubgeo/pubgeo/#align3d) algorithm.
 The algorithm then calculates metrics for 2D, 3D, and spectral classification against the ground truth.
+
+###### Usage Statement
+        usage: core3dmetrics [-h] -c  [-r] [-t] [-o] [--align | --no-align] [--test-ignore]
+        core3dmetrics entry point
+        optional arguments:
+          -h, --help         show this help message and exit
+          -c , --config      Configuration file
+          -r , --reference   Reference data folder
+          -t , --test        Test data folder
+          -o , --output      Output folder
+          --align            Enable alignment (default)
+          --no-align         Disable alignment
+          --test-ignore      Enable NoDataValue pixels in test CLS image to be 
+                             ignored during evaluation
 
 #### Input
 _AOI Configuration_ is a configuration file using python's ConfigParser that is further described in [aoi-config.md](aoi-example/aoi-config.md).
