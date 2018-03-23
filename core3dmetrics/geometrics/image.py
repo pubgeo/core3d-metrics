@@ -60,7 +60,7 @@ def imageWarp(file_src: str, file_dst: str, offset=None, interp_method: int = gd
     dataset_dst.SetGeoTransform(geo)
 
     if NDV is not None:
-        band = dataset_dst.GetRasterBand(1);
+        band = dataset_dst.GetRasterBand(1)
         band.SetNoDataValue(NDV)
         band.Fill(NDV)
     

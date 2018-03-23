@@ -198,8 +198,9 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None,
             refMask[refCLS == v] = True
 
         testMask = np.zeros_like(testCLS, np.bool)
-        for v in testMatchValue:
-            testMask[testCLS == v] = True
+        if len(testMatchValue):
+            for v in testMatchValue:
+                testMask[testCLS == v] = True
 
         if PLOTS_ENABLE:
             plot.savePrefix = original_save_prefix + "%03d"%(index) + "_"
@@ -216,7 +217,7 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None,
 
         # Run the relative accuracy metrics and report results.
         # Skip relative accuracy is all of testMask or refMask is assigned as "object"
-        if not (refMask.size == np.count_nonzero(refMask)) or (testMask.size == np.count_nonzero(testMask)):
+        if not ((refMask.size == np.count_nonzero(refMask)) or (testMask.size == np.count_nonzero(testMask))) and len(testMatchValue) != 0:
             result = geo.run_relative_accuracy_metrics(refDSM, testDSM, refMask, testMask, ignoreMask, geo.getUnitWidth(tform), plot=plot)
             if refMatchValue == testMatchValue:
                 result['CLSValue'] = refMatchValue
