@@ -90,10 +90,9 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None,
 
     # Explicitly assign a no data value to warped images to track filled pixels
     noDataValue = -9999
-    
+
     # Read reference model files.
-    print("")
-    print("Reading reference model files...")
+    print("\nReading reference model files...")
     refCLS, tform = geo.imageLoad(refCLSFilename)
     refDSM = geo.imageWarp(refDSMFilename, refCLSFilename, noDataValue=noDataValue)
     refDTM = geo.imageWarp(refDTMFilename, refCLSFilename, noDataValue=noDataValue)
@@ -101,10 +100,11 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None,
 
     if refMTLFilename:
         refMTL = geo.imageWarp(refMTLFilename, refCLSFilename, interp_method=gdalconst.GRA_NearestNeighbour).astype(np.uint8)
+    else:
+        print('NO REFERENCE MTL')
 
     # Read test model files and apply XYZ offsets.
-    print("Reading test model files...")
-    print("")
+    print("\nReading test model files...")
     testCLS = geo.imageWarp(testCLSFilename, refCLSFilename, xyzOffset, gdalconst.GRA_NearestNeighbour)
     testDSM = geo.imageWarp(testDSMFilename, refCLSFilename, xyzOffset, noDataValue=noDataValue)
 
@@ -116,6 +116,10 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None,
 
     if testMTLFilename:
         testMTL = geo.imageWarp(testMTLFilename, refCLSFilename, xyzOffset, gdalconst.GRA_NearestNeighbour).astype(np.uint8)
+    else:
+        print('NO TEST MTL')
+
+    print("\n\n")
 
     # Apply registration offset, only to valid data to allow better tracking of bad data
     testValidData = (testDSM != noDataValue) & (testDSM != noDataValue)
