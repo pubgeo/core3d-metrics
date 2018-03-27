@@ -57,6 +57,9 @@ def imageWarp(file_src: str, file_dst: str, offset=None, interp_method: int = gd
     # verbose display
     print('Loading <{}>'.format(file_src))
 
+    # destination metadata
+    meta_dst = getMetadata(file_dst)
+
     # GDAL memory driver
     mem_drv = gdal.GetDriverByName('MEM')
 
@@ -83,13 +86,19 @@ def imageWarp(file_src: str, file_dst: str, offset=None, interp_method: int = gd
 
     # Apply registration offset
     if offset is not None:
+
+        # offset error: offset is defined in destination projection space,
+        # and cannot be applied if source and destination projections differ
+        if meta_src['Projection'] != meta_dst['Projection']:
+            print('IMAGE PROJECTION\n{}'.format(meta_src['Projection']))
+            print('OFFSET PROJECTION\n{}'.format(meta_dst['Projection']))
+            raise ValueError('Image/Offset projection mismatch')
+
         transform = meta_src['GeoTransform']
         transform[0] += offset[0]
         transform[3] += offset[1]
         dataset_src.SetGeoTransform(transform)
 
-    # destination metadata
-    meta_dst = getMetadata(file_dst)
 
     # no reprojection necessary
     if meta_src == meta_dst:
