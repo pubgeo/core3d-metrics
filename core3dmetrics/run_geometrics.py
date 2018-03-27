@@ -171,6 +171,10 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None,
 
         plot.make(ignoreMask, 'Ignore Mask', 181, saveName="input_ignoreMask")
 
+        # material maps
+        if refMTLFilename and testMTLFilename:
+            plot.make(refMTL, 'Reference Materials', 191, colorbar=True, saveName="input_refMTL",vmin=0,vmax=13)
+            plot.make(testMTL, 'Test Materials', 192, colorbar=True, saveName="input_testMTL",vmin=0,vmax=13)
 
     # Run the threshold geometry metrics and report results.
     metrics = dict()
