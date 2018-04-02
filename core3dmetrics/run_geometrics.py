@@ -301,7 +301,7 @@ def main(args=None):
     group.set_defaults(testignore=False)
 
 
-    args = parser.parse_args()
+    args = parser.parse_args(args)
     
     # gather optional arguments
     kwargs = {}
