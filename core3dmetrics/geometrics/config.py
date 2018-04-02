@@ -61,7 +61,7 @@ def parse_config(configfile,refpath=None,testpath=None):
     if refpath and not os.path.isdir(refpath):
         raise IOError('"refpath" not a valid folder <{}>'.format(refpath))
 
-    if testpath and not os.path.isdir(refpath):
+    if testpath and not os.path.isdir(testpath):
         raise IOError('"testpath" not a valid folder <{}>'.format(testpath))
 
     # create schema validator object (& check schema itself)
