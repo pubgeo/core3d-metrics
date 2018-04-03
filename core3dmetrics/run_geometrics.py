@@ -122,7 +122,10 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None,
     print("\n\n")
 
     # Apply registration offset, only to valid data to allow better tracking of bad data
-    testValidData = (testDSM != noDataValue) & (testDSM != noDataValue)
+    testValidData = (testDSM != noDataValue)
+    if testDTMFilename:
+        testValidData &= (testDTM != noDataValue)
+
     testDSM[testValidData] = testDSM[testValidData] + xyzOffset[2]
     if testDTMFilename:
         testDTM[testValidData] = testDTM[testValidData] + xyzOffset[2]
