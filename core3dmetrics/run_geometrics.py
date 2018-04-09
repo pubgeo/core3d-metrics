@@ -121,25 +121,24 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None,
 
     print("\n\n")
 
-    # Apply registration offset, only to valid data to allow better tracking of bad data
+    # valid reference & test elevation data
+    # invalid elevation data will be excluded from the ref/test masks
+    refValidData = (refDSM != noDataValue) & (refDTM != noDataValue)
+    
     testValidData = (testDSM != noDataValue)
     if testDTMFilename:
         testValidData &= (testDTM != noDataValue)
 
+    # Apply registration offset, only to valid data to allow better tracking of bad data
     testDSM[testValidData] = testDSM[testValidData] + xyzOffset[2]
     if testDTMFilename:
         testDTM[testValidData] = testDTM[testValidData] + xyzOffset[2]
 
-    # Create mask for ignoring points labeled NoData in reference files.
-    refDSM_NoDataValue = noDataValue
-    refDTM_NoDataValue = noDataValue
+    # Create mask for ignoring points labeled NoData in CLS reference file
+    # note that invalid reference elevations are also removed from the ref mask
     refCLS_NoDataValue = geo.getNoDataValue(refCLSFilename)
     ignoreMask = np.zeros_like(refCLS, np.bool)
 
-    if refDSM_NoDataValue is not None:
-        ignoreMask[refDSM == refDSM_NoDataValue] = True
-    if refDTM_NoDataValue is not None:
-        ignoreMask[refDTM == refDTM_NoDataValue] = True
     if refCLS_NoDataValue is not None:
         ignoreMask[refCLS == refCLS_NoDataValue] = True
 
@@ -213,6 +212,11 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None,
             for v in testMatchValue:
                 testMask[testCLS == v] = True
 
+        # eliminate invalid elevation values from masks
+        refMask &= refValidData
+        testMask &= testValidData
+
+        # plot masks
         if PLOTS_ENABLE:
             plot.savePrefix = original_save_prefix + "%03d"%(index) + "_"
             plot.make(testMask.astype(np.int), 'Test Evaluation Mask', 154, colorbar=True, saveName="input_testMask")
