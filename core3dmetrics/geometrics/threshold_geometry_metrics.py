@@ -1,121 +1,158 @@
 import numpy as np
 import os
+import json
 
 from .metrics_util import calcMops
 from .metrics_util import getUnitArea
 
 
 def run_threshold_geometry_metrics(refDSM, refDTM, refMask, testDSM, testDTM, testMask,
-                                   tform, ignoreMask, plot=None):
-                     
+                                   tform, ignoreMask, plot=None, verbose=True):
+                    
 
+    # INPUT PARSING==========
+
+    # parse plot input
     if plot is None:
         PLOTS_ENABLE = False
     else:
         PLOTS_ENABLE = True
-        PLOTS_SAVE_PREFIX = "thresholdGeometry_"
+        PLOTS_SAVE_PREFIX = "thresholdGeometry_"    
                                    
-    refHgt = (refDSM - refDTM)
-    refObj = refHgt
-    refObj[~refMask] = 0
-
-    testHgt = (testDSM - testDTM)
-    testObj = np.copy(testHgt)
-    testObj[~testMask] = 0
-
-    # Make metrics
-    refOnlyMask = refMask & ~testMask
-    testOnlyMask = testMask & ~refMask
-    overlapMask = refMask & testMask
-
-    # Apply ignore mask
-    refOnlyMask = refOnlyMask & ~ignoreMask
-    testOnlyMask = testOnlyMask & ~ignoreMask
-    overlapMask = overlapMask & ~ignoreMask
-
-    
-    if PLOTS_ENABLE:
-        plot.make(refMask, 'Reference Object Regions', 211, saveName=PLOTS_SAVE_PREFIX+"refObjMask")
-        plot.make(refObj,  'Reference Object Height', 212, saveName=PLOTS_SAVE_PREFIX+"refObjHgt", colorbar=True)
-        
-        plot.make(testMask, 'Test Object Regions', 251, saveName=PLOTS_SAVE_PREFIX+"testObjHgt")
-        plot.make(testObj, 'Test Object  Height', 252, saveName=PLOTS_SAVE_PREFIX+"testObjHgt", colorbar=True)
-    
-        plot.make(refOnlyMask,  'False Negative Regions', 281, saveName=PLOTS_SAVE_PREFIX+"falseNegetive")
-        plot.make(testOnlyMask, 'False Positive Regions', 282, saveName=PLOTS_SAVE_PREFIX+"falsePositive")
-        plot.make(overlapMask,  'True Positive Regions',  283, saveName=PLOTS_SAVE_PREFIX+"truePositive")
-    
-    
-    
     # Determine evaluation units.
     unitArea = getUnitArea(tform)
+                                 
+    # 2D footprints for evaluation
+    ref_footprint = refMask & ~ignoreMask
+    test_footprint = testMask & ~ignoreMask
 
-    # --- Hard Error ------------------------------------------------------
-    # Regions that are 2D False Positives or False Negatives, are
-    # all or nothing.  These regions don't consider overlap in the
-    # underlying terrain models
+    # building height (DSM-DTM, with zero elevation outside footprint)
+    ref_height = refDSM.astype(np.float64) - refDTM.astype(np.float64)
+    ref_height[~ref_footprint] = 0
 
-    # -------- False Positive ---------------------------------------------
-    unitCountFP = np.sum(testOnlyMask)
-    oobFP = np.sum(testOnlyMask * testObj) * unitArea
+    test_height = testDSM.astype(np.float64) - testDTM.astype(np.float64)
+    test_height[~test_footprint] = 0
 
-    # -------- False Negative ---------------------------------------------
-    unitCountFN = np.sum(refOnlyMask)
-    oobFN = np.sum(refOnlyMask * refObj) * unitArea
+    # total 2D area
+    REF_2D = np.sum(ref_footprint)
+    TEST_2D = np.sum(test_footprint)
 
-    # --- Soft Error ------------------------------------------------------
-    # Regions that are 2D True Positive
+    # total 3D volume 
+    REF_3D = np.sum(np.absolute(ref_height)) * unitArea
+    TEST_3D = np.sum(np.absolute(test_height)) * unitArea
 
-    # For both below:
-    #       Positive values are False Positives
-    #       Negative values are False Negatives
-    deltaTop = testDSM - refDSM
-    deltaBot = refDTM - testDTM
+    # verbose reporting
+    if verbose:
+        print('REF height range [mn,mx] = [{},{}]'.format(np.amin(ref_height),np.amax(ref_height)))
+        print('TEST height range [mn,mx] = [{},{}]'.format(np.amin(test_height),np.amax(test_height)))
+        print('REF area (px), volume (m^3) = [{},{}]'.format(REF_2D,REF_3D))
+        print('TEST area (px), volume (m^3) =  [{},{}]'.format(TEST_2D,TEST_3D))
 
-    # Regions that are 2D True Positives
-    unitCountTP = np.sum(overlapMask)
-    overlap = overlapMask * (testObj - refObj)
-    overlap[np.isnan(overlap)] = 0
-
-    # -------- False Positive -------------------------------------------------
-    false_positives = np.nansum((deltaTop > 0) * deltaTop * overlapMask) * unitArea + \
-         np.nansum((deltaBot > 0) * deltaBot * overlapMask) * unitArea
-
-    # -------- False Negative -------------------------------------------------
-    false_negatives = -np.nansum((deltaTop < 0) * deltaTop * overlapMask) * unitArea + \
-         -np.nansum((deltaBot < 0) * deltaBot * overlapMask) * unitArea
-
-    # -------- True Positive ---------------------------------------------------
-    true_positives = np.nansum(refObj * overlapMask) * unitArea - false_negatives
-    tolFP = false_positives + oobFP
-    tolFN = false_negatives + oobFN
-    tolTP = true_positives
-
-    metrics = {
-        '2D': calcMops(unitCountTP, unitCountFN, unitCountFP),
-        '3D': calcMops(tolTP, tolFN, tolFP),
-    }
-
+    # plot 
     if PLOTS_ENABLE:
-        errorMap = np.empty(refOnlyMask.shape)
-        errorMap[:] = np.nan
-        errorMap[testOnlyMask == 1] =  testObj[testOnlyMask == 1]
-        errorMap[refOnlyMask == 1]  = -refObj[refOnlyMask == 1]
+        print('Input plots...')
 
-        overlap = overlapMask * (testDSM - refDSM)
-        errorMap[overlapMask == 1]  =  overlap[overlapMask == 1]
+        plot.make(ref_footprint, 'Reference Object Regions', 211, saveName=PLOTS_SAVE_PREFIX+"refObjMask")
+        plot.make(ref_height, 'Reference Object Height', 212, saveName=PLOTS_SAVE_PREFIX+"refObjHgt", colorbar=True)
+        
+        plot.make(test_footprint, 'Test Object Regions', 251, saveName=PLOTS_SAVE_PREFIX+"testObjHgt")
+        plot.make(test_height, 'Test Object Height', 252, saveName=PLOTS_SAVE_PREFIX+"testObjHgt", colorbar=True)
 
+        errorMap = (test_height-ref_height)
+        errorMap[~ref_footprint & ~test_footprint] = np.nan
         plot.make(errorMap, 'Height Error', 291, saveName=PLOTS_SAVE_PREFIX+"errHgt", colorbar=True)
         plot.make(errorMap, 'Height Error (clipped)', 292, saveName=PLOTS_SAVE_PREFIX+"errHgtClipped", colorbar=True,
             vmin=-5,vmax=5)
 
-        tmp = deltaTop
-        tmp[ignoreMask] = np.nan
-        plot.make(tmp, 'DSM Error', 293, saveName=PLOTS_SAVE_PREFIX+"errHgtDSM", colorbar=True)
 
-        tmp = deltaBot
-        tmp[ignoreMask] = np.nan
-        plot.make(tmp, 'DTM Error', 294, saveName=PLOTS_SAVE_PREFIX+"errHgtDTM", colorbar=True)
+    # 2D ANALYSIS==========
+
+    # 2D metrics
+    tp_2D =  test_footprint &  ref_footprint
+    fn_2D = ~test_footprint &  ref_footprint
+    fp_2D =  test_footprint & ~ref_footprint
+    
+    TP_2D = np.sum(tp_2D)
+    FN_2D = np.sum(fn_2D)
+    FP_2D = np.sum(fp_2D)
+
+    # error check:
+    if (TP_2D + FN_2D) != REF_2D:
+        raise ValueError('2D TP+FN ({}+{}) does not equal ref area ({})'.format(
+            TP_2D, FN_2D, REF_2D))
+    elif (TP_2D + FP_2D) != TEST_2D:
+        raise ValueError('2D TP+FP ({}+{}) does not equal test area ({})'.format(
+            TP_2D, FP_2D, TEST_2D))
+    
+    # verbose reporting
+    if verbose:
+        print('2D TP+FN ({}+{}) equals ref area ({})'.format(
+            TP_2D, FN_2D, REF_2D))
+        print('2D TP+FP ({}+{}) equals test area ({})'.format(
+            TP_2D, FP_2D, TEST_2D))
+
+    # plot
+    if PLOTS_ENABLE:   
+        print('2D analysis plots...')
+        plot.make(tp_2D, 'True Positive Regions',  283, saveName=PLOTS_SAVE_PREFIX+"truePositive")
+        plot.make(fn_2D, 'False Negative Regions', 281, saveName=PLOTS_SAVE_PREFIX+"falseNegetive")
+        plot.make(fp_2D, 'False Positive Regions', 282, saveName=PLOTS_SAVE_PREFIX+"falsePositive")
 
 
+    # 3D ANALYSIS==========
+
+    # Flip underground reference structures
+    # flip all heights where ref_height is less than zero, allowing subsequent calculations
+    # to only consider difference relative to positive/absolute reference structures
+    tf = ref_height < 0
+    ref_height[tf] = -ref_height[tf]
+    test_height[tf] = -test_height[tf]
+
+    # separate test height into above & below ground sets
+    test_above = np.copy(test_height)
+    test_above[test_height<0] = 0
+
+    test_below = np.copy(test_height)
+    test_below[test_height>0] = 0
+    test_below = np.absolute(test_below)
+
+    # 3D metrics
+    tp_3D = np.minimum(ref_height,test_above) # ref/test height overlap
+    fn_3D = (ref_height - tp_3D) # test too short
+    fp_3D = (test_above - tp_3D) + test_below # test too tall OR test below ground
+    
+    TP_3D = np.sum(tp_3D)*unitArea
+    FN_3D = np.sum(fn_3D)*unitArea
+    FP_3D = np.sum(fp_3D)*unitArea
+
+    # error check:
+    if (TP_3D + FN_3D) != REF_3D:
+        raise ValueError('3D TP+FN ({}+{}) does not equal ref volume ({})'.format(
+            TP_3D, FN_3D, REF_3D))
+    elif (TP_3D + FP_3D) != TEST_3D:
+        raise ValueError('3D TP+FP ({}+{}) does not equal test volume ({})'.format(
+            TP_3D, FP_3D, TEST_3D))
+
+    # verbose reporting
+    if verbose:
+        print('3D TP+FN ({}+{}) equals ref volume ({})'.format(
+            TP_3D, FN_3D, REF_3D))
+        print('3D TP+FP ({}+{}) equals test volume ({})'.format(
+            TP_3D, FP_3D, TEST_3D))
+
+
+    # CLEANUP==========
+
+    # final metrics
+    metrics = {
+        '2D': calcMops(TP_2D, FN_2D, FP_2D),
+        '3D': calcMops(TP_3D, FN_3D, FP_3D),
+    }
+
+    # verbose reporting
+    if verbose:
+        print('METRICS REPORT:')
+        print(json.dumps(metrics,indent=2))
+
+    # return metric dictionary
     return metrics

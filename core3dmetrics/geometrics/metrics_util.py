@@ -27,6 +27,11 @@ def calcMops(true_positives, false_negatives, false_positives):
         s['correctness'] = s['precision']
         s['fscore'] = (2 * s['recall'] * s['precision']) / (s['recall'] + s['precision'])
 
+    # append actual TP/FN/FP to report
+    s['TP'] = float(true_positives)
+    s['FN'] = float(false_negatives)
+    s['FP'] = float(false_positives)
+
     return s
 
 
