@@ -2,17 +2,17 @@ import numpy as np
 
 def calcMops(true_positives, false_negatives, false_positives):
 
-
-    if (true_positives == 0) and (false_positives == 0):
+    # when user gets nothing correct
+    if (true_positives == 0):
         s = {
             'recall': 0,
-            'precision': np.nan,
+            'precision': 0,
             'jaccardIndex': 0,
             'branchingFactor': np.nan,
-            'missFactor': np.inf,
+            'missFactor': np.nan,
             'completeness': 0,
-            'correctness': np.nan,
-           'fscore': np.nan
+            'correctness': 0,
+            'fscore': np.nan
         }
 
     else:

@@ -17,7 +17,7 @@ def run_threshold_geometry_metrics(refDSM, refDTM, refMask, testDSM, testDTM, te
         PLOTS_ENABLE = False
     else:
         PLOTS_ENABLE = True
-        PLOTS_SAVE_PREFIX = "thresholdGeometry_"    
+        PLOTS_SAVE_PREFIX = "thresholdGeometry_"
                                    
     # Determine evaluation units.
     unitArea = getUnitArea(tform)
@@ -55,7 +55,7 @@ def run_threshold_geometry_metrics(refDSM, refDTM, refMask, testDSM, testDTM, te
         plot.make(ref_footprint, 'Reference Object Regions', 211, saveName=PLOTS_SAVE_PREFIX+"refObjMask")
         plot.make(ref_height, 'Reference Object Height', 212, saveName=PLOTS_SAVE_PREFIX+"refObjHgt", colorbar=True)
         
-        plot.make(test_footprint, 'Test Object Regions', 251, saveName=PLOTS_SAVE_PREFIX+"testObjHgt")
+        plot.make(test_footprint, 'Test Object Regions', 251, saveName=PLOTS_SAVE_PREFIX+"testObjMask")
         plot.make(test_height, 'Test Object Height', 252, saveName=PLOTS_SAVE_PREFIX+"testObjHgt", colorbar=True)
 
         errorMap = (test_height-ref_height)
