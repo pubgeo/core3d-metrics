@@ -2,17 +2,17 @@ import numpy as np
 
 def calcMops(true_positives, false_negatives, false_positives):
 
-
-    if (true_positives == 0) and (false_positives == 0):
+    # when user gets nothing correct
+    if (true_positives == 0):
         s = {
             'recall': 0,
-            'precision': np.nan,
+            'precision': 0,
             'jaccardIndex': 0,
             'branchingFactor': np.nan,
-            'missFactor': np.inf,
+            'missFactor': np.nan,
             'completeness': 0,
-            'correctness': np.nan,
-           'fscore': np.nan
+            'correctness': 0,
+            'fscore': np.nan
         }
 
     else:
@@ -26,6 +26,11 @@ def calcMops(true_positives, false_negatives, false_positives):
         s['completeness'] = s['recall']
         s['correctness'] = s['precision']
         s['fscore'] = (2 * s['recall'] * s['precision']) / (s['recall'] + s['precision'])
+
+    # append actual TP/FN/FP to report
+    s['TP'] = float(true_positives)
+    s['FN'] = float(false_negatives)
+    s['FP'] = float(false_positives)
 
     return s
 

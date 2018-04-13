@@ -17,8 +17,8 @@ if [ "$DOCKER_DEPLOY" = false ] ; then
 fi
 
 # run incoming command
-if [ "${@+$1}" == "some_app_name" ]; then
-  echo "some_app_name"
+if [ "${@+$1}" == "test" ]; then
+  python3 -m unittest discover -v
 else
   exec "${@}"
 fi
