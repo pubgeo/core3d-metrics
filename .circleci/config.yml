@@ -1,0 +1,32 @@
+version: 2
+jobs:
+  build:
+    working_directory: ~/repo
+    docker:
+      - image: docker:18.03.0-ce-git
+    steps:
+
+      - checkout
+
+      - setup_remote_docker
+
+      - run:
+          name: Install software
+          command: |
+            apk update
+            apk add py-pip
+            pip install docker-compose
+            docker-compose --version
+            docker ps
+
+      - run:
+          name: Smuggle repo to remote docker
+          command: tar zc --exclude .git . | docker run -i -v /root/repo:/repo -w /repo alpine:3.6 tar zx
+
+      - run: 
+          name: Build all dockers
+          command: docker-compose build
+
+      - run:
+          name: Unit tests
+          command: docker-compose run --rm geometrics_develop test
