@@ -1,6 +1,7 @@
 import numpy as np
 import os
 import json
+import math
 
 from .metrics_util import calcMops
 from .metrics_util import getUnitArea
@@ -8,7 +9,7 @@ from .metrics_util import getUnitArea
 
 def run_threshold_geometry_metrics(refDSM, refDTM, refMask, testDSM, testDTM, testMask,
                                    tform, ignoreMask, plot=None, verbose=True):
-                    
+
 
     # INPUT PARSING==========
 
@@ -18,10 +19,10 @@ def run_threshold_geometry_metrics(refDSM, refDTM, refMask, testDSM, testDTM, te
     else:
         PLOTS_ENABLE = True
         PLOTS_SAVE_PREFIX = "thresholdGeometry_"
-                                   
+
     # Determine evaluation units.
     unitArea = getUnitArea(tform)
-                                 
+
     # 2D footprints for evaluation
     ref_footprint = refMask & ~ignoreMask
     test_footprint = testMask & ~ignoreMask
@@ -33,28 +34,28 @@ def run_threshold_geometry_metrics(refDSM, refDTM, refMask, testDSM, testDTM, te
     test_height = testDSM.astype(np.float64) - testDTM.astype(np.float64)
     test_height[~test_footprint] = 0
 
-    # total 2D area
-    REF_2D = np.sum(ref_footprint)
-    TEST_2D = np.sum(test_footprint)
+    # total 2D area (in pixels)
+    ref_total_area = np.sum(ref_footprint,dtype=np.uint64)
+    test_total_area = np.sum(test_footprint,dtype=np.uint64)
 
-    # total 3D volume 
-    REF_3D = np.sum(np.absolute(ref_height)) * unitArea
-    TEST_3D = np.sum(np.absolute(test_height)) * unitArea
+    # total 3D volume (in meters^2)
+    ref_total_volume = np.sum(np.absolute(ref_height)) * unitArea
+    test_total_volume = np.sum(np.absolute(test_height)) * unitArea
 
     # verbose reporting
     if verbose:
         print('REF height range [mn,mx] = [{},{}]'.format(np.amin(ref_height),np.amax(ref_height)))
         print('TEST height range [mn,mx] = [{},{}]'.format(np.amin(test_height),np.amax(test_height)))
-        print('REF area (px), volume (m^3) = [{},{}]'.format(REF_2D,REF_3D))
-        print('TEST area (px), volume (m^3) =  [{},{}]'.format(TEST_2D,TEST_3D))
+        print('REF area (px), volume (m^3) = [{},{}]'.format(ref_total_area,ref_total_volume))
+        print('TEST area (px), volume (m^3) =  [{},{}]'.format(test_total_area,test_total_volume))
 
-    # plot 
+    # plot
     if PLOTS_ENABLE:
         print('Input plots...')
 
         plot.make(ref_footprint, 'Reference Object Regions', 211, saveName=PLOTS_SAVE_PREFIX+"refObjMask")
         plot.make(ref_height, 'Reference Object Height', 212, saveName=PLOTS_SAVE_PREFIX+"refObjHgt", colorbar=True)
-        
+
         plot.make(test_footprint, 'Test Object Regions', 251, saveName=PLOTS_SAVE_PREFIX+"testObjMask")
         plot.make(test_height, 'Test Object Height', 252, saveName=PLOTS_SAVE_PREFIX+"testObjHgt", colorbar=True)
 
@@ -67,36 +68,37 @@ def run_threshold_geometry_metrics(refDSM, refDTM, refMask, testDSM, testDTM, te
 
     # 2D ANALYSIS==========
 
-    # 2D metrics
-    tp_2D =  test_footprint &  ref_footprint
-    fn_2D = ~test_footprint &  ref_footprint
-    fp_2D =  test_footprint & ~ref_footprint
-    
-    TP_2D = np.sum(tp_2D)
-    FN_2D = np.sum(fn_2D)
-    FP_2D = np.sum(fp_2D)
+    # 2D metric arrays
+    tp_2D_array =  test_footprint &  ref_footprint
+    fn_2D_array = ~test_footprint &  ref_footprint
+    fp_2D_array =  test_footprint & ~ref_footprint
 
-    # error check:
-    if (TP_2D + FN_2D) != REF_2D:
+    # 2D total area (in pixels)
+    tp_total_area = np.sum(tp_2D_array,dtype=np.uint64)
+    fn_total_area = np.sum(fn_2D_array,dtype=np.uint64)
+    fp_total_area = np.sum(fp_2D_array,dtype=np.uint64)
+
+    # error check (exact, as this is an integer comparison)
+    if (tp_total_area + fn_total_area) != ref_total_area:
         raise ValueError('2D TP+FN ({}+{}) does not equal ref area ({})'.format(
-            TP_2D, FN_2D, REF_2D))
-    elif (TP_2D + FP_2D) != TEST_2D:
+            tp_total_area, fn_total_area, ref_total_area))
+    elif (tp_total_area + fp_total_area) != test_total_area:
         raise ValueError('2D TP+FP ({}+{}) does not equal test area ({})'.format(
-            TP_2D, FP_2D, TEST_2D))
-    
+            tp_total_area, fp_total_area, test_total_area))
+
     # verbose reporting
     if verbose:
         print('2D TP+FN ({}+{}) equals ref area ({})'.format(
-            TP_2D, FN_2D, REF_2D))
+            tp_total_area, fn_total_area, ref_total_area))
         print('2D TP+FP ({}+{}) equals test area ({})'.format(
-            TP_2D, FP_2D, TEST_2D))
+            tp_total_area, fp_total_area, test_total_area))
 
     # plot
-    if PLOTS_ENABLE:   
+    if PLOTS_ENABLE:
         print('2D analysis plots...')
-        plot.make(tp_2D, 'True Positive Regions',  283, saveName=PLOTS_SAVE_PREFIX+"truePositive")
-        plot.make(fn_2D, 'False Negative Regions', 281, saveName=PLOTS_SAVE_PREFIX+"falseNegetive")
-        plot.make(fp_2D, 'False Positive Regions', 282, saveName=PLOTS_SAVE_PREFIX+"falsePositive")
+        plot.make(tp_2D_array, 'True Positive Regions',  283, saveName=PLOTS_SAVE_PREFIX+"truePositive")
+        plot.make(fn_2D_array, 'False Negative Regions', 281, saveName=PLOTS_SAVE_PREFIX+"falseNegetive")
+        plot.make(fp_2D_array, 'False Positive Regions', 282, saveName=PLOTS_SAVE_PREFIX+"falsePositive")
 
 
     # 3D ANALYSIS==========
@@ -116,37 +118,38 @@ def run_threshold_geometry_metrics(refDSM, refDTM, refMask, testDSM, testDTM, te
     test_below[test_height>0] = 0
     test_below = np.absolute(test_below)
 
-    # 3D metrics
-    tp_3D = np.minimum(ref_height,test_above) # ref/test height overlap
-    fn_3D = (ref_height - tp_3D) # test too short
-    fp_3D = (test_above - tp_3D) + test_below # test too tall OR test below ground
-    
-    TP_3D = np.sum(tp_3D)*unitArea
-    FN_3D = np.sum(fn_3D)*unitArea
-    FP_3D = np.sum(fp_3D)*unitArea
+    # 3D metric arrays
+    tp_3D_array = np.minimum(ref_height,test_above) # ref/test height overlap
+    fn_3D_array = (ref_height - tp_3D_array) # test too short
+    fp_3D_array = (test_above - tp_3D_array) + test_below # test too tall OR test below ground
 
-    # error check:
-    if (TP_3D + FN_3D) != REF_3D:
+    # 3D metric total volume (in meters^3)
+    tp_total_volume = np.sum(tp_3D_array)*unitArea
+    fn_total_volume = np.sum(fn_3D_array)*unitArea
+    fp_total_volume = np.sum(fp_3D_array)*unitArea
+
+    # error check (floating point comparison via math.isclose)
+    if not math.isclose((tp_total_volume + fn_total_volume), ref_total_volume):
         raise ValueError('3D TP+FN ({}+{}) does not equal ref volume ({})'.format(
-            TP_3D, FN_3D, REF_3D))
-    elif (TP_3D + FP_3D) != TEST_3D:
+            tp_total_volume, fn_total_volume, ref_total_volume))
+    elif not math.isclose((tp_total_volume + fp_total_volume), test_total_volume):
         raise ValueError('3D TP+FP ({}+{}) does not equal test volume ({})'.format(
-            TP_3D, FP_3D, TEST_3D))
+            tp_total_volume, fp_total_volume, test_total_volume))
 
     # verbose reporting
     if verbose:
         print('3D TP+FN ({}+{}) equals ref volume ({})'.format(
-            TP_3D, FN_3D, REF_3D))
+            tp_total_volume, fn_total_volume, ref_total_volume))
         print('3D TP+FP ({}+{}) equals test volume ({})'.format(
-            TP_3D, FP_3D, TEST_3D))
+            tp_total_volume, fp_total_volume, test_total_volume))
 
 
     # CLEANUP==========
 
     # final metrics
     metrics = {
-        '2D': calcMops(TP_2D, FN_2D, FP_2D),
-        '3D': calcMops(TP_3D, FN_3D, FP_3D),
+        '2D': calcMops(tp_total_area, fn_total_area, fp_total_area),
+        '3D': calcMops(tp_total_volume, fn_total_volume, fp_total_volume),
     }
 
     # verbose reporting
