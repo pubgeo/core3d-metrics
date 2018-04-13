@@ -143,15 +143,37 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None,
     if refCLS_NoDataValue is not None:
         ignoreMask[refCLS == refCLS_NoDataValue] = True
 
-    # optionally ignore testCLS NoDataValue
+    # optionally ignore test NoDataValue(s)
     if allow_test_ignore:
-        testCLS_NoDataValue = geo.getNoDataValue(testCLSFilename)
-        if testCLS_NoDataValue is not None:
-            ignoreMask[testCLS == testCLS_NoDataValue] = True
+
+        if allow_test_ignore == 1:
+            testCLS_NoDataValue = geo.getNoDataValue(testCLSFilename)
+            if testCLS_NoDataValue is not None:
+                print('Ignoring test CLS NoDataValue')
+                ignoreMask[testCLS == testCLS_NoDataValue] = True
+
+        elif allow_test_ignore == 2:
+            testDSM_NoDataValue = noDataValue
+            testDTM_NoDataValue = noDataValue
+            if testDSM_NoDataValue is not None:
+                print('Ignoring test DSM NoDataValue')
+                ignoreMask[testDSM == testDSM_NoDataValue] = True
+            if testDTMFilename and testDTM_NoDataValue is not None:
+                print('Ignoring test DTM NoDataValue')
+                ignoreMask[testDTM == testDTM_NoDataValue] = True
+
+        else:
+            raise IOError('Unrecognized test ignore value={}'.format(allow_test_ignore))
+
+        print("")
+
+    # sanity check
+    if np.all(ignoreMask):
+        raise ValueError('All pixels are ignored')
 
     # report "data voids"
     numDataVoids = np.sum(ignoreMask > 0)
-    print('Number of data voids in reference files = ', numDataVoids)
+    print('Number of data voids in ignore mask = ', numDataVoids)
 
     # If quantizing to voxels, then match vertical spacing to horizontal spacing.
     QUANTIZE = config['OPTIONS']['QuantizeHeight']
@@ -273,7 +295,7 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None,
         json.dump(metrics,fid,indent=2)
     print(json.dumps(metrics,indent=2))
     print("Metrics report: " + fileout)
-		
+
     #  If displaying figures, wait for user before existing
     if PLOTS_SHOW:
             input("Press Enter to continue...")
@@ -282,7 +304,7 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None,
 def main(args=None):
     if args is None:
         args = sys.argv[1:]
-        
+
     # parse inputs
     parser = argparse.ArgumentParser(description='core3dmetrics entry point', prog='core3dmetrics')
 
@@ -299,21 +321,26 @@ def main(args=None):
     group.add_argument('--no-align', dest='align', action='store_false', help="Disable alignment")
     group.set_defaults(align=True)
 
-    group = parser.add_mutually_exclusive_group(required=False)
-    group.add_argument('--test-ignore', dest='testignore', action='store_true', help="Enable NoDataValue pixels in test CLS image to be ignored during evaluation")
-    group.set_defaults(testignore=False)
-
+    # optional argument
+    # note if "--test-ignore" specified without argument, testignore==1
+    parser.add_argument('--test-ignore', dest='testignore',
+        help="Ignore test NoDataValue(s) (0=off, 1=ignore CLS, 2=ignore DSM/DTM",
+        required=False, nargs='?', default=0, const=1, 
+        choices=range(0,3), type=int, metavar='')
 
     args = parser.parse_args(args)
-    
+
+    print('RUN_GEOMETRICS input arguments:')
+    print(args)
+
     # gather optional arguments
     kwargs = {}
     kwargs['align'] = args.align
-    kwargs['allow_test_ignore'] = args.testignore 
     if args.refpath: kwargs['refpath'] = args.refpath
     if args.testpath: kwargs['testpath'] = args.testpath
     if args.outputpath: kwargs['outputpath'] = args.outputpath
-    
+    if args.testignore: kwargs['allow_test_ignore'] = args.testignore
+
     # run process
     run_geometrics(configfile=args.config,**kwargs)
 
