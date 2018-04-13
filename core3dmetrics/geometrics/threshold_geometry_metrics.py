@@ -38,7 +38,7 @@ def run_threshold_geometry_metrics(refDSM, refDTM, refMask, testDSM, testDTM, te
     ref_total_area = np.sum(ref_footprint,dtype=np.uint64)
     test_total_area = np.sum(test_footprint,dtype=np.uint64)
 
-    # total 3D volume (in meters^2)
+    # total 3D volume (in meters^3)
     ref_total_volume = np.sum(np.absolute(ref_height)) * unitArea
     test_total_volume = np.sum(np.absolute(test_height)) * unitArea
 
