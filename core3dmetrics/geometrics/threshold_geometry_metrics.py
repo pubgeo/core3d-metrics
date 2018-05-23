@@ -68,7 +68,7 @@ def run_threshold_geometry_metrics(refDSM, refDTM, refMask, testDSM, testDTM, te
         layerTest = np.array(test_footprint).astype(np.uint8)*255
         layerRed = np.array(ref_footprint).astype(np.uint8)*255
         rgb = np.stack((layerRed, layerTest, layerTest), axis=2)
-        plot.make(rgb, 'Red is Fled (FN), Blue is New (FP)', 293, saveName=PLOTS_SAVE_PREFIX + "errFootprint", colorbar=False)
+        plot.make(rgb, 'Object Footprint Errors', 293, saveName=PLOTS_SAVE_PREFIX + "errFootprint", colorbar=False)
 
 
     # 2D ANALYSIS==========
