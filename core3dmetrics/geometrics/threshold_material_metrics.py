@@ -22,12 +22,6 @@ def getStructures(img):
             val = img[y][x]
             if val > 0:
                 structuresDic[val].pixels.append((x, y))  # add pixel to list for this structure index
-
-    # Remove very small structures that occur due to an issue with slightly overlapping structure footprints
-    # TODO: Fix structure footprint generation, then remove this code
-    for k in list(structuresDic.keys()):
-        if len(structuresDic[k].pixels) < 10:
-            del structuresDic[k]
     return structuresDic
 
 
