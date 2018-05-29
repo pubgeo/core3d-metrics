@@ -22,12 +22,6 @@ def getStructures(img):
             val = img[y][x]
             if val > 0:
                 structuresDic[val].pixels.append((x, y))  # add pixel to list for this structure index
-
-    # Remove very small structures that occur due to an issue with slightly overlapping structure footprints
-    # TODO: Fix structure footprint generation, then remove this code
-    for k in list(structuresDic.keys()):
-        if len(structuresDic[k].pixels) < 10:
-            del structuresDic[k]
     return structuresDic
 
 
@@ -46,6 +40,16 @@ def getMaterialFromStructurePixels(img, pixels, materialIndicesToIgnore):
             maxMaterialCount = indexCounts[k]
             maxMaterialCountIndex = k
     return maxMaterialCountIndex
+
+# Merges class1 into class2
+def mergeConfusionMatrixClasses(confMatrix, class1, class2):
+    sz = confMatrix.shape[0]
+    for i in range(0, sz):
+        confMatrix[class2][i] += confMatrix[class1][i]
+        confMatrix[class1][i] = 0
+    for i in range(0, sz):
+        confMatrix[i][class2] += confMatrix[i][class1]
+        confMatrix[i][class1] = 0
 
 
 # Run material labeling metrics and report results.
@@ -76,6 +80,9 @@ def run_material_metrics(refNDX, refMTL, testMTL, materialNames, materialIndices
                 if refMTL[y][x] not in materialIndicesToIgnore: # Limit evaluation to valid materials
                     pixelConfMatrix[refMTL[y][x]][testMTL[y][x]] += 1
 
+    # Merge asphalt-concrete in pixel-wise confusion matrix
+    mergeConfusionMatrixClasses(pixelConfMatrix, 2, 1)
+
     # Print pixel statistics
     print()
     scoredPixelsCount = np.sum(pixelConfMatrix)
@@ -96,6 +103,9 @@ def run_material_metrics(refNDX, refMTL, testMTL, materialNames, materialIndices
             structureConfMatrix[structuresDic[k].truthPrimaryMaterial][structuresDic[k].testPrimaryMaterial] += 1
         else:
             unscoredCount += 1
+
+    # Merge asphalt-concrete in building confusion matrix
+    mergeConfusionMatrixClasses(structureConfMatrix, 2, 1)
 
     # Print structure statistics
     scoredStructuresCount = np.sum(structureConfMatrix)
