@@ -258,8 +258,8 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None,
 
         if PLOTS_ENABLE:
             plot.savePrefix = original_save_prefix + "%03d"%(index) + "_"
-            plot.make(testMask.astype(np.int), 'Test Evaluation Mask', 154, colorbar=True, saveName="input_testMask")
-            plot.make(refMask.astype(np.int), 'Reference Evaluation Mask', 114, colorbar=True, saveName="input_refMask")
+            plot.make(testMask.astype(np.int), 'Test Evaluation Mask', 154, saveName="input_testMask")
+            plot.make(refMask.astype(np.int), 'Reference Evaluation Mask', 114, saveName="input_refMask")
 
         # Evaluate threshold geometry metrics using refDTM as the testDTM to mitigate effects of terrain modeling uncertainty
         result = geo.run_threshold_geometry_metrics(refDSM, refDTM, refMask, testDSM, refDTM, testMask, tform, ignoreMask, plot=plot)
