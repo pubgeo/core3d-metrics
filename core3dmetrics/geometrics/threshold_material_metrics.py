@@ -52,8 +52,56 @@ def mergeConfusionMatrixClasses(confMatrix, class1, class2):
         confMatrix[i][class1] = 0
 
 
+def material_plot(refMTL, testMTL, plot):
+
+    PLOTS_SAVE_PREFIX = "thresholdMetrials_"
+
+    # This plot assumes material labels/indices specified in the config file are the same as defined here
+    cmap = [
+            [0.00,    0.00,    0.00],
+            [0.55,    0.55,    0.55],
+            [0.20,    0.55,    0.65],
+            [1.00,    1.00,    0.11],
+            [0.03,    0.40,    0.03],
+            [0.47,    0.63,    0.27],
+            [0.86,    0.31,    0.08],
+            [1.00,    0.00,    0.00],
+            [0.31,    0.16,    0.04],
+            [0.12,    1.00,    1.78],
+            [0.00,    0.00,    1.00],
+            [1.00,    1.00,    1.00],
+            [1.00,    0.00,    1.00],
+            [1.00,    0.39,    1.00]
+            ]
+
+    labels = [
+        "Unclassified",
+        "Asphalt",
+        "Concrete/Stone",
+        "Glass",
+        "Tree",
+        "Non-tree veg",
+        "Metal",
+        "Ceramic",
+        "Soil",
+        "Solar panel",
+        "Water",
+        "Polymer",
+        "Unscored",
+        "Indeterminate"
+         ]
+
+    ticks = list(np.arange(0,len(labels)))
+
+
+    plot.make(refMTL, 'Reference Materials ', 340, saveName=PLOTS_SAVE_PREFIX + "ref", colorbar=True,
+              cmap=cmap, cm_labels=labels, cm_ticks=ticks, vmin=-0.5, vmax=len(labels)-0.5)
+
+    plot.make(testMTL, 'Test Materials', 340, saveName=PLOTS_SAVE_PREFIX + "test", colorbar=True,
+              cmap=cmap, cm_labels=labels, cm_ticks=ticks, vmin=-0.5, vmax=len(labels)-0.5)
+
 # Run material labeling metrics and report results.
-def run_material_metrics(refNDX, refMTL, testMTL, materialNames, materialIndicesToIgnore):
+def run_material_metrics(refNDX, refMTL, testMTL, materialNames, materialIndicesToIgnore, plot=None, verbose=True):
     print("Defined materials:",', '.join(materialNames))
     print("Ignored materials in truth: ",', '.join([materialNames[x] for x in materialIndicesToIgnore]))
 
@@ -83,6 +131,27 @@ def run_material_metrics(refNDX, refMTL, testMTL, materialNames, materialIndices
     # Merge asphalt-concrete in pixel-wise confusion matrix
     mergeConfusionMatrixClasses(pixelConfMatrix, 2, 1)
 
+    # Classes present in the reference model (IOU)
+    presentRefClasses = pixelConfMatrix.sum(axis=1) > 0
+
+    # Compute pixelwise intersection over union
+    pixelIOU = np.divide(np.diag(pixelConfMatrix),
+                         (pixelConfMatrix.sum(axis=0) + pixelConfMatrix.sum(axis=1) - np.diag(pixelConfMatrix)),
+                         out=-np.ones( (1, len(pixelConfMatrix[0])), np.double),
+                         where=presentRefClasses!=0)
+
+    # Mean IOU
+    pixelMeanIOU = np.mean(pixelIOU[0][presentRefClasses])
+
+    # Dictionary of IOU for each reference matrerial for output
+    pixelIOUkvp = dict()
+    for x, y in enumerate(np.flatnonzero(presentRefClasses)):
+        pixelIOUkvp[materialNames[y].strip()] = pixelIOU[0][y]
+
+    # parse plot input
+    if plot is not None:
+        material_plot(refMTL, testMTL, plot)
+
     # Print pixel statistics
     print()
     scoredPixelsCount = np.sum(pixelConfMatrix)
@@ -90,6 +159,12 @@ def run_material_metrics(refNDX, refMTL, testMTL, materialNames, materialIndices
     correctPixelsFraction = correctPixelsCount / scoredPixelsCount
     print("Pixel material confusion matrix:")
     print(pixelConfMatrix)
+    print("Pixel material IOU:")
+    print(pixelIOU)
+    print("Pixel material mIOU:", pixelMeanIOU)
+    print('Pixelwise IOU by Class:')
+    for x in pixelIOUkvp:
+        print('', x, ': ', pixelIOUkvp[x])
     print("Total pixels scored: ", scoredPixelsCount)
     print("Total pixels correctly classified: ", correctPixelsCount)
     print("Percent pixels correctly classified: ", str(correctPixelsFraction * 100) + "%")
@@ -121,7 +196,11 @@ def run_material_metrics(refNDX, refMTL, testMTL, materialNames, materialIndices
     metrics = {
         'scored_structures': int(scoredStructuresCount),
         'fraction_structures_correct': correctStructuresFraction,
-        'fraction_pixels_correct': correctPixelsFraction
+        'fraction_pixels_correct': correctPixelsFraction,
+        #'pixelwise_confusion': pixelConfMatrix.tolist(),
+        #'structurewise_confusion': str(structureConfMatrix),
+        'pixelwise_mIOU': pixelMeanIOU,
+        'pixelwise_IOU': pixelIOUkvp
     }
 	
     return metrics
