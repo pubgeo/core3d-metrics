@@ -135,15 +135,25 @@
          "required": [
             "QuantizeHeight"
          ],
+        "optional": [
+            "AlignModel",
+            "SaveAligned"
+         ],
          "additionalProperties": false,
          "properties": {
             "QuantizeHeight": {
               "type": "boolean"
             },
+           "AlignModel": {
+              "type": "boolean"
+            },
+            "SaveAligned": {
+              "type": "boolean"
+            },
             "TerrainZErrorThreshold": {
               "type": "number"
             },
-              "TerrainCLSIgnoreValues": {
+           "TerrainCLSIgnoreValues": {
                 "$ref": "#/definitions/CLSMatchValue"
             }
          }
