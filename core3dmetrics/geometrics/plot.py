@@ -81,7 +81,15 @@ class plot:
 
         if 'cmap' in kwargs:
             cmap = kwargs['cmap']
+
+            # Sometimes matplotlib fails on saving the figure do to
+            # rgba values out of bounds [0 1]. Setting the max/min
+            # with a tolerance seems to work
             if type(cmap) is list:
+                cmap = np.array(cmap)
+                cmap[cmap >= 1.0] = 0.9999
+                cmap[cmap <= 0.0] = 0.0001
+                cmap = cmap.tolist()
                 cmap = mpl.colors.ListedColormap(cmap)
             hImg.set_cmap(cmap)
 

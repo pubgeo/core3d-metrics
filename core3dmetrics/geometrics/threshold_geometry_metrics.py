@@ -65,7 +65,6 @@ def run_threshold_geometry_metrics(refDSM, refDTM, refMask, testDSM, testDTM, te
         plot.make(errorMap, 'Height Error (clipped)', 292, saveName=PLOTS_SAVE_PREFIX+"errHgtClipped", colorbar=True,
             vmin=-5,vmax=5)
 
-
     # 2D ANALYSIS==========
 
     # 2D metric arrays
@@ -100,6 +99,15 @@ def run_threshold_geometry_metrics(refDSM, refDTM, refMask, testDSM, testDTM, te
         plot.make(fn_2D_array, 'False Negative Regions', 281, saveName=PLOTS_SAVE_PREFIX+"falseNegetive")
         plot.make(fp_2D_array, 'False Positive Regions', 282, saveName=PLOTS_SAVE_PREFIX+"falsePositive")
 
+        layer = np.zeros_like(ref_footprint).astype(np.uint8) + 3  # Initialize as True Negative
+        layer[tp_2D_array] = 1  # TP
+        layer[fp_2D_array] = 2  # FP
+        layer[fn_2D_array] = 4  # FN
+        cmap = [[1, 1, 1], # TP
+                [0, 0, 1], # FP
+                [1, 1, 1], # TN
+                [1, 0, 0]] # FN
+        plot.make(layer, 'Object Footprint Errors', 293, saveName=PLOTS_SAVE_PREFIX + "errFootprint", colorbar=False, cmap=cmap)
 
     # 3D ANALYSIS==========
 

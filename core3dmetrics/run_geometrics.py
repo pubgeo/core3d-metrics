@@ -19,7 +19,7 @@ except:
 
 # PRIMARY FUNCTION: RUN_GEOMETRICS
 def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None,
-    align=True,allow_test_ignore=False):
+    align=True,allow_test_ignore=False,save_aligned=False,save_plots=None):
 
     # check inputs
     if not os.path.isfile(configfile):
@@ -55,11 +55,18 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None,
     # Get plot settings from configuration file
     PLOTS_SHOW   = config['PLOTS']['ShowPlots']
     PLOTS_SAVE   = config['PLOTS']['SavePlots']
+    if save_plots is not None: # Commandline line argument overrided config file setting
+        PLOTS_SAVE = save_plots
     PLOTS_ENABLE = PLOTS_SHOW or PLOTS_SAVE
 
     # default output path
     if outputpath is None:
         outputpath = os.path.dirname(testDSMFilename)
+
+    if align:
+        align = config['OPTIONS']['AlignModel']
+    save_aligned = config['OPTIONS']['SaveAligned'] | save_aligned
+
 
     # Configure plotting
     basename = os.path.basename(testDSMFilename)
@@ -100,6 +107,8 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None,
 
     if refMTLFilename:
         refMTL = geo.imageWarp(refMTLFilename, refCLSFilename, interp_method=gdalconst.GRA_NearestNeighbour).astype(np.uint8)
+        if save_aligned:
+            geo.arrayToGeotiff(refMTL, os.path.join(outputpath, basename + '_ref_mtl_reg_out'), refCLSFilename,noDataValue)
     else:
         print('NO REFERENCE MTL')
 
@@ -110,12 +119,24 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None,
 
     if testDTMFilename:
         testDTM = geo.imageWarp(testDTMFilename, refCLSFilename, xyzOffset, noDataValue=noDataValue)
+        if save_aligned:
+            geo.arrayToGeotiff(testDTM, os.path.join(outputpath, basename + '_test_dtm_reg_out'), refCLSFilename, noDataValue)
     else:
         print('NO TEST DTM: defaults to reference DTM')
         testDTM = refDTM
 
+    if save_aligned:
+        geo.arrayToGeotiff(testCLS, os.path.join(outputpath, basename + '_test_cls_reg_out'), refCLSFilename, noDataValue)
+        geo.arrayToGeotiff(testDSM, os.path.join(outputpath, basename + '_test_dsm_reg_out'), refCLSFilename, noDataValue)
+        geo.arrayToGeotiff(refCLS, os.path.join(outputpath, basename + '_ref_cls_reg_out'), refCLSFilename, noDataValue)
+        geo.arrayToGeotiff(refDSM, os.path.join(outputpath, basename + '_ref_dsm_reg_out'), refCLSFilename, noDataValue)
+        geo.arrayToGeotiff(refDTM, os.path.join(outputpath, basename + '_ref_dtm_reg_out'), refCLSFilename, noDataValue)
+
+
     if testMTLFilename:
         testMTL = geo.imageWarp(testMTLFilename, refCLSFilename, xyzOffset, gdalconst.GRA_NearestNeighbour).astype(np.uint8)
+        if save_aligned:
+            geo.arrayToGeotiff(testMTL, os.path.join(outputpath,basename+'_test_mtl_reg_out'), refCLSFilename,noDataValue)
     else:
         print('NO TEST MTL')
 
@@ -237,8 +258,8 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None,
 
         if PLOTS_ENABLE:
             plot.savePrefix = original_save_prefix + "%03d"%(index) + "_"
-            plot.make(testMask.astype(np.int), 'Test Evaluation Mask', 154, colorbar=True, saveName="input_testMask")
-            plot.make(refMask.astype(np.int), 'Reference Evaluation Mask', 114, colorbar=True, saveName="input_refMask")
+            plot.make(testMask.astype(np.int), 'Test Evaluation Mask', 154, saveName="input_testMask")
+            plot.make(refMask.astype(np.int), 'Reference Evaluation Mask', 114, saveName="input_refMask")
 
         # Evaluate threshold geometry metrics using refDTM as the testDTM to mitigate effects of terrain modeling uncertainty
         result = geo.run_threshold_geometry_metrics(refDSM, refDTM, refMask, testDSM, refDTM, testMask, tform, ignoreMask, plot=plot)
@@ -267,6 +288,7 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None,
 
     if align:
         metrics['registration_offset'] = xyzOffset
+        metrics['gelocation_error'] = np.linalg.norm(xyzOffset)
 
     # Run the terrain model metrics and report results.
     if testDTMFilename:
@@ -286,7 +308,7 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None,
 
     # Run the threshold material metrics and report results.
     if testMTLFilename:
-        metrics['threshold_materials'] = geo.run_material_metrics(refNDX, refMTL, testMTL, materialNames, materialIndicesToIgnore)
+        metrics['threshold_materials'] = geo.run_material_metrics(refNDX, refMTL, testMTL, materialNames, materialIndicesToIgnore, plot=plot)
     else:
         print('WARNING: No test MTL file, skipping material metrics')
 
@@ -321,6 +343,15 @@ def main(args=None):
     group.add_argument('--no-align', dest='align', action='store_false', help="Disable alignment")
     group.set_defaults(align=True)
 
+    #optional argument, enables saving of aligned image to disk
+    parser.add_argument('--save-aligned', dest='savealigned', required=False, action='store_true',
+                       help="Save aligned images (not enabled by default)")
+
+    group = parser.add_mutually_exclusive_group(required=False)
+    group.add_argument('--save-plots', dest='saveplots', action='store_true', help="Save plots. Overrides config file setting.")
+    group.add_argument('--skip-save-plots', dest='saveplots', action='store_false', help="Don't save plots. Overrides config file setting.")
+    group.set_defaults(saveplots=None)
+
     # optional argument
     # note if "--test-ignore" specified without argument, testignore==1
     parser.add_argument('--test-ignore', dest='testignore',
@@ -328,10 +359,19 @@ def main(args=None):
         required=False, nargs='?', default=0, const=1, 
         choices=range(0,3), type=int, metavar='')
 
-    args = parser.parse_args(args)
+
+    args, unknown = parser.parse_known_args()
+
 
     print('RUN_GEOMETRICS input arguments:')
     print(args)
+
+    if unknown:
+        print('Unknown input arguments:')
+        print(unknown)
+        return
+
+
 
     # gather optional arguments
     kwargs = {}
@@ -340,6 +380,8 @@ def main(args=None):
     if args.testpath: kwargs['testpath'] = args.testpath
     if args.outputpath: kwargs['outputpath'] = args.outputpath
     if args.testignore: kwargs['allow_test_ignore'] = args.testignore
+    if args.savealigned: kwargs['save_aligned'] = args.savealigned
+    if args.saveplots is not None: kwargs['save_plots'] = args.saveplots
 
     # run process
     run_geometrics(configfile=args.config,**kwargs)

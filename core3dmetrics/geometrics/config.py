@@ -101,7 +101,17 @@ def parse_config(configfile,refpath=None,testpath=None):
             config[s][i] = config['INPUT.REF'][i]
 
         # bool(config[s][i]) does not interpret 'true'/'false' strings
-        s = 'OPTIONS'; i = 'QuantizeHeight'; config[s][i] = parser.getboolean(s,i)  
+        s = 'OPTIONS'; i = 'QuantizeHeight'; config[s][i] = parser.getboolean(s,i)
+        s = 'OPTIONS'; i = 'AlignModel'
+        if i in config[s]:  # Optional Field
+            config[s][i] = parser.getboolean(s,i)
+        else:
+            config[s][i] = True
+        s = 'OPTIONS'; i = 'SaveAligned'
+        if i in config[s]:  # Optional Field
+             config[s][i] = parser.getboolean(s,i)
+        else:
+            config[s][i] = False
         s = 'PLOTS'; i = 'ShowPlots'; config[s][i] = parser.getboolean(s,i) 
         s = 'PLOTS'; i = 'SavePlots'; config[s][i] = parser.getboolean(s,i)
         s = 'MATERIALS.REF'; i = 'MaterialNames'; config[s][i] = config[s][i].split(',')

@@ -49,7 +49,7 @@ One of the first steps is to align your dataset to the ground truth. This is per
 The algorithm then calculates metrics for 2D, 3D, and spectral classification against the ground truth.
 
 ###### Usage Statement
-        usage: core3dmetrics [-h] -c  [-r] [-t] [-o] [--align | --no-align] [--test-ignore]
+        usage: core3dmetrics [-h] -c  [-r] [-t] [-o] [--align | --no-align] [--test-ignore] [--save-plots | --skip-save-plots] [--save-aligned]
         core3dmetrics entry point
         optional arguments:
           -h, --help         show this help message and exit
@@ -59,8 +59,11 @@ The algorithm then calculates metrics for 2D, 3D, and spectral classification ag
           -o , --output      Output folder
           --align            Enable alignment (default)
           --no-align         Disable alignment
+          --save-aligned     Save aligned images as geoTIFF (not enabled by default)
           --test-ignore      Enable NoDataValue pixels in test CLS image to be 
                              ignored during evaluation
+          --save-plots       Enable saving plots (overrides config file setting)
+          --skip-save-plots  Disable saving plots (overrides config file setting)                             
 
 #### Input
 _AOI Configuration_ is a configuration file using python's ConfigParser that is further described in [aoi-config.md](aoi-example/aoi-config.md).
