@@ -360,7 +360,7 @@ def main(args=None):
         choices=range(0,3), type=int, metavar='')
 
 
-    args, unknown = parser.parse_known_args()
+    args, unknown = parser.parse_known_args(args)
 
 
     print('RUN_GEOMETRICS input arguments:')
