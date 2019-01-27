@@ -41,20 +41,18 @@ def getMaterialFromStructurePixels(img, pixels, materialIndicesToIgnore):
             maxMaterialCountIndex = k
     return maxMaterialCountIndex
 
-# Merges class1 into class2
-def mergeConfusionMatrixClasses(confMatrix, class1, class2):
+# Moves values from Asph/Con Uncertain class to appropriate asphalt/concrete classes
+def mergeConfusionMatrixUncertainAsphaltConcreteCells(confMatrix):
     sz = confMatrix.shape[0]
-    for i in range(0, sz):
-        confMatrix[class2][i] += confMatrix[class1][i]
-        confMatrix[class1][i] = 0
-    for i in range(0, sz):
-        confMatrix[i][class2] += confMatrix[i][class1]
-        confMatrix[i][class1] = 0
+    confMatrix[1][1] += confMatrix[14][1]
+    confMatrix[14][1] = 0
+    confMatrix[2][2] += confMatrix[14][2]
+    confMatrix[14][2] = 0
 
 
 def material_plot(refMTL, testMTL, plot):
 
-    PLOTS_SAVE_PREFIX = "thresholdMetrials_"
+    PLOTS_SAVE_PREFIX = "thresholdMaterials_"
 
     # This plot assumes material labels/indices specified in the config file are the same as defined here
     cmap = [
@@ -64,14 +62,15 @@ def material_plot(refMTL, testMTL, plot):
             [1.00,    1.00,    0.11],
             [0.03,    0.40,    0.03],
             [0.47,    0.63,    0.27],
-            [0.86,    0.31,    0.08],
-            [1.00,    0.00,    0.00],
+            [0.86,    0.30,    0.10],
+            [0.90,    0.00,    0.00],
             [0.31,    0.16,    0.04],
             [0.12,    1.00,    1.78],
             [0.00,    0.00,    1.00],
             [1.00,    1.00,    1.00],
             [1.00,    0.00,    1.00],
-            [1.00,    0.39,    1.00]
+            [1.00,    0.39,    1.00],
+            [1.00,    0.66,    1.00]
             ]
 
     labels = [
@@ -88,7 +87,8 @@ def material_plot(refMTL, testMTL, plot):
         "Water",
         "Polymer",
         "Unscored",
-        "Indeterminate"
+        "Indeterminate",
+        "Indeterminate Asphalt/Concrete"
          ]
 
     ticks = list(np.arange(0,len(labels)))
@@ -128,8 +128,8 @@ def run_material_metrics(refNDX, refMTL, testMTL, materialNames, materialIndices
                 if refMTL[y][x] not in materialIndicesToIgnore: # Limit evaluation to valid materials
                     pixelConfMatrix[refMTL[y][x]][testMTL[y][x]] += 1
 
-    # Merge asphalt-concrete in pixel-wise confusion matrix
-    mergeConfusionMatrixClasses(pixelConfMatrix, 2, 1)
+    # Re-classify indeterminate asphalt-concrete in pixel-wise confusion matrix
+    mergeConfusionMatrixUncertainAsphaltConcreteCells(pixelConfMatrix)
 
     # Classes present in the reference model (IOU)
     presentRefClasses = pixelConfMatrix.sum(axis=1) > 0
@@ -179,8 +179,8 @@ def run_material_metrics(refNDX, refMTL, testMTL, materialNames, materialIndices
         else:
             unscoredCount += 1
 
-    # Merge asphalt-concrete in building confusion matrix
-    mergeConfusionMatrixClasses(structureConfMatrix, 2, 1)
+    # Re-classify indeterminate asphalt-concrete in structure confusion matrix
+    mergeConfusionMatrixUncertainAsphaltConcreteCells(structureConfMatrix)
 
     # Print structure statistics
     scoredStructuresCount = np.sum(structureConfMatrix)
@@ -197,10 +197,10 @@ def run_material_metrics(refNDX, refMTL, testMTL, materialNames, materialIndices
         'scored_structures': int(scoredStructuresCount),
         'fraction_structures_correct': correctStructuresFraction,
         'fraction_pixels_correct': correctPixelsFraction,
-        #'pixelwise_confusion': pixelConfMatrix.tolist(),
-        #'structurewise_confusion': str(structureConfMatrix),
+        'structurewise_confusion_matrix': str(structureConfMatrix),
         'pixelwise_mIOU': pixelMeanIOU,
-        'pixelwise_IOU': pixelIOUkvp
+        'pixelwise_IOU': pixelIOUkvp,
+		'pixelwise_confusion_matrix': str(pixelConfMatrix)
     }
 	
     return metrics
