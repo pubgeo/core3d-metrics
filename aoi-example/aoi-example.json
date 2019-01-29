@@ -17,6 +17,10 @@
   "OPTIONS": {
     "QuantizeHeight": true
   },
+  "OBJECTWISE" : {
+	"Enable": true
+	"MergeRadius": 2
+  },
   "PLOTS": {
 	"ShowPlots": false
 	"SavePlots": true
