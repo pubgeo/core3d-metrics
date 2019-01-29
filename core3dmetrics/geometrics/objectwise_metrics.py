@@ -39,12 +39,17 @@ def metric_stats(val):
 
 
 
-def run_objectwise_metrics(refDSM, refDTM, refMask, testDSM, testDTM, testMask, tform, ignoreMask, plot=None, verbose=True):
+def run_objectwise_metrics(refDSM, refDTM, refMask, testDSM, testDTM, testMask, tform, ignoreMask, merge_radius=2, plot=None, verbose=True):
 
-    padding_meters = 2
+    # parse plot input
+    if plot is None:
+        PLOTS_ENABLE = False
+    else:
+        PLOTS_ENABLE = True
+        PLOTS_SAVE_PREFIX = "objectwise_"
 
     # Number of pixels to dilate reference object mask
-    padding_pixels = np.round(padding_meters / getUnitWidth(tform))
+    padding_pixels = np.round(merge_radius / getUnitWidth(tform))
     strel = ndimage.generate_binary_structure(2, 1)
 
     # Dilate reference object mask to combine closely spaced objects
@@ -61,7 +66,18 @@ def run_objectwise_metrics(refDSM, refDTM, refMask, testDSM, testDTM, testMask, 
     refUseCounter  = np.zeros([num_ref_regions, 1])
 
     metric_list = []
-
+    # Make images to visualize certain metrics
+    # Unused regions will be marked as zero, background as -1
+    image_out = refMask.astype(float).copy() - 1
+    #image_out[image_out == -1] = np.nan
+    image_2d_completeness = image_out.copy()
+    image_2d_correctness  = image_out.copy()
+    image_2d_jaccardIndex = image_out.copy()
+    image_3d_completeness = image_out.copy()
+    image_3d_correctness  = image_out.copy()
+    image_3d_jaccardIndex = image_out.copy()
+    image_hrmse  = image_out.copy()
+    image_zrmse  = image_out.copy()
     for loopRegion in range(1,num_ref_regions):
 
         # Reference region under evaluation
@@ -112,6 +128,32 @@ def run_objectwise_metrics(refDSM, refDTM, refMask, testDSM, testDTM, testMask, 
         this_metric['relative_accuracy'] = result_acc
 
         metric_list.append(this_metric)
+
+        # Add scores to images
+        for i in refRegions:
+            ind = refNdxOrig == i
+            image_2d_completeness[ind] = result_geo['2D']['completeness']
+            image_2d_correctness[ind]  = result_geo['2D']['correctness']
+            image_2d_jaccardIndex[ind] = result_geo['2D']['jaccardIndex']
+            image_3d_completeness[ind] = result_geo['3D']['completeness']
+            image_3d_correctness[ind]  = result_geo['3D']['correctness']
+            image_3d_jaccardIndex[ind] = result_geo['3D']['jaccardIndex']
+            image_hrmse[ind] = result_acc['hrmse']
+            image_zrmse[ind] = result_acc['zrmse']
+
+    # plot
+    if PLOTS_ENABLE:
+        print('Input plots...')
+
+        plot.make(image_2d_completeness, 'Objectwise 2D Completeness', 351, saveName=PLOTS_SAVE_PREFIX + "obj2dCompleteness", colorbar=True, badValue=-1, vmin=0, vmax=1)
+        plot.make(image_2d_correctness, 'Objectwise 2D Correctness', 352, saveName=PLOTS_SAVE_PREFIX + "obj2dCorrectness", colorbar=True, badValue=-1, vmin=0, vmax=1)
+        plot.make(image_2d_jaccardIndex, 'Objectwise 2D Jaccard Index', 353, saveName=PLOTS_SAVE_PREFIX + "obj2dJaccardIndex", colorbar=True, badValue=-1, vmin=0, vmax=1)
+        plot.make(image_3d_completeness, 'Objectwise 3D Completeness', 361, saveName=PLOTS_SAVE_PREFIX + "obj3dCompleteness", colorbar=True, badValue=-1, vmin=0, vmax=1)
+        plot.make(image_3d_correctness, 'Objectwise 3D Correctness', 362, saveName=PLOTS_SAVE_PREFIX + "obj3dCorrectness", colorbar=True, badValue=-1, vmin=0, vmax=1)
+        plot.make(image_3d_jaccardIndex, 'Objectwise 3D Jaccard Index', 363, saveName=PLOTS_SAVE_PREFIX + "obj3dJaccardIndex", colorbar=True, badValue=-1, vmin=0, vmax=1)
+
+        plot.make(image_hrmse, 'Objectwise HRMSE', 371, saveName=PLOTS_SAVE_PREFIX+"refObjMask", colorbar=True, badValue=-1, vmin=0, vmax=2)
+        plot.make(image_zrmse, 'Objectwise ZRMSE', 372, saveName=PLOTS_SAVE_PREFIX+"refObjHgt", colorbar=True, badValue=-1,  vmin=0, vmax=1)
 
 
     # Make per metric reporting structure

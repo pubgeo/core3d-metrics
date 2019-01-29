@@ -262,17 +262,20 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None,
             plot.make(testMask.astype(np.int), 'Test Evaluation Mask', 154, saveName="input_testMask")
             plot.make(refMask.astype(np.int), 'Reference Evaluation Mask', 114, saveName="input_refMask")
 
-        [result, testNdx, refNdx] = geo.run_objectwise_metrics(refDSM, refDTM, refMask, testDSM, testDTM, testMask, tform, ignoreMask, plot=None, verbose=True)
-        if refMatchValue == testMatchValue:
-            result['CLSValue'] = refMatchValue
-        else:
-            result['CLSValue'] = {'Ref': refMatchValue, "Test": testMatchValue}
-        objectwise_results.append(result)
+        if config['OBJECTWISE']['Enable']:
+            merge_radius = config['OBJECTWISE']['MergeRadius']
+            [result, testNdx, refNdx] = geo.run_objectwise_metrics(refDSM, refDTM, refMask, testDSM, testDTM, testMask, tform, ignoreMask, merge_radius, plot=plot)
+            if refMatchValue == testMatchValue:
+                result['CLSValue'] = refMatchValue
+            else:
+                result['CLSValue'] = {'Ref': refMatchValue, "Test": testMatchValue}
+            objectwise_results.append(result)
 
-        # Save index files to compute objectwise metrics
-        obj_savePrefix = basename + "_%03d" % (index) + "_"
-        geo.arrayToGeotiff(testNdx, os.path.join(outputpath, obj_savePrefix + '_test_ndx_objs'), refCLSFilename, noDataValue)
-        geo.arrayToGeotiff(refNdx, os.path.join(outputpath, obj_savePrefix + '_ref_ndx_objs'), refCLSFilename, noDataValue)
+
+            # Save index files to compute objectwise metrics
+            obj_savePrefix = basename + "_%03d" % (index) + "_"
+            geo.arrayToGeotiff(testNdx, os.path.join(outputpath, obj_savePrefix + '_test_ndx_objs'), refCLSFilename, noDataValue)
+            geo.arrayToGeotiff(refNdx, os.path.join(outputpath, obj_savePrefix + '_ref_ndx_objs'), refCLSFilename, noDataValue)
 
         # Evaluate threshold geometry metrics using refDTM as the testDTM to mitigate effects of terrain modeling uncertainty
         result = geo.run_threshold_geometry_metrics(refDSM, refDTM, refMask, testDSM, refDTM, testMask, tform, ignoreMask, plot=plot)
