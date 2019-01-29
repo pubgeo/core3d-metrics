@@ -6,21 +6,19 @@ import scipy.ndimage as ndimage
 
 
 from .metrics_util import getUnitWidth
+from .threshold_geometry_metrics import run_threshold_geometry_metrics
+from .relative_accuracy_metrics import run_relative_accuracy_metrics
 
-try:
-    import core3dmetrics.geometrics as geo
-except:
-    import geometrics as geo
 
 def eval_metrcs(refDSM, refDTM, refMask, testDSM, testDTM, testMask, tform, ignoreMask, plot=None, verbose=True):
 
     # Evaluate threshold geometry metrics using refDTM as the testDTM to mitigate effects of terrain modeling uncertainty
-    result_geo = geo.run_threshold_geometry_metrics(refDSM, refDTM, refMask, testDSM, refDTM, testMask, tform, ignoreMask,
+    result_geo = run_threshold_geometry_metrics(refDSM, refDTM, refMask, testDSM, refDTM, testMask, tform, ignoreMask,
                                                 plot=plot, verbose=verbose)
 
     # Run the relative accuracy metrics and report results.
-    result_acc = geo.run_relative_accuracy_metrics(refDSM, testDSM, refMask, testMask, ignoreMask,
-                                                   geo.getUnitWidth(tform), plot=plot)
+    result_acc = run_relative_accuracy_metrics(refDSM, testDSM, refMask, testMask, ignoreMask,
+                                                   getUnitWidth(tform), plot=plot)
 
 
     return result_geo, result_acc

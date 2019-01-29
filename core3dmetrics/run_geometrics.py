@@ -263,6 +263,7 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None,
             plot.make(refMask.astype(np.int), 'Reference Evaluation Mask', 114, saveName="input_refMask")
 
         if config['OBJECTWISE']['Enable']:
+            print("\nRunning objectwise metrics...")
             merge_radius = config['OBJECTWISE']['MergeRadius']
             [result, testNdx, refNdx] = geo.run_objectwise_metrics(refDSM, refDTM, refMask, testDSM, testDTM, testMask, tform, ignoreMask, merge_radius, plot=plot)
             if refMatchValue == testMatchValue:

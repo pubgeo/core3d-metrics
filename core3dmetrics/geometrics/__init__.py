@@ -11,5 +11,3 @@ from .relative_accuracy_metrics import *
 from .terrain_accuracy_metrics import *
 from .objectwise_metrics import *
 
-
-
