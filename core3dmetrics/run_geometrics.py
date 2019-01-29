@@ -270,7 +270,7 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None,
         objectwise_results.append(result)
 
         # Save index files to compute objectwise metrics
-        obj_savePrefix = basename + "%03d" % (index) + "_"
+        obj_savePrefix = basename + "_%03d" % (index) + "_"
         geo.arrayToGeotiff(testNdx, os.path.join(outputpath, obj_savePrefix + '_test_ndx_objs'), refCLSFilename, noDataValue)
         geo.arrayToGeotiff(refNdx, os.path.join(outputpath, obj_savePrefix + '_ref_ndx_objs'), refCLSFilename, noDataValue)
 
