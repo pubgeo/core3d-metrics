@@ -134,6 +134,11 @@ def run_material_metrics(refNDX, refMTL, testMTL, materialNames, materialIndices
     # Classes present in the reference model (IOU)
     presentRefClasses = pixelConfMatrix.sum(axis=1) > 0
 
+    # Don't include 'Indeterminate asphalt/concrete' in mean IOU, values get resigned to asphalt or concrete
+    if 'Indeterminate asphalt/concrete'  in materialNames:
+        presentRefClasses[materialNames.index('Indeterminate asphalt/concrete')] = False
+
+
     # Compute pixelwise intersection over union
     pixelIOU = np.divide(np.diag(pixelConfMatrix),
                          (pixelConfMatrix.sum(axis=0) + pixelConfMatrix.sum(axis=1) - np.diag(pixelConfMatrix)),
