@@ -100,6 +100,25 @@ def parse_config(configfile,refpath=None,testpath=None):
         else:
             config[s][i] = config['INPUT.REF'][i]
 
+        s = 'OBJECTWISE'
+        if s in config:
+            i = 'Enable'
+            if i in  config[s]:
+                config[s][i] = parser.getboolean(s, i)
+            else:
+                config[s]['Enable'] = True
+            i = 'MergeRadius'
+            if i in config[s]:
+                config[s][i] = parser.getfloat(s, i)
+            else:
+                config[s]['MergeRadius'] = 2  # meters
+        else:
+            config[s] = {'Enable':True,
+                        'MergeRadius': 2
+                        }  # meters
+
+
+
         # bool(config[s][i]) does not interpret 'true'/'false' strings
         s = 'OPTIONS'; i = 'QuantizeHeight'; config[s][i] = parser.getboolean(s,i)
         s = 'OPTIONS'; i = 'AlignModel'

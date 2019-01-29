@@ -158,6 +158,22 @@
             }
          }
       },
+      "OBJECTWISE": {
+          "type": "object",
+          "optional": [
+              "Enable",
+              "MergeRadius"
+         ],
+		 "additionalProperties": false,
+         "properties": {
+           "Enable": {
+             "type": "boolean"
+           },
+           "MergeRadius": {
+             "type": "number"
+           }
+         }
+      },
       "PLOTS": {
           "type": "object",
           "required": [
