@@ -150,8 +150,8 @@ def run_objectwise_metrics(refDSM, refDTM, refMask, testDSM, testDTM, testMask, 
         plot.make(image_3d_correctness, 'Objectwise 3D Correctness', 362, saveName=PLOTS_SAVE_PREFIX + "obj3dCorrectness", colorbar=True, badValue=-1, vmin=0, vmax=1)
         plot.make(image_3d_jaccardIndex, 'Objectwise 3D Jaccard Index', 363, saveName=PLOTS_SAVE_PREFIX + "obj3dJaccardIndex", colorbar=True, badValue=-1, vmin=0, vmax=1)
 
-        plot.make(image_hrmse, 'Objectwise HRMSE', 371, saveName=PLOTS_SAVE_PREFIX+"refObjMask", colorbar=True, badValue=-1, vmin=0, vmax=2)
-        plot.make(image_zrmse, 'Objectwise ZRMSE', 372, saveName=PLOTS_SAVE_PREFIX+"refObjHgt", colorbar=True, badValue=-1,  vmin=0, vmax=1)
+        plot.make(image_hrmse, 'Objectwise HRMSE', 371, saveName=PLOTS_SAVE_PREFIX+"objHRMSE", colorbar=True, badValue=-1, vmin=0, vmax=2)
+        plot.make(image_zrmse, 'Objectwise ZRMSE', 372, saveName=PLOTS_SAVE_PREFIX+"objZRMSE", colorbar=True, badValue=-1,  vmin=0, vmax=1)
 
 
     # Make per metric reporting structure
