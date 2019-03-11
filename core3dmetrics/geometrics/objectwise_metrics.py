@@ -76,7 +76,7 @@ def run_objectwise_metrics(refDSM, refDTM, refMask, testDSM, testDTM, testMask, 
     image_3d_jaccardIndex = image_out.copy()
     image_hrmse  = image_out.copy()
     image_zrmse  = image_out.copy()
-    for loopRegion in range(1,num_ref_regions):
+    for loopRegion in range(1, num_ref_regions+1):
 
         # Reference region under evaluation
         refObjs = (refNdx == loopRegion) & refMask
@@ -200,7 +200,7 @@ def run_objectwise_metrics(refDSM, refDTM, refMask, testDSM, testDTM, testMask, 
     summary['relative_accuracy']['hrmse']['values'] = np.zeros(num_objs)
 
     ctr = 0
-    for m in  metric_list:
+    for m in metric_list:
         summary['threshold_geometry']['2D']['correctness']['values'][ctr]  = m['threshold_geometry']['2D']['correctness']
         summary['threshold_geometry']['2D']['completeness']['values'][ctr] = m['threshold_geometry']['2D']['completeness']
         summary['threshold_geometry']['2D']['jaccardIndex']['values'][ctr] = m['threshold_geometry']['2D']['jaccardIndex']

@@ -242,7 +242,7 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None,
         original_save_prefix = plot.savePrefix
 
     # Loop through sets of CLS match values
-    for index, (refMatchValue,testMatchValue) in enumerate(zip(refCLS_matchSets,testCLS_matchSets)):
+    for index, (refMatchValue,testMatchValue) in enumerate(zip(refCLS_matchSets, testCLS_matchSets)):
         print("Evaluating CLS values")
         print("  Reference match values: " + str(refMatchValue))
         print("  Test match values: " + str(testMatchValue))
