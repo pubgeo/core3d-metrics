@@ -1,5 +1,6 @@
 FROM jhuapl/pubgeo:latest
-RUN apt update && apt upgrade -y && apt install -y --fix-missing --no-install-recommends \
+RUN apt update && apt upgrade -y && \
+  DEBIAN_FRONTEND=noninteractive apt install -y --fix-missing --no-install-recommends \
     git \
 	python3 \
 	python3-pip \
