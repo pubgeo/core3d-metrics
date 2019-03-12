@@ -18,170 +18,176 @@ except:
 
 
 # PRIMARY FUNCTION: RUN_GEOMETRICS
-def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None,
-    align=True,allow_test_ignore=False,save_aligned=False,save_plots=None):
+def run_geometrics(config_file, ref_path=None, test_path=None, output_path=None,
+                   align=True, allow_test_ignore=False, save_aligned=False, save_plots=None):
 
     # check inputs
-    if not os.path.isfile(configfile):
+    if not os.path.isfile(config_file):
         raise IOError("Configuration file does not exist")
 
-    if outputpath is not None and not os.path.isdir(outputpath):
-        raise IOError('"outputpath" not a valid folder <{}>'.format(outputpath))
+    if output_path is not None and not os.path.isdir(output_path):
+        raise IOError('"output_path" not a valid folder <{}>'.format(output_path))
 
     # parse configuration
-    configpath = os.path.dirname(configfile)
+    config_path = os.path.dirname(config_file)
 
-    config = geo.parse_config(configfile,
-        refpath=(refpath or configpath), 
-        testpath=(testpath or configpath))
+    config = geo.parse_config(config_file,
+                              refpath=(ref_path or config_path),
+                              testpath=(test_path or config_path))
 
     # Get test model information from configuration file.
-    testDSMFilename = config['INPUT.TEST']['DSMFilename']
-    testDTMFilename = config['INPUT.TEST'].get('DTMFilename',None)
-    testCLSFilename = config['INPUT.TEST']['CLSFilename']
-    testMTLFilename = config['INPUT.TEST'].get('MTLFilename',None)
+    test_dsm_filename = config['INPUT.TEST']['DSMFilename']
+    test_dtm_filename = config['INPUT.TEST'].get('DTMFilename',None)
+    test_cls_filename = config['INPUT.TEST']['CLSFilename']
+    test_mtl_filename = config['INPUT.TEST'].get('MTLFilename',None)
 
     # Get reference model information from configuration file.
-    refDSMFilename = config['INPUT.REF']['DSMFilename']
-    refDTMFilename = config['INPUT.REF']['DTMFilename']
-    refCLSFilename = config['INPUT.REF']['CLSFilename']
-    refNDXFilename = config['INPUT.REF']['NDXFilename']
-    refMTLFilename = config['INPUT.REF'].get('MTLFilename',None)
+    ref_dsm_filename = config['INPUT.REF']['DSMFilename']
+    ref_dtm_filename = config['INPUT.REF']['DTMFilename']
+    ref_cls_filename = config['INPUT.REF']['CLSFilename']
+    ref_ndx_filename = config['INPUT.REF']['NDXFilename']
+    ref_mtl_filename = config['INPUT.REF'].get('MTLFilename',None)
 
     # Get material label names and list of material labels to ignore in evaluation.
-    materialNames = config['MATERIALS.REF']['MaterialNames']
-    materialIndicesToIgnore = config['MATERIALS.REF']['MaterialIndicesToIgnore']
+    material_names = config['MATERIALS.REF']['MaterialNames']
+    material_indices_to_ignore = config['MATERIALS.REF']['MaterialIndicesToIgnore']
     
     # Get plot settings from configuration file
-    PLOTS_SHOW   = config['PLOTS']['ShowPlots']
-    PLOTS_SAVE   = config['PLOTS']['SavePlots']
+    PLOTS_SHOW = config['PLOTS']['ShowPlots']
+    PLOTS_SAVE = config['PLOTS']['SavePlots']
     if save_plots is not None: # Commandline line argument overrided config file setting
         PLOTS_SAVE = save_plots
     PLOTS_ENABLE = PLOTS_SHOW or PLOTS_SAVE
 
     # default output path
-    if outputpath is None:
-        outputpath = os.path.dirname(testDSMFilename)
+    if output_path is None:
+        output_path = os.path.dirname(test_dsm_filename)
 
     if align:
         align = config['OPTIONS']['AlignModel']
     save_aligned = config['OPTIONS']['SaveAligned'] | save_aligned
 
-
     # Configure plotting
-    basename = os.path.basename(testDSMFilename)
+    basename = os.path.basename(test_dsm_filename)
     if PLOTS_ENABLE:
-        plot = geo.plot(saveDir=outputpath, autoSave=PLOTS_SAVE, savePrefix=basename+'_', badColor='black',showPlots=PLOTS_SHOW, dpi=900)
+        plot = geo.plot(saveDir=output_path, autoSave=PLOTS_SAVE, savePrefix=basename + '_', badColor='black', showPlots=PLOTS_SHOW, dpi=900)
     else:
         plot = None
         
     # copy testDSM to the output path
     # this is a workaround for the "align3d" function with currently always
     # saves new files to the same path as the testDSM
-    src = testDSMFilename
-    dst = os.path.join(outputpath,os.path.basename(src))
-    if not os.path.isfile(dst): shutil.copyfile(src,dst)
-    testDSMFilename_copy = dst
+    src = test_dsm_filename
+    dst = os.path.join(output_path, os.path.basename(src))
+    if not os.path.isfile(dst): shutil.copyfile(src, dst)
+    test_dsm_filename_copy = dst
 
     # Register test model to ground truth reference model.
     if not align:
         print('\nSKIPPING REGISTRATION')
-        xyzOffset = (0.0,0.0,0.0)
+        xyz_offset = (0.0, 0.0, 0.0)
     else:
         print('\n=====REGISTRATION====='); sys.stdout.flush()
         try:
             align3d_path = config['REGEXEPATH']['Align3DPath']
         except:
             align3d_path = None
-        xyzOffset = geo.align3d(refDSMFilename, testDSMFilename_copy, exec_path=align3d_path)
+        xyz_offset = geo.align3d(ref_dsm_filename, test_dsm_filename_copy, exec_path=align3d_path)
 
     # Explicitly assign a no data value to warped images to track filled pixels
-    noDataValue = -9999
+    no_data_value = -9999
 
     # Read reference model files.
     print("\nReading reference model files...")
-    refCLS, tform = geo.imageLoad(refCLSFilename)
-    refDSM = geo.imageWarp(refDSMFilename, refCLSFilename, noDataValue=noDataValue)
-    refDTM = geo.imageWarp(refDTMFilename, refCLSFilename, noDataValue=noDataValue)
-    refNDX = geo.imageWarp(refNDXFilename, refCLSFilename, interp_method=gdalconst.GRA_NearestNeighbour).astype(np.uint16)
+    ref_cls, tform = geo.imageLoad(ref_cls_filename)
+    ref_dsm = geo.imageWarp(ref_dsm_filename, ref_cls_filename, noDataValue=no_data_value)
+    ref_dtm = geo.imageWarp(ref_dtm_filename, ref_cls_filename, noDataValue=no_data_value)
+    ref_ndx = geo.imageWarp(ref_ndx_filename, ref_cls_filename, interp_method=gdalconst.GRA_NearestNeighbour).astype(np.uint16)
 
-    if refMTLFilename:
-        refMTL = geo.imageWarp(refMTLFilename, refCLSFilename, interp_method=gdalconst.GRA_NearestNeighbour).astype(np.uint8)
+    if ref_mtl_filename:
+        ref_mtl = geo.imageWarp(ref_mtl_filename, ref_cls_filename, interp_method=gdalconst.GRA_NearestNeighbour).astype(np.uint8)
         if save_aligned:
-            geo.arrayToGeotiff(refMTL, os.path.join(outputpath, basename + '_ref_mtl_reg_out'), refCLSFilename,noDataValue)
+            geo.arrayToGeotiff(ref_mtl, os.path.join(output_path, basename + '_ref_mtl_reg_out'), ref_cls_filename, no_data_value)
     else:
         print('NO REFERENCE MTL')
 
     # Read test model files and apply XYZ offsets.
     print("\nReading test model files...")
-    testCLS = geo.imageWarp(testCLSFilename, refCLSFilename, xyzOffset, gdalconst.GRA_NearestNeighbour)
-    testDSM = geo.imageWarp(testDSMFilename, refCLSFilename, xyzOffset, noDataValue=noDataValue)
+    test_cls = geo.imageWarp(test_cls_filename, ref_cls_filename, xyz_offset, gdalconst.GRA_NearestNeighbour)
+    test_dsm = geo.imageWarp(test_dsm_filename, ref_cls_filename, xyz_offset, noDataValue=no_data_value)
 
-    if testDTMFilename:
-        testDTM = geo.imageWarp(testDTMFilename, refCLSFilename, xyzOffset, noDataValue=noDataValue)
+    if test_dtm_filename:
+        test_dtm = geo.imageWarp(test_dtm_filename, ref_cls_filename, xyz_offset, noDataValue=no_data_value)
         if save_aligned:
-            geo.arrayToGeotiff(testDTM, os.path.join(outputpath, basename + '_test_dtm_reg_out'), refCLSFilename, noDataValue)
+            geo.arrayToGeotiff(test_dtm, os.path.join(output_path, basename + '_test_dtm_reg_out'), ref_cls_filename,
+                               no_data_value)
     else:
         print('NO TEST DTM: defaults to reference DTM')
-        testDTM = refDTM
+        test_dtm = ref_dtm
 
     if save_aligned:
-        geo.arrayToGeotiff(testCLS, os.path.join(outputpath, basename + '_test_cls_reg_out'), refCLSFilename, noDataValue)
-        geo.arrayToGeotiff(testDSM, os.path.join(outputpath, basename + '_test_dsm_reg_out'), refCLSFilename, noDataValue)
-        geo.arrayToGeotiff(refCLS, os.path.join(outputpath, basename + '_ref_cls_reg_out'), refCLSFilename, noDataValue)
-        geo.arrayToGeotiff(refDSM, os.path.join(outputpath, basename + '_ref_dsm_reg_out'), refCLSFilename, noDataValue)
-        geo.arrayToGeotiff(refDTM, os.path.join(outputpath, basename + '_ref_dtm_reg_out'), refCLSFilename, noDataValue)
+        geo.arrayToGeotiff(test_cls, os.path.join(output_path, basename + '_test_cls_reg_out'), ref_cls_filename,
+                           no_data_value)
+        geo.arrayToGeotiff(test_dsm, os.path.join(output_path, basename + '_test_dsm_reg_out'), ref_cls_filename,
+                           no_data_value)
+        geo.arrayToGeotiff(ref_cls, os.path.join(output_path, basename + '_ref_cls_reg_out'), ref_cls_filename,
+                           no_data_value)
+        geo.arrayToGeotiff(ref_dsm, os.path.join(output_path, basename + '_ref_dsm_reg_out'), ref_cls_filename,
+                           no_data_value)
+        geo.arrayToGeotiff(ref_dtm, os.path.join(output_path, basename + '_ref_dtm_reg_out'), ref_cls_filename,
+                           no_data_value)
 
-
-    if testMTLFilename:
-        testMTL = geo.imageWarp(testMTLFilename, refCLSFilename, xyzOffset, gdalconst.GRA_NearestNeighbour).astype(np.uint8)
+    if test_mtl_filename:
+        test_mtl = geo.imageWarp(test_mtl_filename, ref_cls_filename, xyz_offset,
+                                 gdalconst.GRA_NearestNeighbour).astype(np.uint8)
         if save_aligned:
-            geo.arrayToGeotiff(testMTL, os.path.join(outputpath,basename+'_test_mtl_reg_out'), refCLSFilename,noDataValue)
+            geo.arrayToGeotiff(test_mtl, os.path.join(output_path, basename + '_test_mtl_reg_out'), ref_cls_filename,
+                               no_data_value)
     else:
         print('NO TEST MTL')
 
     print("\n\n")
 
     # Apply registration offset, only to valid data to allow better tracking of bad data
-    testValidData = (testDSM != noDataValue)
-    if testDTMFilename:
-        testValidData &= (testDTM != noDataValue)
+    test_valid_data = (test_dsm != no_data_value)
+    if test_dtm_filename:
+        test_valid_data &= (test_dtm != no_data_value)
 
-    testDSM[testValidData] = testDSM[testValidData] + xyzOffset[2]
-    if testDTMFilename:
-        testDTM[testValidData] = testDTM[testValidData] + xyzOffset[2]
+    test_dsm[test_valid_data] = test_dsm[test_valid_data] + xyz_offset[2]
+    if test_dtm_filename:
+        test_dtm[test_valid_data] = test_dtm[test_valid_data] + xyz_offset[2]
 
     # Create mask for ignoring points labeled NoData in reference files.
-    refDSM_NoDataValue = noDataValue
-    refDTM_NoDataValue = noDataValue
-    refCLS_NoDataValue = geo.getNoDataValue(refCLSFilename)
-    ignoreMask = np.zeros_like(refCLS, np.bool)
+    ref_dsm_no_data_value = no_data_value
+    ref_dtm_no_data_value = no_data_value
+    ref_cls_no_data_value = geo.getNoDataValue(ref_cls_filename)
+    ignore_mask = np.zeros_like(ref_cls, np.bool)
 
-    if refDSM_NoDataValue is not None:
-        ignoreMask[refDSM == refDSM_NoDataValue] = True
-    if refDTM_NoDataValue is not None:
-        ignoreMask[refDTM == refDTM_NoDataValue] = True
-    if refCLS_NoDataValue is not None:
-        ignoreMask[refCLS == refCLS_NoDataValue] = True
+    if ref_dsm_no_data_value is not None:
+        ignore_mask[ref_dsm == ref_dsm_no_data_value] = True
+    if ref_dtm_no_data_value is not None:
+        ignore_mask[ref_dtm == ref_dtm_no_data_value] = True
+    if ref_cls_no_data_value is not None:
+        ignore_mask[ref_cls == ref_cls_no_data_value] = True
 
     # optionally ignore test NoDataValue(s)
     if allow_test_ignore:
 
         if allow_test_ignore == 1:
-            testCLS_NoDataValue = geo.getNoDataValue(testCLSFilename)
-            if testCLS_NoDataValue is not None:
+            test_cls_no_data_value = geo.getNoDataValue(test_cls_filename)
+            if test_cls_no_data_value is not None:
                 print('Ignoring test CLS NoDataValue')
-                ignoreMask[testCLS == testCLS_NoDataValue] = True
+                ignore_mask[test_cls == test_cls_no_data_value] = True
 
         elif allow_test_ignore == 2:
-            testDSM_NoDataValue = noDataValue
-            testDTM_NoDataValue = noDataValue
-            if testDSM_NoDataValue is not None:
+            test_dsm_no_data_value = no_data_value
+            test_dtm_no_data_value = no_data_value
+            if test_dsm_no_data_value is not None:
                 print('Ignoring test DSM NoDataValue')
-                ignoreMask[testDSM == testDSM_NoDataValue] = True
-            if testDTMFilename and testDTM_NoDataValue is not None:
+                ignore_mask[test_dsm == test_dsm_no_data_value] = True
+            if test_dtm_filename and test_dtm_no_data_value is not None:
                 print('Ignoring test DTM NoDataValue')
-                ignoreMask[testDTM == testDTM_NoDataValue] = True
+                ignore_mask[test_dtm == test_dtm_no_data_value] = True
 
         else:
             raise IOError('Unrecognized test ignore value={}'.format(allow_test_ignore))
@@ -189,42 +195,42 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None,
         print("")
 
     # sanity check
-    if np.all(ignoreMask):
+    if np.all(ignore_mask):
         raise ValueError('All pixels are ignored')
 
     # report "data voids"
-    numDataVoids = np.sum(ignoreMask > 0)
-    print('Number of data voids in ignore mask = ', numDataVoids)
+    num_data_voids = np.sum(ignore_mask > 0)
+    print('Number of data voids in ignore mask = ', num_data_voids)
 
     # If quantizing to voxels, then match vertical spacing to horizontal spacing.
     QUANTIZE = config['OPTIONS']['QuantizeHeight']
     if QUANTIZE:
-        unitHgt = geo.getUnitHeight(tform)
-        refDSM = np.round(refDSM / unitHgt) * unitHgt
-        refDTM = np.round(refDTM / unitHgt) * unitHgt
-        testDSM = np.round(testDSM / unitHgt) * unitHgt
-        testDTM = np.round(testDTM / unitHgt) * unitHgt
-        noDataValue = np.round(noDataValue / unitHgt) * unitHgt
+        unit_hgt = geo.getUnitHeight(tform)
+        ref_dsm = np.round(ref_dsm / unit_hgt) * unit_hgt
+        ref_dtm = np.round(ref_dtm / unit_hgt) * unit_hgt
+        test_dsm = np.round(test_dsm / unit_hgt) * unit_hgt
+        test_dtm = np.round(test_dtm / unit_hgt) * unit_hgt
+        no_data_value = np.round(no_data_value / unit_hgt) * unit_hgt
        
     if PLOTS_ENABLE:
         # Reference models can include data voids, so ignore invalid data on display
-        plot.make(refDSM, 'Reference DSM', 111, colorbar=True, saveName="input_refDSM", badValue=noDataValue)
-        plot.make(refDTM, 'Reference DTM', 112, colorbar=True, saveName="input_refDTM", badValue=noDataValue)
-        plot.make(refCLS, 'Reference Classification', 113,  colorbar=True, saveName="input_refClass")
+        plot.make(ref_dsm, 'Reference DSM', 111, colorbar=True, saveName="input_refDSM", badValue=no_data_value)
+        plot.make(ref_dtm, 'Reference DTM', 112, colorbar=True, saveName="input_refDTM", badValue=no_data_value)
+        plot.make(ref_cls, 'Reference Classification', 113,  colorbar=True, saveName="input_refClass")
 
         # Test models shouldn't have any invalid data
         # so display the invalid values to highlight them,
         # unlike with the refSDM/refDTM
-        plot.make(testDSM, 'Test DSM', 151, colorbar=True, saveName="input_testDSM")
-        plot.make(testDTM, 'Test DTM', 152, colorbar=True, saveName="input_testDTM")
-        plot.make(testCLS, 'Test Classification', 153, colorbar=True, saveName="input_testClass")
+        plot.make(test_dsm, 'Test DSM', 151, colorbar=True, saveName="input_testDSM")
+        plot.make(test_dtm, 'Test DTM', 152, colorbar=True, saveName="input_testDTM")
+        plot.make(test_cls, 'Test Classification', 153, colorbar=True, saveName="input_testClass")
 
-        plot.make(ignoreMask, 'Ignore Mask', 181, saveName="input_ignoreMask")
+        plot.make(ignore_mask, 'Ignore Mask', 181, saveName="input_ignoreMask")
 
         # material maps
-        if refMTLFilename and testMTLFilename:
-            plot.make(refMTL, 'Reference Materials', 191, colorbar=True, saveName="input_refMTL",vmin=0,vmax=13)
-            plot.make(testMTL, 'Test Materials', 192, colorbar=True, saveName="input_testMTL",vmin=0,vmax=13)
+        if ref_mtl_filename and test_mtl_filename:
+            plot.make(ref_mtl, 'Reference Materials', 191, colorbar=True, saveName="input_refMTL",vmin=0,vmax=13)
+            plot.make(test_mtl, 'Test Materials', 192, colorbar=True, saveName="input_testMTL",vmin=0,vmax=13)
 
     # Run the threshold geometry metrics and report results.
     metrics = dict()
@@ -235,65 +241,74 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None,
     objectwise_results = []
     
     # Check that match values are valid
-    refCLS_matchSets, testCLS_matchSets = geo.getMatchValueSets(config['INPUT.REF']['CLSMatchValue'], config['INPUT.TEST']['CLSMatchValue'], np.unique(refCLS).tolist(), np.unique(testCLS).tolist())
+    ref_cls_match_sets, test_cls_match_sets = geo.getMatchValueSets(config['INPUT.REF']['CLSMatchValue'],
+                                                                    config['INPUT.TEST']['CLSMatchValue'],
+                                                                    np.unique(ref_cls).tolist(),
+                                                                    np.unique(test_cls).tolist())
 
     if PLOTS_ENABLE:
         # Update plot prefix include counter to be unique for each set of CLS value evaluated
         original_save_prefix = plot.savePrefix
 
     # Loop through sets of CLS match values
-    for index, (refMatchValue,testMatchValue) in enumerate(zip(refCLS_matchSets,testCLS_matchSets)):
+    for index, (ref_match_value,test_match_value) in enumerate(zip(ref_cls_match_sets, test_cls_match_sets)):
         print("Evaluating CLS values")
-        print("  Reference match values: " + str(refMatchValue))
-        print("  Test match values: " + str(testMatchValue))
+        print("  Reference match values: " + str(ref_match_value))
+        print("  Test match values: " + str(test_match_value))
 
         # object masks based on CLSMatchValue(s)
-        refMask = np.zeros_like(refCLS, np.bool)
-        for v in refMatchValue:
-            refMask[refCLS == v] = True
+        ref_mask = np.zeros_like(ref_cls, np.bool)
+        for v in ref_match_value:
+            ref_mask[ref_cls == v] = True
 
-        testMask = np.zeros_like(testCLS, np.bool)
-        if len(testMatchValue):
-            for v in testMatchValue:
-                testMask[testCLS == v] = True
+        test_mask = np.zeros_like(test_cls, np.bool)
+        if len(test_match_value):
+            for v in test_match_value:
+                test_mask[test_cls == v] = True
 
         if PLOTS_ENABLE:
-            plot.savePrefix = original_save_prefix + "%03d"%(index) + "_"
-            plot.make(testMask.astype(np.int), 'Test Evaluation Mask', 154, saveName="input_testMask")
-            plot.make(refMask.astype(np.int), 'Reference Evaluation Mask', 114, saveName="input_refMask")
+            plot.savePrefix = original_save_prefix + "%03d"%index + "_"
+            plot.make(test_mask.astype(np.int), 'Test Evaluation Mask', 154, saveName="input_testMask")
+            plot.make(ref_mask.astype(np.int), 'Reference Evaluation Mask', 114, saveName="input_refMask")
 
         if config['OBJECTWISE']['Enable']:
             print("\nRunning objectwise metrics...")
             merge_radius = config['OBJECTWISE']['MergeRadius']
-            [result, testNdx, refNdx] = geo.run_objectwise_metrics(refDSM, refDTM, refMask, testDSM, testDTM, testMask, tform, ignoreMask, merge_radius, plot=plot)
-            if refMatchValue == testMatchValue:
-                result['CLSValue'] = refMatchValue
+            [result, test_ndx, ref_ndx] = geo.run_objectwise_metrics(ref_dsm, ref_dtm, ref_mask, test_dsm, test_dtm,
+                                                                     test_mask, tform, ignore_mask, merge_radius,
+                                                                     plot=plot)
+            if ref_match_value == test_match_value:
+                result['CLSValue'] = ref_match_value
             else:
-                result['CLSValue'] = {'Ref': refMatchValue, "Test": testMatchValue}
+                result['CLSValue'] = {'Ref': ref_match_value, "Test": test_match_value}
             objectwise_results.append(result)
 
-
             # Save index files to compute objectwise metrics
-            obj_savePrefix = basename + "_%03d" % (index) + "_"
-            geo.arrayToGeotiff(testNdx, os.path.join(outputpath, obj_savePrefix + '_test_ndx_objs'), refCLSFilename, noDataValue)
-            geo.arrayToGeotiff(refNdx, os.path.join(outputpath, obj_savePrefix + '_ref_ndx_objs'), refCLSFilename, noDataValue)
+            obj_save_prefix = basename + "_%03d" % index + "_"
+            geo.arrayToGeotiff(test_ndx, os.path.join(output_path, obj_save_prefix + '_test_ndx_objs'),
+                               ref_cls_filename, no_data_value)
+            geo.arrayToGeotiff(ref_ndx, os.path.join(output_path, obj_save_prefix + '_ref_ndx_objs'), ref_cls_filename,
+                               no_data_value)
 
-        # Evaluate threshold geometry metrics using refDTM as the testDTM to mitigate effects of terrain modeling uncertainty
-        result = geo.run_threshold_geometry_metrics(refDSM, refDTM, refMask, testDSM, refDTM, testMask, tform, ignoreMask, plot=plot)
-        if refMatchValue == testMatchValue:
-            result['CLSValue'] = refMatchValue
+        # Evaluate threshold geometry metrics using refDTM as the testDTM to mitigate effects of terrain modeling
+        # uncertainty
+        result = geo.run_threshold_geometry_metrics(ref_dsm, ref_dtm, ref_mask, test_dsm, ref_dtm, test_mask, tform,
+                                                    ignore_mask, plot=plot)
+        if ref_match_value == test_match_value:
+            result['CLSValue'] = ref_match_value
         else:
-            result['CLSValue'] = {'Ref': refMatchValue, "Test": testMatchValue}
+            result['CLSValue'] = {'Ref': ref_match_value, "Test": test_match_value}
         threshold_geometry_results.append(result)
 
         # Run the relative accuracy metrics and report results.
         # Skip relative accuracy is all of testMask or refMask is assigned as "object"
-        if not ((refMask.size == np.count_nonzero(refMask)) or (testMask.size == np.count_nonzero(testMask))) and len(testMatchValue) != 0:
-            result = geo.run_relative_accuracy_metrics(refDSM, testDSM, refMask, testMask, ignoreMask, geo.getUnitWidth(tform), plot=plot)
-            if refMatchValue == testMatchValue:
-                result['CLSValue'] = refMatchValue
+        if not ((ref_mask.size == np.count_nonzero(ref_mask)) or (test_mask.size == np.count_nonzero(test_mask))) and len(test_match_value) != 0:
+            result = geo.run_relative_accuracy_metrics(ref_dsm, test_dsm, ref_mask, test_mask, ignore_mask,
+                                                       geo.getUnitWidth(tform), plot=plot)
+            if ref_match_value == test_match_value:
+                result['CLSValue'] = ref_match_value
             else:
-                result['CLSValue'] = {'Ref': refMatchValue, "Test": testMatchValue}
+                result['CLSValue'] = {'Ref': ref_match_value, "Test": test_match_value}
             relative_accuracy_results.append(result)
 
     if PLOTS_ENABLE:
@@ -305,32 +320,34 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None,
     metrics['objectwise'] = objectwise_results
 
     if align:
-        metrics['registration_offset'] = xyzOffset
-        metrics['gelocation_error'] = np.linalg.norm(xyzOffset)
+        metrics['registration_offset'] = xyz_offset
+        metrics['gelocation_error'] = np.linalg.norm(xyz_offset)
 
     # Run the terrain model metrics and report results.
-    if testDTMFilename:
+    if test_dtm_filename:
         dtm_z_threshold = config['OPTIONS'].get('TerrainZErrorThreshold',1)
 
         # Make reference mask for terrain evaluation that identified elevated object where underlying terrain estimate
         # is expected to be inaccurate
-        dtm_CLS_ignore_values = config['INPUT.REF'].get('TerrainCLSIgnoreValues', [6, 17]) # Default to building and bridge deck
-        dtm_CLS_ignore_values = geo.validateMatchValues(dtm_CLS_ignore_values,np.unique(refCLS).tolist())
-        refMaskTerrainAcc = np.zeros_like(refCLS, np.bool)
-        for v in dtm_CLS_ignore_values:
-            refMaskTerrainAcc[refCLS == v] = True
+        dtm_cls_ignore_values = config['INPUT.REF'].get('TerrainCLSIgnoreValues', [6, 17]) # Default to building and bridge deck
+        dtm_cls_ignore_values = geo.validateMatchValues(dtm_cls_ignore_values,np.unique(ref_cls).tolist())
+        ref_mask_terrain_acc = np.zeros_like(ref_cls, np.bool)
+        for v in dtm_cls_ignore_values:
+            ref_mask_terrain_acc[ref_cls == v] = True
 
-        metrics['terrain_accuracy'] = geo.run_terrain_accuracy_metrics(refDTM, testDTM, refMaskTerrainAcc, dtm_z_threshold, plot=plot)
+        metrics['terrain_accuracy'] = geo.run_terrain_accuracy_metrics(ref_dtm, test_dtm, ref_mask_terrain_acc,
+                                                                       dtm_z_threshold, plot=plot)
     else:
         print('WARNING: No test DTM file, skipping terrain accuracy metrics')
 
     # Run the threshold material metrics and report results.
-    if testMTLFilename:
-        metrics['threshold_materials'] = geo.run_material_metrics(refNDX, refMTL, testMTL, materialNames, materialIndicesToIgnore, plot=plot)
+    if test_mtl_filename:
+        metrics['threshold_materials'] = geo.run_material_metrics(ref_ndx, ref_mtl, test_mtl, material_names,
+                                                                  material_indices_to_ignore, plot=plot)
     else:
         print('WARNING: No test MTL file, skipping material metrics')
 
-    fileout = os.path.join(outputpath,os.path.basename(configfile) + "_metrics.json")
+    fileout = os.path.join(output_path, os.path.basename(config_file) + "_metrics.json")
     with open(fileout,'w') as fid:
         json.dump(metrics,fid,indent=2)
     print(json.dumps(metrics,indent=2))
@@ -339,6 +356,7 @@ def run_geometrics(configfile,refpath=None,testpath=None,outputpath=None,
     #  If displaying figures, wait for user before existing
     if PLOTS_SHOW:
             input("Press Enter to continue...")
+
 
 # command line function
 def main(args=None):
@@ -377,9 +395,7 @@ def main(args=None):
         required=False, nargs='?', default=0, const=1, 
         choices=range(0,3), type=int, metavar='')
 
-
     args, unknown = parser.parse_known_args(args)
-
 
     print('RUN_GEOMETRICS input arguments:')
     print(args)
@@ -388,8 +404,6 @@ def main(args=None):
         print('Unknown input arguments:')
         print(unknown)
         return
-
-
 
     # gather optional arguments
     kwargs = {}
@@ -402,7 +416,8 @@ def main(args=None):
     if args.saveplots is not None: kwargs['save_plots'] = args.saveplots
 
     # run process
-    run_geometrics(configfile=args.config,**kwargs)
+    run_geometrics(config_file=args.config, **kwargs)
+
 
 if __name__ == "__main__":
     main()
