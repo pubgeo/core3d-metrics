@@ -272,23 +272,26 @@ def run_geometrics(config_file, ref_path=None, test_path=None, output_path=None,
             plot.make(ref_mask.astype(np.int), 'Reference Evaluation Mask', 114, saveName="input_refMask")
 
         if config['OBJECTWISE']['Enable']:
-            print("\nRunning objectwise metrics...")
-            merge_radius = config['OBJECTWISE']['MergeRadius']
-            [result, test_ndx, ref_ndx] = geo.run_objectwise_metrics(ref_dsm, ref_dtm, ref_mask, test_dsm, test_dtm,
-                                                                     test_mask, tform, ignore_mask, merge_radius,
-                                                                     plot=plot)
-            if ref_match_value == test_match_value:
-                result['CLSValue'] = ref_match_value
-            else:
-                result['CLSValue'] = {'Ref': ref_match_value, "Test": test_match_value}
-            objectwise_results.append(result)
-
-            # Save index files to compute objectwise metrics
-            obj_save_prefix = basename + "_%03d" % index + "_"
-            geo.arrayToGeotiff(test_ndx, os.path.join(output_path, obj_save_prefix + '_test_ndx_objs'),
-                               ref_cls_filename, no_data_value)
-            geo.arrayToGeotiff(ref_ndx, os.path.join(output_path, obj_save_prefix + '_ref_ndx_objs'), ref_cls_filename,
-                               no_data_value)
+            try:
+                print("\nRunning objectwise metrics...")
+                merge_radius = config['OBJECTWISE']['MergeRadius']
+                [result, test_ndx, ref_ndx] = geo.run_objectwise_metrics(ref_dsm, ref_dtm, ref_mask, test_dsm, test_dtm,
+                                                                         test_mask, tform, ignore_mask, merge_radius,
+                                                                         plot=plot)
+                if ref_match_value == test_match_value:
+                    result['CLSValue'] = ref_match_value
+                else:
+                    result['CLSValue'] = {'Ref': ref_match_value, "Test": test_match_value}
+                objectwise_results.append(result)
+    
+                # Save index files to compute objectwise metrics
+                obj_save_prefix = basename + "_%03d" % index + "_"
+                geo.arrayToGeotiff(test_ndx, os.path.join(output_path, obj_save_prefix + '_test_ndx_objs'),
+                                   ref_cls_filename, no_data_value)
+                geo.arrayToGeotiff(ref_ndx, os.path.join(output_path, obj_save_prefix + '_ref_ndx_objs'), ref_cls_filename,
+                                   no_data_value)
+            except Exception as e:
+                print(str(e))
 
         # Evaluate threshold geometry metrics using refDTM as the testDTM to mitigate effects of terrain modeling
         # uncertainty
@@ -303,13 +306,16 @@ def run_geometrics(config_file, ref_path=None, test_path=None, output_path=None,
         # Run the relative accuracy metrics and report results.
         # Skip relative accuracy is all of testMask or refMask is assigned as "object"
         if not ((ref_mask.size == np.count_nonzero(ref_mask)) or (test_mask.size == np.count_nonzero(test_mask))) and len(test_match_value) != 0:
-            result = geo.run_relative_accuracy_metrics(ref_dsm, test_dsm, ref_mask, test_mask, ignore_mask,
-                                                       geo.getUnitWidth(tform), plot=plot)
-            if ref_match_value == test_match_value:
-                result['CLSValue'] = ref_match_value
-            else:
-                result['CLSValue'] = {'Ref': ref_match_value, "Test": test_match_value}
-            relative_accuracy_results.append(result)
+            try:
+                result = geo.run_relative_accuracy_metrics(ref_dsm, test_dsm, ref_mask, test_mask, ignore_mask,
+                                                           geo.getUnitWidth(tform), plot=plot)
+                if ref_match_value == test_match_value:
+                    result['CLSValue'] = ref_match_value
+                else:
+                    result['CLSValue'] = {'Ref': ref_match_value, "Test": test_match_value}
+                relative_accuracy_results.append(result)
+            except Exception as e:
+                print(str(e))
 
     if PLOTS_ENABLE:
         # Reset plot prefix
