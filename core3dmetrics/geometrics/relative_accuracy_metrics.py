@@ -18,9 +18,14 @@ def run_relative_accuracy_metrics(refDSM, testDSM, refMask, testMask, ignoreMask
     # Z68 approximates ZRMSE assuming normal error distribution.
     delta = testDSM - refDSM
     overlap = refMask & testMask & validMask
-    z68 = np.percentile(abs(delta[overlap]),68)
-    z50 = np.percentile(abs(delta[overlap]),50)
-    z90 = np.percentile(abs(delta[overlap]),90)
+    if np.unique(overlap).size is 1:
+        z68 = 100
+        z50 = 100
+        z90 = 100
+    else:
+        z68 = np.percentile(abs(delta[overlap]), 68)
+        z50 = np.percentile(abs(delta[overlap]), 50)
+        z90 = np.percentile(abs(delta[overlap]), 90)
 
     # Generate relative vertical accuracy plots
     if PLOTS_ENABLE:

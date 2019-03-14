@@ -10,7 +10,7 @@ from .threshold_geometry_metrics import run_threshold_geometry_metrics
 from .relative_accuracy_metrics import run_relative_accuracy_metrics
 
 
-def eval_metrcs(refDSM, refDTM, refMask, testDSM, testDTM, testMask, tform, ignoreMask, plot=None, verbose=True):
+def eval_metrics(refDSM, refDTM, refMask, testDSM, testDTM, testMask, tform, ignoreMask, plot=None, verbose=True):
 
     # Evaluate threshold geometry metrics using refDTM as the testDTM to mitigate effects of terrain modeling
     # uncertainty
@@ -112,7 +112,7 @@ def run_objectwise_metrics(refDSM, refDTM, refMask, testDSM, testDTM, testMask, 
             test_use_counter[test_region-1] = test_use_counter[test_region-1] + 1
 
         # TODO:  Not practical as implemented to enable plots. plots is forced to false.
-        [result_geo, result_acc] = eval_metrcs(refDSM, refDTM, ref_objs, testDSM, testDTM, test_objs, tform, ignoreMask, plot=None, verbose=verbose)
+        [result_geo, result_acc] = eval_metrics(refDSM, refDTM, ref_objs, testDSM, testDTM, test_objs, tform, ignoreMask, plot=None, verbose=verbose)
 
         this_metric = dict()
         this_metric['ref_objects'] = test_regions.tolist()

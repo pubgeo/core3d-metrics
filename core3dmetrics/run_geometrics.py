@@ -55,7 +55,7 @@ def run_geometrics(config_file, ref_path=None, test_path=None, output_path=None,
     # Get plot settings from configuration file
     PLOTS_SHOW = config['PLOTS']['ShowPlots']
     PLOTS_SAVE = config['PLOTS']['SavePlots']
-    if save_plots is not None: # Commandline line argument overrided config file setting
+    if save_plots is not None:  # Commandline line argument overrided config file setting
         PLOTS_SAVE = save_plots
     PLOTS_ENABLE = PLOTS_SHOW or PLOTS_SAVE
 
