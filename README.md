@@ -66,8 +66,7 @@ The algorithm then calculates metrics for 2D, 3D, and spectral classification ag
 
 #### Input
 _AOI Configuration_ is a configuration file using python's ConfigParser that is further described in [aoi-config.md](aoi-example/aoi-config.md).
-This configuration file defines which files to analyze and what to compare against (ground truth). Additionally the config is
-to toggle various software settings.
+This configuration file defines which files to analyze and what to compare against (ground truth). Additionally the config is used to toggle various software settings.
 
 #### Example Output
     python3 -m core3dmetrics -c aoi.config
