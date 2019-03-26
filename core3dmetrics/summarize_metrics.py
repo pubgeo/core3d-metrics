@@ -2,6 +2,7 @@ import json
 import jsonschema
 import numpy as np
 from pathlib import Path
+from MetricContainer import Result
 
 # BAA Thresholds
 class baa_thresholds:
@@ -20,12 +21,58 @@ class baa_thresholds:
         self.jaccard_index_3d = self.fscore_3d / (2-self.fscore_3d)
 
 
+def summarize_data(baa_threshold):
+    # load results8
+    root_dir = Path(r"\\dom1\Core\Dept\AOS\AOSShare\IARPA-CORE3D\Workspace\Leichtman\2018-10-01-Performer-Eval")
+    teams = ['ARA', 'GERC', 'KW', 'VSI']
+    tests = ['2018-06-04-Self-Test', '2018-10-02-As-Delivered', '2018-10-10-APL-Run'];
+    aois = ['D1', 'D2', 'D3', 'D4']
+    all_results = []
+    for current_team in teams:
+        for current_test in tests:
+            for current_aoi in aois:
+                json_file_path = Path(root_dir, current_team, current_test, "%s.config_metrics.json" % current_aoi)
+                if json_file_path.is_file():
+                    with open(str(json_file_path.absolute())) as json_file:
+                        json_data = json.load(json_file)
+                    # Check offset file
+                    offset_file_path = Path(root_dir, current_team, current_test, "%s.offset.json" % current_aoi)
+                    if offset_file_path.is_file():
+                        with open(str(offset_file_path.absolute())) as offset_json_file:
+                            offset_data = json.load(offset_json_file)
+                            n = {}
+                            n["threshold_geometry"] = json_data["threshold_geometry"]
+                            n["relative_accuracy"] = json_data["relative_accuracy"]
+                            n["registration_offset"] = offset_data["offset"]
+                            n["gelocation_error"] = np.linalg.norm(n["registration_offset"], 2)
+                            n["terrain_accuracy"] = None
+                            n["threshold_materials"] = json_data["threshold_materials"]
+                            json_data = n
+                            del n, offset_data
+
+                    if "terrain_accuracy" in json_data.keys():
+                        n = {}
+                        n["threshold_geometry"] = json_data["threshold_geometry"]
+                        n["relative_accuracy"] = json_data["relative_accuracy"]
+                        n["registration_offset"] = json_data["registration_offset"]
+                        n["gelocation_error"] = json_data["gelocation_error"]
+                        n["terrain_accuracy"] = None
+                        n["threshold_materials"] = json_data["threshold_materials"]
+                        json_data = n
+                        del n
+
+                    container = Result(current_team, current_test, current_aoi, json_data)
+                    all_results.append(container)
+                else:
+                    container = Result(current_team, current_test, current_aoi, "")
+                    all_results.append(container)
+
+                # Try to find config file
+    print("hi")
+
 def main():
     baa_threshold = baa_thresholds()
-    # load results
-    root_dir = Path("\\dom1\Core\Dept\AOS\AOSShare\IARPA-CORE3D\Workspace\Leichtman\2018-10-01-Performer-Eval")
-    teams = ['ARA', 'GERC', 'KW', 'VSI']
-    aois = ['d1', 'd2', 'd3', 'd4', 'u1']
+    summarize_data(baa_threshold)
     
 
 

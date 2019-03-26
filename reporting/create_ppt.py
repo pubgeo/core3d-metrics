@@ -11,7 +11,9 @@ from pptx.util import Inches
 import argparse
 import numpy as np
 from datetime import date
+import jsonschema, json
 import matplotlib.pyplot as plt
+from summarize_metrics import summarize_data, baa_thresholds
 
 
 def parse_args():
@@ -31,10 +33,11 @@ def parse_args():
     return parser.parse_args()
 
 
-def create_ppt(input, output, json_data):
+def create_ppt(input, output, json_data, metric_images=None):
     """ Take the input powerpoint file and use it as the template for the output
     file.
     """
+    data = parse_metrics_code(json_data)
     prs = Presentation(input)
     # Use the output from analyze_ppt to understand which layouts and placeholders
     # to use
@@ -43,9 +46,17 @@ def create_ppt(input, output, json_data):
     slide = prs.slides.add_slide(title_slide_layout)
     title = slide.shapes.title
     subtitle = slide.placeholders[1]
-    title.text = "Quarterly Report"
+    title.text = "CORE3D Metrics Report"
     subtitle.text = "Generated on {:%m-%d-%Y}".format(date.today())
     prs.save(output)
+
+
+def parse_metrics_code(json_file_path):
+    baa_threshold = baa_thresholds()
+    summarize_data(baa_threshold)
+    with open(json_file_path) as json_file:
+        data = json.load(json_file)
+    return data
 
 
 if __name__ == "__main__":
