@@ -13,7 +13,7 @@ import numpy as np
 from datetime import date
 import jsonschema, json
 import matplotlib.pyplot as plt
-from summarize_metrics import summarize_data, baa_thresholds
+from summarize_metrics import summarize_data, BAAThresholds
 
 
 def parse_args():
@@ -52,7 +52,7 @@ def create_ppt(input, output, json_data, metric_images=None):
 
 
 def parse_metrics_code(json_file_path):
-    baa_threshold = baa_thresholds()
+    baa_threshold = BAAThresholds()
     summarize_data(baa_threshold)
     with open(json_file_path) as json_file:
         data = json.load(json_file)

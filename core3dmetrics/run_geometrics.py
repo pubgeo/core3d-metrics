@@ -37,9 +37,9 @@ def run_geometrics(config_file, ref_path=None, test_path=None, output_path=None,
 
     # Get test model information from configuration file.
     test_dsm_filename = config['INPUT.TEST']['DSMFilename']
-    test_dtm_filename = config['INPUT.TEST'].get('DTMFilename',None)
+    test_dtm_filename = config['INPUT.TEST'].get('DTMFilename', None)
     test_cls_filename = config['INPUT.TEST']['CLSFilename']
-    test_mtl_filename = config['INPUT.TEST'].get('MTLFilename',None)
+    test_mtl_filename = config['INPUT.TEST'].get('MTLFilename', None)
 
     # Get reference model information from configuration file.
     ref_dsm_filename = config['INPUT.REF']['DSMFilename']

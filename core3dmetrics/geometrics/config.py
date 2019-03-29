@@ -74,10 +74,10 @@ def parse_config(configfile,refpath=None,testpath=None):
     print("\nReading configuration from <{}>".format(configfile))
 
     # JSON parsing
-    if configfile.endswith(('.json','.JSON')):
+    if configfile.endswith(('.json', '.JSON')):
 
         # open & read JSON file
-        with open(configfile,'r') as fid:
+        with open(configfile, 'r') as fid:
             config = json.load(fid)
 
     # CONFIG parsing
@@ -144,10 +144,11 @@ def parse_config(configfile,refpath=None,testpath=None):
     # locate files for each "xxxFilename" configuration parameter
     # this makes use of "refpath" and "testpath" arguments for relative filenames
     # we do this before validation to ensure required files are located
-    for item in [('INPUT.REF',refpath),('INPUT.TEST',testpath)]:
-        sec = item[0]; path = item[1]
+    for item in [('INPUT.REF', refpath), ('INPUT.TEST', testpath)]:
+        sec = item[0]
+        path = item[1]
         print('\nPROCESSING "{}" FILES'.format(sec))
-        config[sec] = findfiles(config[sec],path)
+        config[sec] = findfiles(config[sec], path)
 
 
     # validate final configuration against schema
