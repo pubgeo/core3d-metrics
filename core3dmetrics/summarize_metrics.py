@@ -20,17 +20,14 @@ class BAAThresholds:
         self.correctness_3d = np.array([0.6, 0.7, 0.8, 0.9])
         self.material_accuracy = np.array([0.85, 0.90, 0.95, 0.98])
         self.model_build_time = np.array([8, 2, 2, 1])
-        self.fscore_2d = 2*self.completeness_2d * self.correctness_2d / self.completeness_2d + self.correctness_2d
-        self.fscore_3d = 2*self.completeness_3d * self.correctness_3d / self.completeness_3d + self.correctness_3d
+        self.fscore_2d = (2*self.completeness_2d * self.correctness_2d) / (self.completeness_2d + self.correctness_2d)
+        self.fscore_3d = (2*self.completeness_3d * self.correctness_3d) / (self.completeness_3d + self.correctness_3d)
         self.jaccard_index_2d = self.fscore_2d / (2-self.fscore_2d)
         self.jaccard_index_3d = self.fscore_3d / (2-self.fscore_3d)
 
 
-def summarize_data(baa_threshold, ref_path=None, test_path=None):
+def summarize_data(baa_threshold, root_dir, teams, aois, ref_path=None, test_path=None):
     # load results8
-    root_dir = Path(r"C:\Users\wangss1\Documents\Data\ARA_Metrics_Dry_Run")
-    teams = [r'ARA']
-    aois = [r'AOI_D4']
     all_results = {}
     for current_team in teams:
         for current_aoi in aois:
@@ -57,8 +54,14 @@ def summarize_data(baa_threshold, ref_path=None, test_path=None):
 
                 if "terrain_accuracy" in json_data.keys():
                     n = {}
-                    n["threshold_geometry"] = json_data["threshold_geometry"]
-                    n["relative_accuracy"] = json_data["relative_accuracy"]
+                    n["threshold_geometry"] = {}
+                    n["relative_accuracy"] = {}
+                    n["objectwise"] = {}
+                    for cls in range(0, json_data["threshold_geometry"].__len__()):
+                        current_class = json_data["threshold_geometry"][cls]['CLSValue'][0]
+                        n["threshold_geometry"].update({current_class: json_data["threshold_geometry"][cls]})
+                        n["relative_accuracy"].update({current_class: json_data["relative_accuracy"][cls]})
+                        n["objectwise"].update({current_class: json_data["objectwise"][cls]})
                     n["registration_offset"] = json_data["registration_offset"]
                     n["gelocation_error"] = json_data["gelocation_error"]
                     n["terrain_accuracy"] = None
@@ -97,11 +100,58 @@ def summarize_data(baa_threshold, ref_path=None, test_path=None):
                 PLOTS_SHOW = config['PLOTS']['ShowPlots']
                 PLOTS_SAVE = config['PLOTS']['SavePlots']
 
-    print("Done")
+    # Computer combined metrics
+    summarized_results = {}
+    for team in all_results:
+        summarized_results[team] = {}
+        for aoi in all_results[team]:
+            for cls in config["INPUT.REF"]["CLSMatchValue"]:
+                summarized_results[team][cls] = {}
+                for dimension in ["2D", "3D"]:
+                    summarized_results[team][cls][dimension] = {}
+                    if "TP" not in summarized_results[team][cls][dimension]:
+                        summarized_results[team][cls][dimension]["TP"] = 0
+                    if "FP" not in summarized_results[team][cls][dimension]:
+                        summarized_results[team][cls][dimension]["FP"] = 0
+                    if "FN" not in summarized_results[team][cls][dimension]:
+                        summarized_results[team][cls][dimension]["FN"] = 0
+                    summarized_results[team][cls][dimension]["TP"] = summarized_results[team][cls][dimension]["TP"] + \
+                                                                all_results[team][aoi].results["threshold_geometry"][cls][
+                                                                    dimension]["TP"]
+                    summarized_results[team][cls][dimension]["FP"] = summarized_results[team][cls][dimension]["FP"] + \
+                                                                all_results[team][aoi].results["threshold_geometry"][cls][
+                                                                    dimension]["FP"]
+                    summarized_results[team][cls][dimension]["FN"] = summarized_results[team][cls][dimension]["FN"] + \
+                                                                all_results[team][aoi].results["threshold_geometry"][cls][
+                                                                    dimension]["FN"]
+        # After all AOIs are compiled, calculate other metrics
+        for cls in config["INPUT.REF"]["CLSMatchValue"]:
+            for dimension in ["2D", "3D"]:
+                TP = summarized_results[team][cls][dimension]["TP"]
+                FP = summarized_results[team][cls][dimension]["FP"]
+                FN = summarized_results[team][cls][dimension]["FN"]
+                completeness = TP / (TP + FN)
+                correctness = TP / (TP + FP)
+                fscore = (2 * completeness * correctness) / (completeness + correctness)
+                jaccard_index = fscore / (2 - fscore)
+                branching_factor = FP / TP
+                miss_factor = FN / TP
+                summarized_results[team][cls][dimension]["completeness"] = completeness
+                summarized_results[team][cls][dimension]["correctness"] = correctness
+                summarized_results[team][cls][dimension]["fscore"] = fscore
+                summarized_results[team][cls][dimension]["jaccardindex"] = jaccard_index
+                summarized_results[team][cls][dimension]["branchingfactor"] = branching_factor
+                summarized_results[team][cls][dimension]["missfactor"] = miss_factor
+
+    return summarized_results
+
 
 def main():
+    root_dir = Path(r"C:\Users\wangss1\Documents\Data\ARA_Metrics_Dry_Run")
+    teams = [r'ARA']
+    aois = [r'AOI_D4']
     baa_threshold = BAAThresholds()
-    summarize_data(baa_threshold)
+    summarized_results = summarize_data(baa_threshold, root_dir, teams, aois)
 
 
 if __name__ == "__main__":

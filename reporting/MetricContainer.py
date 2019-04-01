@@ -18,3 +18,9 @@ class Result:
         self.aoi = aoi
         self.results = data
 
+
+class SummarizedMetrics:
+
+    def __init__(self, team, summarized_results):
+        self.team = team
+        self.summarized_results = summarized_results
