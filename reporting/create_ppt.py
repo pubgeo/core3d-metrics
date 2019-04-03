@@ -138,7 +138,6 @@ def create_mean_scores_by_site(baa_thresholds, prs, averaged_results, aois, clas
     df_metrics_names = pd.DataFrame(data=metrics_names)
     df_1a_thresholds = pd.DataFrame(data=phase_1a_thresholds)
     df_2b_thresholds = pd.DataFrame(data=phase_2b_thresholds)
-    metrics_column = {}
     for team in averaged_results:
         metrics_2D = [0, 0, 0]
         metrics_3D = [0, 0, 0]
@@ -172,7 +171,6 @@ def create_mean_scores_by_site(baa_thresholds, prs, averaged_results, aois, clas
     summary_metrics_slide_layout = prs.slide_layouts[4]
     slide = prs.slides.add_slide(summary_metrics_slide_layout)
     title = slide.shapes.title
-    current_date = date.today()
     title.text = "Mean Scores from {0} - Class: {1}".format('-'.join(aois), ','.join(str(e) for e in classifications))
     top = Inches(1)
     left = Inches(0.5)
@@ -193,7 +191,7 @@ def create_title_slide(prs):
     subtitle_box.text = "JHU/APL"
 
 
-def create_ppt(input, output, averaged_results, baa_thresolds, aois):
+def create_ppt(input, output, team_scores, averaged_results, baa_thresolds, aois):
     """ Take the input powerpoint file and use it as the template for the output
     file.
     """
@@ -206,14 +204,16 @@ def create_ppt(input, output, averaged_results, baa_thresolds, aois):
     create_mean_scores_by_site(baa_thresolds, prs, averaged_results, aois, 17)
     create_mean_scores_by_site(baa_thresolds, prs, averaged_results, aois, [6, 17])
 
+    create_team_based_scores(baa_thresolds, prs, team_scores, aois)
+
     prs.save(output)
 
 
 def main():
     args = parse_args()
     baa_thresholds = BAAThresholds()
-    averaged_results = summarize_metrics(args.rootdir, args.teams, args.aois)
-    create_ppt(args.infile.name, args.outfile.name, averaged_results, baa_thresholds, args.aois)
+    averaged_results, team_scores = summarize_metrics(args.rootdir, args.teams, args.aois)
+    create_ppt(args.infile.name, args.outfile.name, team_scores, averaged_results, baa_thresholds, args.aois)
 
 
 if __name__ == "__main__":

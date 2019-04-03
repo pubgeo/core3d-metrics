@@ -197,7 +197,7 @@ def summarize_metrics(root_dir, teams, aois, ref_path=None, test_path=None):
                 print('Class not found, skipping...')
                 continue
 
-    return averaged_results
+    return averaged_results, all_results
 
 
 def main():
