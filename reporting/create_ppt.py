@@ -17,6 +17,7 @@ from summarize_metrics import summarize_metrics, BAAThresholds
 from pathlib import Path
 from argparse import ArgumentParser, ArgumentError
 import pandas as pd
+from operator import add
 
 
 def directory_type(arg_string):
@@ -102,16 +103,19 @@ def parse_args():
     return parser.parse_args()
 
 
-def create_team_based_scores(baa_thresholds, prs, summarized_results, aois):
+def create_team_based_scores(baa_thresholds, prs, team_scores, aois):
     # Add Metrics Table
-    for team in summarized_results:
+    for team in team_scores:
         summary_metrics_slide_layout = prs.slide_layouts[5]
         slide = prs.slides.add_slide(summary_metrics_slide_layout)
         title = slide.shapes.title
         title.text = "Summary of Results for " + team
 
 
-def create_mean_scores_by_site(baa_thresholds, prs, averaged_results, aois, classification):
+def create_mean_scores_by_site(baa_thresholds, prs, averaged_results, aois, classifications):
+    # Check how many classifications we deal with
+    if type(classifications) is int:
+        classifications = [classifications]
     # Create Table of all teams
     # Create columns from summarized results
     df_performer_metrics = None
@@ -136,15 +140,22 @@ def create_mean_scores_by_site(baa_thresholds, prs, averaged_results, aois, clas
     df_2b_thresholds = pd.DataFrame(data=phase_2b_thresholds)
     metrics_column = {}
     for team in averaged_results:
-        metrics_2D = [averaged_results[team][classification]["2d_completeness"],
-                      averaged_results[team][classification]["2d_correctness"],
-                      averaged_results[team][classification]["2d_jaccard_index"]]
-        metrics_3D = [averaged_results[team][classification]["3d_completeness"],
-                      averaged_results[team][classification]["3d_correctness"],
-                      averaged_results[team][classification]["3d_jaccard_index"]]
-        other_metrics = [averaged_results[team]["geolocation_error"],
-                         averaged_results[team][classification]["hrmse"],
-                         averaged_results[team][classification]["zrmse"]]
+        metrics_2D = [0, 0, 0]
+        metrics_3D = [0, 0, 0]
+        other_metrics = [0, 0, 0]
+        for cls in classifications:
+            metrics_2D = list(map(add, metrics_2D, [averaged_results[team][cls]["2d_completeness"],
+                          averaged_results[team][cls]["2d_correctness"],
+                          averaged_results[team][cls]["2d_jaccard_index"]]))
+            metrics_3D = list(map(add, metrics_3D, [averaged_results[team][cls]["3d_completeness"],
+                          averaged_results[team][cls]["3d_correctness"],
+                          averaged_results[team][cls]["3d_jaccard_index"]]))
+            other_metrics = list(map(add, other_metrics, [averaged_results[team]["geolocation_error"],
+                             averaged_results[team][cls]["hrmse"],
+                             averaged_results[team][cls]["zrmse"]]))
+        metrics_2D = [np.round(x / classifications.__len__(),decimals=2) for x in metrics_2D]
+        metrics_3D = [np.round(x / classifications.__len__(), decimals=2) for x in metrics_3D]
+        other_metrics = [np.round(x / classifications.__len__(), decimals=2) for x in other_metrics]
         metrics_column = {team: metrics_2D + metrics_3D + other_metrics}
         df_team_metrics = pd.DataFrame(data=metrics_column)
         if df_performer_metrics is not None:
@@ -162,7 +173,7 @@ def create_mean_scores_by_site(baa_thresholds, prs, averaged_results, aois, clas
     slide = prs.slides.add_slide(summary_metrics_slide_layout)
     title = slide.shapes.title
     current_date = date.today()
-    title.text = "Mean Scores from {0} - Buildings".format('-'.join(aois))
+    title.text = "Mean Scores from {0} - Class: {1}".format('-'.join(aois), ','.join(str(e) for e in classifications))
     top = Inches(1)
     left = Inches(0.5)
     width = Inches(12)
@@ -193,6 +204,7 @@ def create_ppt(input, output, averaged_results, baa_thresolds, aois):
 
     create_mean_scores_by_site(baa_thresolds, prs, averaged_results, aois, 6)
     create_mean_scores_by_site(baa_thresolds, prs, averaged_results, aois, 17)
+    create_mean_scores_by_site(baa_thresolds, prs, averaged_results, aois, [6, 17])
 
     prs.save(output)
 
