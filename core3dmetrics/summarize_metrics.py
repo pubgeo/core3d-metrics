@@ -130,98 +130,72 @@ def summarize_metrics(root_dir, teams, aois, ref_path=None, test_path=None):
 
     # compute averaged metrics
     averaged_results = {}
-    sum_2d_completeness = 0
-    sum_2d_correctness = 0
-    sum_2d_jaccard_index = 0
-    sum_2d_fscore = 0
-    sum_3d_completeness = 0
-    sum_3d_correctness = 0
-    sum_3d_jaccard_index = 0
-    sum_3d_fscore = 0
-    sum_hmrse = 0
-    sum_zrmse = 0
-    sum_geolocation_error = 0
     for team in all_results:
-        total_aois = all_results[team].__len__()
+        sum_2d_completeness = {}
+        sum_2d_correctness = {}
+        sum_2d_jaccard_index = {}
+        sum_2d_fscore = {}
+        sum_3d_completeness = {}
+        sum_3d_correctness = {}
+        sum_3d_jaccard_index = {}
+        sum_3d_fscore = {}
+        sum_geolocation_error = 0
+        sum_hrmse = {}
+        sum_zrmse = {}
         averaged_results[team] = {}
         for aoi in all_results[team]:
-            sum_geolocation_error = sum_geolocation_error + all_results[team][aoi].results['gelocation_error']
-            for cls in all_results[team][aoi].results['threshold_geometry']:
-                sum_2d_completeness = sum_2d_completeness + all_results[team][aoi].results['threshold_geometry'][cls]['2D']['completeness']
-                sum_2d_correctness = sum_2d_correctness + all_results[team][aoi].results['threshold_geometry'][cls]['2D']['correctness']
-                sum_2d_jaccard_index = sum_2d_jaccard_index + all_results[team][aoi].results['threshold_geometry'][cls]['2D']['jaccardIndex']
-                sum_2d_fscore = sum_2d_fscore + all_results[team][aoi].results['threshold_geometry'][cls]['2D']['fscore']
-                sum_3d_completeness = sum_3d_completeness + all_results[team][aoi].results['threshold_geometry'][cls]['3D']['completeness']
-                sum_3d_correctness = sum_3d_correctness + all_results[team][aoi].results['threshold_geometry'][cls]['3D']['correctness']
-                sum_3d_jaccard_index = sum_3d_jaccard_index + all_results[team][aoi].results['threshold_geometry'][cls]['3D']['jaccardIndex']
-                sum_3d_fscore = sum_3d_fscore + all_results[team][aoi].results['threshold_geometry'][cls]['3D']['fscore']
-                sum_zrmse = sum_zrmse + all_results[team][aoi].results['relative_accuracy'][cls]['zrmse']
-                sum_hrmse = sum_hmrse + all_results[team][aoi].results['relative_accuracy'][cls]['hrmse']
-
-        average_2d_completeness = np.round(sum_2d_completeness / total_aois, decimals=2)
-        averaged_results[team].update({'average_2d_completeness': average_2d_completeness})
-        average_2d_correctness = np.round(sum_2d_correctness / total_aois, decimals=2)
-        averaged_results[team].update({'average_2d_correctness': average_2d_correctness})
-        average_2d_jaccardindex = np.round(sum_2d_jaccard_index / total_aois, decimals=2)
-        averaged_results[team].update({'average_2d_jaccardindex': average_2d_jaccardindex})
-        average_3d_completness = np.round(sum_3d_completeness / total_aois, decimals=2)
-        averaged_results[team].update({'average_3d_completness': average_3d_completness})
-        average_3d_correctness = np.round(sum_3d_correctness / total_aois, decimals=2)
-        averaged_results[team].update({'average_3d_correctness': average_3d_correctness})
-        average_3d_jaccardindex = np.round(sum_3d_jaccard_index / total_aois, decimals=2)
-        averaged_results[team].update({'average_3d_jaccardindex': average_3d_jaccardindex})
-        average_zrmse = np.round(sum_zrmse / total_aois, decimals=2)
-        averaged_results[team].update({'average_zrmse': average_zrmse})
-        average_hrmse = np.round(sum_hrmse / total_aois, decimals=2)
-        averaged_results[team].update({'average_hrmse': average_hrmse})
-
-    # Compute aggregated metrics
-    aggregated_results = {}
-    for team in all_results:
-        aggregated_results[team] = {}
-        for aoi in all_results[team]:
-            if "geolocation_error" not in aggregated_results[team]:
-                aggregated_results[team]['geolocation_errors'] = \
-                    [all_results[team][aoi].results['gelocation_error']]
-            else:
-                aggregated_results[team]['geolocation_errors'].append(all_results[team][aoi].results['gelocation_error'])
-            for cls in config["INPUT.REF"]["CLSMatchValue"]:
-                aggregated_results[team][cls] = {}
-                for dimension in ["2D", "3D"]:
-                    aggregated_results[team][cls][dimension] = {}
-                    if "TP" not in aggregated_results[team][cls][dimension]:
-                        aggregated_results[team][cls][dimension]["TP"] = 0
-                    if "FP" not in aggregated_results[team][cls][dimension]:
-                        aggregated_results[team][cls][dimension]["FP"] = 0
-                    if "FN" not in aggregated_results[team][cls][dimension]:
-                        aggregated_results[team][cls][dimension]["FN"] = 0
-                    aggregated_results[team][cls][dimension]["TP"] = aggregated_results[team][cls][dimension]["TP"] + \
-                                                                all_results[team][aoi].results["threshold_geometry"][cls][
-                                                                    dimension]["TP"]
-                    aggregated_results[team][cls][dimension]["FP"] = aggregated_results[team][cls][dimension]["FP"] + \
-                                                                all_results[team][aoi].results["threshold_geometry"][cls][
-                                                                    dimension]["FP"]
-                    aggregated_results[team][cls][dimension]["FN"] = aggregated_results[team][cls][dimension]["FN"] + \
-                                                                all_results[team][aoi].results["threshold_geometry"][cls][
-                                                                    dimension]["FN"]
-        # After all AOIs are compiled, calculate other metrics
+            sum_geolocation_error = sum_geolocation_error + all_results[team][aoi].results["gelocation_error"]
+            for cls in all_results[team][aoi].results["threshold_geometry"]:
+                if cls not in sum_2d_completeness.keys():
+                    sum_2d_completeness[cls] = 0
+                    sum_2d_correctness[cls] = 0
+                    sum_2d_jaccard_index[cls] = 0
+                    sum_2d_fscore[cls] = 0
+                    sum_3d_completeness[cls] = 0
+                    sum_3d_correctness[cls] = 0
+                    sum_3d_jaccard_index[cls] = 0
+                    sum_3d_fscore[cls] = 0
+                    sum_zrmse[cls] = 0
+                    sum_hrmse[cls] = 0
+                sum_2d_completeness[cls] = sum_2d_completeness[cls] + all_results[team][aoi].results['threshold_geometry'][cls]['2D']['completeness']
+                sum_2d_correctness[cls] = sum_2d_correctness[cls] + all_results[team][aoi].results['threshold_geometry'][cls]['2D']['correctness']
+                sum_2d_jaccard_index[cls] = sum_2d_jaccard_index[cls] + all_results[team][aoi].results['threshold_geometry'][cls]['2D']['jaccardIndex']
+                sum_2d_fscore[cls] = sum_2d_fscore[cls] + all_results[team][aoi].results['threshold_geometry'][cls]['2D']['fscore']
+                sum_3d_completeness[cls] = sum_3d_completeness[cls] + all_results[team][aoi].results['threshold_geometry'][cls]['3D']['completeness']
+                sum_3d_correctness[cls] = sum_3d_correctness[cls] + all_results[team][aoi].results['threshold_geometry'][cls]['3D']['correctness']
+                sum_3d_jaccard_index[cls] = sum_3d_jaccard_index[cls] + all_results[team][aoi].results['threshold_geometry'][cls]['3D']['jaccardIndex']
+                sum_3d_fscore[cls] = sum_3d_fscore[cls] + all_results[team][aoi].results['threshold_geometry'][cls]['3D']['fscore']
+                sum_hrmse[cls] = sum_hrmse[cls] + all_results[team][aoi].results['relative_accuracy'][cls]["hrmse"]
+                sum_zrmse[cls] = sum_zrmse[cls] + all_results[team][aoi].results['relative_accuracy'][cls]["zrmse"]
+        # Average results for evaluated classes in config file
+        averaged_results[team]["geolocation_error"] = np.round(
+            sum_geolocation_error / all_results[team].__len__(), decimals=2)
         for cls in config["INPUT.REF"]["CLSMatchValue"]:
-            for dimension in ["2D", "3D"]:
-                TP = aggregated_results[team][cls][dimension]["TP"]
-                FP = aggregated_results[team][cls][dimension]["FP"]
-                FN = aggregated_results[team][cls][dimension]["FN"]
-                completeness = np.round(TP / (TP + FN), decimals=2)
-                correctness = np.round(TP / (TP + FP), decimals=2)
-                fscore = np.round((2 * completeness * correctness) / (completeness + correctness), decimals=2)
-                jaccard_index = np.round(fscore / (2 - fscore), decimals=2)
-                branching_factor = np.round(FP / TP, decimals=2)
-                miss_factor = np.round(FN / TP, decimals=2)
-                aggregated_results[team][cls][dimension]["completeness"] = completeness
-                aggregated_results[team][cls][dimension]["correctness"] = correctness
-                aggregated_results[team][cls][dimension]["fscore"] = fscore
-                aggregated_results[team][cls][dimension]["jaccardindex"] = jaccard_index
-                aggregated_results[team][cls][dimension]["branchingfactor"] = branching_factor
-                aggregated_results[team][cls][dimension]["missfactor"] = miss_factor
+            try:
+                averaged_results[team][cls] = {}
+                averaged_results[team][cls]["2d_completeness"] = np.round(
+                    sum_2d_completeness[cls] / all_results[team].__len__(), decimals=2)
+                averaged_results[team][cls]["2d_correctness"] = np.round(
+                    sum_2d_correctness[cls] / all_results[team].__len__(), decimals=2)
+                averaged_results[team][cls]["2d_jaccard_index"] = np.round(
+                    sum_2d_jaccard_index[cls] / all_results[team].__len__(), decimals=2)
+                averaged_results[team][cls]["2d_fscore"] = np.round(
+                    sum_2d_fscore[cls] / all_results[team].__len__(), decimals=2)
+                averaged_results[team][cls]["3d_completeness"] = np.round(
+                    sum_3d_completeness[cls] / all_results[team].__len__(), decimals=2)
+                averaged_results[team][cls]["3d_correctness"] = np.round(
+                    sum_3d_correctness[cls] / all_results[team].__len__(), decimals=2)
+                averaged_results[team][cls]["3d_jaccard_index"] = np.round(
+                    sum_3d_jaccard_index[cls] / all_results[team].__len__(), decimals=2)
+                averaged_results[team][cls]["fscore"] = np.round(
+                    sum_3d_fscore[cls] / all_results[team].__len__(), decimals=2)
+                averaged_results[team][cls]["hrmse"] = np.round(
+                    sum_hrmse[cls] / all_results[team].__len__(), decimals=2)
+                averaged_results[team][cls]["zrmse"] = np.round(
+                    sum_zrmse[cls] / all_results[team].__len__(), decimals=2)
+            except KeyError:
+                print('Class not found, skipping...')
+                continue
 
     return averaged_results
 

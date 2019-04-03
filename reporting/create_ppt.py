@@ -111,7 +111,7 @@ def create_team_based_scores(baa_thresholds, prs, summarized_results, aois):
         title.text = "Summary of Results for " + team
 
 
-def create_mean_scores_by_site(baa_thresholds, prs, summarized_results, aois, classification):
+def create_mean_scores_by_site(baa_thresholds, prs, averaged_results, aois, classification):
     # Create Table of all teams
     # Create columns from summarized results
     df_performer_metrics = None
@@ -135,15 +135,16 @@ def create_mean_scores_by_site(baa_thresholds, prs, summarized_results, aois, cl
     df_1a_thresholds = pd.DataFrame(data=phase_1a_thresholds)
     df_2b_thresholds = pd.DataFrame(data=phase_2b_thresholds)
     metrics_column = {}
-    for team in summarized_results:
-        metrics_2D = [summarized_results[team][classification]['2D']["correctness"],
-                      summarized_results[team][classification]['2D']["completeness"],
-                      summarized_results[team][classification]['2D']["jaccardindex"]]
-        metrics_3D = [summarized_results[team][classification]['3D']["correctness"],
-                      summarized_results[team][classification]['3D']["completeness"],
-                      summarized_results[team][classification]['3D']["jaccardindex"]]
-        other_metrics = [np.round(sum(summarized_results[team]["geolocation_errors"])/
-                         len(summarized_results[team]["geolocation_errors"]), decimals=2)]
+    for team in averaged_results:
+        metrics_2D = [averaged_results[team][classification]["2d_completeness"],
+                      averaged_results[team][classification]["2d_correctness"],
+                      averaged_results[team][classification]["2d_jaccard_index"]]
+        metrics_3D = [averaged_results[team][classification]["3d_completeness"],
+                      averaged_results[team][classification]["3d_correctness"],
+                      averaged_results[team][classification]["3d_jaccard_index"]]
+        other_metrics = [averaged_results[team]["geolocation_error"],
+                         averaged_results[team][classification]["hrmse"],
+                         averaged_results[team][classification]["zrmse"]]
         metrics_column = {team: metrics_2D + metrics_3D + other_metrics}
         df_team_metrics = pd.DataFrame(data=metrics_column)
         if df_performer_metrics is not None:
