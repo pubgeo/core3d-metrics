@@ -22,13 +22,15 @@ class BAAThresholds:
         self.model_build_time = np.array([8, 2, 2, 1])
         self.fscore_2d = (2*self.completeness_2d * self.correctness_2d) / (self.completeness_2d + self.correctness_2d)
         self.fscore_3d = (2*self.completeness_3d * self.correctness_3d) / (self.completeness_3d + self.correctness_3d)
-        self.jaccard_index_2d = self.fscore_2d / (2-self.fscore_2d)
-        self.jaccard_index_3d = self.fscore_3d / (2-self.fscore_3d)
+        self.jaccard_index_2d = np.round(self.fscore_2d / (2-self.fscore_2d), decimals=2)
+        self.jaccard_index_3d = np.round(self.fscore_3d / (2-self.fscore_3d), decimals=2)
 
 
-def summarize_data(baa_threshold, root_dir, teams, aois, ref_path=None, test_path=None):
-    # load results8
+def summarize_metrics(root_dir, teams, aois, ref_path=None, test_path=None):
+    # load results
+    is_config = True
     all_results = {}
+    # Parse results
     for current_team in teams:
         for current_aoi in aois:
             metrics_json_filepath = Path(root_dir, current_team, current_aoi, "%s.config_metrics.json" % current_aoi)
@@ -61,7 +63,10 @@ def summarize_data(baa_threshold, root_dir, teams, aois, ref_path=None, test_pat
                         current_class = json_data["threshold_geometry"][cls]['CLSValue'][0]
                         n["threshold_geometry"].update({current_class: json_data["threshold_geometry"][cls]})
                         n["relative_accuracy"].update({current_class: json_data["relative_accuracy"][cls]})
-                        n["objectwise"].update({current_class: json_data["objectwise"][cls]})
+                        try:
+                            n["objectwise"].update({current_class: json_data["objectwise"][cls]})
+                        except KeyError:
+                            print('No objectwise metrics found...')
                     n["registration_offset"] = json_data["registration_offset"]
                     n["gelocation_error"] = json_data["gelocation_error"]
                     n["terrain_accuracy"] = None
@@ -69,7 +74,9 @@ def summarize_data(baa_threshold, root_dir, teams, aois, ref_path=None, test_pat
                     del n
 
                 container = Result(current_team, current_aoi, json_data)
-                all_results[current_team] = {current_aoi: container}
+                if current_team not in all_results.keys():
+                    all_results[current_team] = {}
+                all_results[current_team].update({current_aoi: container})
             else:
                 container = Result(current_team, current_aoi, "")
                 all_results[current_team] = {current_aoi: container}
@@ -92,58 +99,131 @@ def summarize_data(baa_threshold, root_dir, teams, aois, ref_path=None, test_pat
                 ref_cls_filename = config['INPUT.REF']['CLSFilename']
                 ref_ndx_filename = config['INPUT.REF']['NDXFilename']
 
-                # Get material label names and list of material labels to ignore in evaluation.
-                material_names = config['MATERIALS.REF']['MaterialNames']
-                material_indices_to_ignore = config['MATERIALS.REF']['MaterialIndicesToIgnore']
+                # Get plot settings from configuration file
+                PLOTS_SHOW = config['PLOTS']['ShowPlots']
+                PLOTS_SAVE = config['PLOTS']['SavePlots']
+            elif Path(config_path.parent, config_path.stem + ".json").is_file():
+                print('Old config file, parsing via json...')
+                is_config = False
+                config_path = Path(config_path.parent, config_path.stem + ".json")
+                with open(str(config_path.absolute())) as config_file_json:
+                    config = json.load(config_file_json)
+
+                # Get test model information from configuration file.
+                test_dsm_filename = config['INPUT.TEST']['DSMFilename']
+                test_dtm_filename = config['INPUT.TEST'].get('DTMFilename', None)
+                test_cls_filename = config['INPUT.TEST']['CLSFilename']
+
+                # Get reference model information from configuration file.
+                ref_dsm_filename = config['INPUT.REF']['DSMFilename']
+                ref_dtm_filename = config['INPUT.REF']['DTMFilename']
+                ref_cls_filename = config['INPUT.REF']['CLSFilename']
+                ref_ndx_filename = config['INPUT.REF']['NDXFilename']
 
                 # Get plot settings from configuration file
                 PLOTS_SHOW = config['PLOTS']['ShowPlots']
                 PLOTS_SAVE = config['PLOTS']['SavePlots']
 
-    # Computer combined metrics
-    summarized_results = {}
+    # Flatten list in case of json/config discrepencies
+    if not is_config:
+        config["INPUT.REF"]["CLSMatchValue"] = [item for sublist in config["INPUT.REF"]["CLSMatchValue"] for item in sublist]
+
+    # compute averaged metrics
+    averaged_results = {}
+    sum_2d_completeness = 0
+    sum_2d_correctness = 0
+    sum_2d_jaccard_index = 0
+    sum_2d_fscore = 0
+    sum_3d_completeness = 0
+    sum_3d_correctness = 0
+    sum_3d_jaccard_index = 0
+    sum_3d_fscore = 0
+    sum_hmrse = 0
+    sum_zrmse = 0
+    sum_geolocation_error = 0
     for team in all_results:
-        summarized_results[team] = {}
+        total_aois = all_results[team].__len__()
+        averaged_results[team] = {}
         for aoi in all_results[team]:
+            sum_geolocation_error = sum_geolocation_error + all_results[team][aoi].results['gelocation_error']
+            for cls in all_results[team][aoi].results['threshold_geometry']:
+                sum_2d_completeness = sum_2d_completeness + all_results[team][aoi].results['threshold_geometry'][cls]['2D']['completeness']
+                sum_2d_correctness = sum_2d_correctness + all_results[team][aoi].results['threshold_geometry'][cls]['2D']['correctness']
+                sum_2d_jaccard_index = sum_2d_jaccard_index + all_results[team][aoi].results['threshold_geometry'][cls]['2D']['jaccardIndex']
+                sum_2d_fscore = sum_2d_fscore + all_results[team][aoi].results['threshold_geometry'][cls]['2D']['fscore']
+                sum_3d_completeness = sum_3d_completeness + all_results[team][aoi].results['threshold_geometry'][cls]['3D']['completeness']
+                sum_3d_correctness = sum_3d_correctness + all_results[team][aoi].results['threshold_geometry'][cls]['3D']['correctness']
+                sum_3d_jaccard_index = sum_3d_jaccard_index + all_results[team][aoi].results['threshold_geometry'][cls]['3D']['jaccardIndex']
+                sum_3d_fscore = sum_3d_fscore + all_results[team][aoi].results['threshold_geometry'][cls]['3D']['fscore']
+                sum_zrmse = sum_zrmse + all_results[team][aoi].results['relative_accuracy'][cls]['zrmse']
+                sum_hrmse = sum_hmrse + all_results[team][aoi].results['relative_accuracy'][cls]['hrmse']
+
+        average_2d_completeness = np.round(sum_2d_completeness / total_aois, decimals=2)
+        averaged_results[team].update({'average_2d_completeness': average_2d_completeness})
+        average_2d_correctness = np.round(sum_2d_correctness / total_aois, decimals=2)
+        averaged_results[team].update({'average_2d_correctness': average_2d_correctness})
+        average_2d_jaccardindex = np.round(sum_2d_jaccard_index / total_aois, decimals=2)
+        averaged_results[team].update({'average_2d_jaccardindex': average_2d_jaccardindex})
+        average_3d_completness = np.round(sum_3d_completeness / total_aois, decimals=2)
+        averaged_results[team].update({'average_3d_completness': average_3d_completness})
+        average_3d_correctness = np.round(sum_3d_correctness / total_aois, decimals=2)
+        averaged_results[team].update({'average_3d_correctness': average_3d_correctness})
+        average_3d_jaccardindex = np.round(sum_3d_jaccard_index / total_aois, decimals=2)
+        averaged_results[team].update({'average_3d_jaccardindex': average_3d_jaccardindex})
+        average_zrmse = np.round(sum_zrmse / total_aois, decimals=2)
+        averaged_results[team].update({'average_zrmse': average_zrmse})
+        average_hrmse = np.round(sum_hrmse / total_aois, decimals=2)
+        averaged_results[team].update({'average_hrmse': average_hrmse})
+
+    # Compute aggregated metrics
+    aggregated_results = {}
+    for team in all_results:
+        aggregated_results[team] = {}
+        for aoi in all_results[team]:
+            if "geolocation_error" not in aggregated_results[team]:
+                aggregated_results[team]['geolocation_errors'] = \
+                    [all_results[team][aoi].results['gelocation_error']]
+            else:
+                aggregated_results[team]['geolocation_errors'].append(all_results[team][aoi].results['gelocation_error'])
             for cls in config["INPUT.REF"]["CLSMatchValue"]:
-                summarized_results[team][cls] = {}
+                aggregated_results[team][cls] = {}
                 for dimension in ["2D", "3D"]:
-                    summarized_results[team][cls][dimension] = {}
-                    if "TP" not in summarized_results[team][cls][dimension]:
-                        summarized_results[team][cls][dimension]["TP"] = 0
-                    if "FP" not in summarized_results[team][cls][dimension]:
-                        summarized_results[team][cls][dimension]["FP"] = 0
-                    if "FN" not in summarized_results[team][cls][dimension]:
-                        summarized_results[team][cls][dimension]["FN"] = 0
-                    summarized_results[team][cls][dimension]["TP"] = summarized_results[team][cls][dimension]["TP"] + \
+                    aggregated_results[team][cls][dimension] = {}
+                    if "TP" not in aggregated_results[team][cls][dimension]:
+                        aggregated_results[team][cls][dimension]["TP"] = 0
+                    if "FP" not in aggregated_results[team][cls][dimension]:
+                        aggregated_results[team][cls][dimension]["FP"] = 0
+                    if "FN" not in aggregated_results[team][cls][dimension]:
+                        aggregated_results[team][cls][dimension]["FN"] = 0
+                    aggregated_results[team][cls][dimension]["TP"] = aggregated_results[team][cls][dimension]["TP"] + \
                                                                 all_results[team][aoi].results["threshold_geometry"][cls][
                                                                     dimension]["TP"]
-                    summarized_results[team][cls][dimension]["FP"] = summarized_results[team][cls][dimension]["FP"] + \
+                    aggregated_results[team][cls][dimension]["FP"] = aggregated_results[team][cls][dimension]["FP"] + \
                                                                 all_results[team][aoi].results["threshold_geometry"][cls][
                                                                     dimension]["FP"]
-                    summarized_results[team][cls][dimension]["FN"] = summarized_results[team][cls][dimension]["FN"] + \
+                    aggregated_results[team][cls][dimension]["FN"] = aggregated_results[team][cls][dimension]["FN"] + \
                                                                 all_results[team][aoi].results["threshold_geometry"][cls][
                                                                     dimension]["FN"]
         # After all AOIs are compiled, calculate other metrics
         for cls in config["INPUT.REF"]["CLSMatchValue"]:
             for dimension in ["2D", "3D"]:
-                TP = summarized_results[team][cls][dimension]["TP"]
-                FP = summarized_results[team][cls][dimension]["FP"]
-                FN = summarized_results[team][cls][dimension]["FN"]
-                completeness = TP / (TP + FN)
-                correctness = TP / (TP + FP)
-                fscore = (2 * completeness * correctness) / (completeness + correctness)
-                jaccard_index = fscore / (2 - fscore)
-                branching_factor = FP / TP
-                miss_factor = FN / TP
-                summarized_results[team][cls][dimension]["completeness"] = completeness
-                summarized_results[team][cls][dimension]["correctness"] = correctness
-                summarized_results[team][cls][dimension]["fscore"] = fscore
-                summarized_results[team][cls][dimension]["jaccardindex"] = jaccard_index
-                summarized_results[team][cls][dimension]["branchingfactor"] = branching_factor
-                summarized_results[team][cls][dimension]["missfactor"] = miss_factor
+                TP = aggregated_results[team][cls][dimension]["TP"]
+                FP = aggregated_results[team][cls][dimension]["FP"]
+                FN = aggregated_results[team][cls][dimension]["FN"]
+                completeness = np.round(TP / (TP + FN), decimals=2)
+                correctness = np.round(TP / (TP + FP), decimals=2)
+                fscore = np.round((2 * completeness * correctness) / (completeness + correctness), decimals=2)
+                jaccard_index = np.round(fscore / (2 - fscore), decimals=2)
+                branching_factor = np.round(FP / TP, decimals=2)
+                miss_factor = np.round(FN / TP, decimals=2)
+                aggregated_results[team][cls][dimension]["completeness"] = completeness
+                aggregated_results[team][cls][dimension]["correctness"] = correctness
+                aggregated_results[team][cls][dimension]["fscore"] = fscore
+                aggregated_results[team][cls][dimension]["jaccardindex"] = jaccard_index
+                aggregated_results[team][cls][dimension]["branchingfactor"] = branching_factor
+                aggregated_results[team][cls][dimension]["missfactor"] = miss_factor
 
-    return summarized_results
+    return averaged_results
 
 
 def main():
@@ -151,7 +231,7 @@ def main():
     teams = [r'ARA']
     aois = [r'AOI_D4']
     baa_threshold = BAAThresholds()
-    summarized_results = summarize_data(baa_threshold, root_dir, teams, aois)
+    summarized_results = summarize_metrics(root_dir, teams, aois)
 
 
 if __name__ == "__main__":
