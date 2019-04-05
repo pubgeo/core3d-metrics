@@ -30,6 +30,7 @@ def summarize_metrics(root_dir, teams, aois, ref_path=None, test_path=None):
     # load results
     is_config = True
     all_results = {}
+    all_config = {}
     # Parse results
     for current_team in teams:
         for current_aoi in aois:
@@ -87,21 +88,6 @@ def summarize_metrics(root_dir, teams, aois, ref_path=None, test_path=None):
                 config = geo.parse_config(str(config_path.absolute()),
                                           refpath=(ref_path or str(config_path.parent)),
                                           testpath=(test_path or str(config_path.parent)))
-
-                # Get test model information from configuration file.
-                test_dsm_filename = config['INPUT.TEST']['DSMFilename']
-                test_dtm_filename = config['INPUT.TEST'].get('DTMFilename', None)
-                test_cls_filename = config['INPUT.TEST']['CLSFilename']
-
-                # Get reference model information from configuration file.
-                ref_dsm_filename = config['INPUT.REF']['DSMFilename']
-                ref_dtm_filename = config['INPUT.REF']['DTMFilename']
-                ref_cls_filename = config['INPUT.REF']['CLSFilename']
-                ref_ndx_filename = config['INPUT.REF']['NDXFilename']
-
-                # Get plot settings from configuration file
-                PLOTS_SHOW = config['PLOTS']['ShowPlots']
-                PLOTS_SAVE = config['PLOTS']['SavePlots']
             elif Path(config_path.parent, config_path.stem + ".json").is_file():
                 print('Old config file, parsing via json...')
                 is_config = False
@@ -109,24 +95,17 @@ def summarize_metrics(root_dir, teams, aois, ref_path=None, test_path=None):
                 with open(str(config_path.absolute())) as config_file_json:
                     config = json.load(config_file_json)
 
-                # Get test model information from configuration file.
-                test_dsm_filename = config['INPUT.TEST']['DSMFilename']
-                test_dtm_filename = config['INPUT.TEST'].get('DTMFilename', None)
-                test_cls_filename = config['INPUT.TEST']['CLSFilename']
-
-                # Get reference model information from configuration file.
-                ref_dsm_filename = config['INPUT.REF']['DSMFilename']
-                ref_dtm_filename = config['INPUT.REF']['DTMFilename']
-                ref_cls_filename = config['INPUT.REF']['CLSFilename']
-                ref_ndx_filename = config['INPUT.REF']['NDXFilename']
-
-                # Get plot settings from configuration file
-                PLOTS_SHOW = config['PLOTS']['ShowPlots']
-                PLOTS_SAVE = config['PLOTS']['SavePlots']
-
-    # Flatten list in case of json/config discrepencies
-    if not is_config:
-        config["INPUT.REF"]["CLSMatchValue"] = [item for sublist in config["INPUT.REF"]["CLSMatchValue"] for item in sublist]
+            # Flatten list in case of json/config discrepencies
+            if not is_config:
+                config["INPUT.REF"]["CLSMatchValue"] = [item for sublist in config["INPUT.REF"]["CLSMatchValue"]
+                                                        for item in sublist]
+            # Store config for each aoi
+            if current_team not in all_config.keys():
+                all_config[current_team] = {}
+            if current_aoi not in all_config.keys():
+                all_config[current_team][current_aoi] = {}
+            all_config[current_team][current_aoi] = config
+            all_config[current_team][current_aoi].update({'path': config_path})
 
     # compute averaged metrics
     averaged_results = {}
@@ -170,6 +149,7 @@ def summarize_metrics(root_dir, teams, aois, ref_path=None, test_path=None):
         # Average results for evaluated classes in config file
         averaged_results[team]["geolocation_error"] = np.round(
             sum_geolocation_error / all_results[team].__len__(), decimals=2)
+        # TODO: Need to make config specific to each config file, but for now it doesn't matter
         for cls in config["INPUT.REF"]["CLSMatchValue"]:
             try:
                 averaged_results[team][cls] = {}
@@ -197,15 +177,11 @@ def summarize_metrics(root_dir, teams, aois, ref_path=None, test_path=None):
                 print('Class not found, skipping...')
                 continue
 
-    return averaged_results, all_results
+    return averaged_results, all_results, all_config
 
 
 def main():
-    root_dir = Path(r"C:\Users\wangss1\Documents\Data\ARA_Metrics_Dry_Run")
-    teams = [r'ARA']
-    aois = [r'AOI_D4']
-    baa_threshold = BAAThresholds()
-    summarized_results = summarize_metrics(root_dir, teams, aois)
+    print("For Debug")
 
 
 if __name__ == "__main__":

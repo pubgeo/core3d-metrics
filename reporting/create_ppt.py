@@ -1,13 +1,6 @@
-"""
-See http://pbpython.com/creating-powerpoint.html for details on this script
-Requires https://python-pptx.readthedocs.org/en/latest/index.html
-Example program showing how to read in Excel, process with pandas and
-output to a PowerPoint file.
-"""
-
 from __future__ import print_function
 from pptx import Presentation
-from pptx.util import Inches
+from pptx.util import Inches, Pt
 import argparse
 import numpy as np
 from datetime import date
@@ -40,6 +33,12 @@ def list_type(arg_string):
     """
     arguments = arg_string.split()
     return arguments
+
+
+def iter_cells(table):
+    for row in table.rows:
+        for cell in row.cells:
+            yield cell
 
 
 def df_to_table(slide, df, left, top, width, height, colnames=None):
@@ -75,6 +74,12 @@ def df_to_table(slide, df, left, top, width, height, colnames=None):
             text = str(val)
             res.table.cell(row + 1, col).text = text
 
+    for cell in iter_cells(res.table):
+        for paragraph in cell.text_frame.paragraphs:
+            for run in paragraph.runs:
+                run.font.size = Pt(14)
+
+
 def parse_args():
     """ Setup the input and output arguments for the script
     Return the parsed input and output files
@@ -103,16 +108,84 @@ def parse_args():
     return parser.parse_args()
 
 
-def create_team_based_scores(baa_thresholds, prs, team_scores, aois):
-    # Add Metrics Table
+def create_team_based_aoi_scores_slide(baa_thresholds, prs, team_scores, classifications):
+    if type(classifications) is int:
+        classifications = [classifications]
+    metrics_names = {'Metrics': ['2D Correctness', '2D Completeness', '2D IOU', '3D Correctness',
+                                 '3D Completeness', '3D IOU', 'Geolocation Error', 'H-RMSE', 'Z-RMSE',
+                                 'Mean Model Size (MB)', 'Textures (qualitative)', 'Model fitting (qualitative)',
+                                 'Model fitting (qualitative)', 'Wall Clock Time (hrs/sq. km)',
+                                 'Cost per sq. km ($USD)']}
+    phase_1a_thresholds = {'Phase 1A Thresholds': [baa_thresholds.correctness_2d[0],
+                                                   baa_thresholds.completeness_2d[0],
+                                                   baa_thresholds.jaccard_index_2d[0],
+                                                   baa_thresholds.correctness_3d[0],
+                                                   baa_thresholds.completeness_3d[0],
+                                                   baa_thresholds.jaccard_index_3d[0],
+                                                   baa_thresholds.geolocation_error[0]]}
+    phase_2b_thresholds = {'Phase 2B Thresholds': [baa_thresholds.correctness_2d[3],
+                                                   baa_thresholds.completeness_2d[3],
+                                                   baa_thresholds.jaccard_index_2d[3],
+                                                   baa_thresholds.correctness_3d[3],
+                                                   baa_thresholds.completeness_3d[3],
+                                                   baa_thresholds.jaccard_index_3d[3],
+                                                   baa_thresholds.geolocation_error[3]]}
+    df_metrics_names = pd.DataFrame(data=metrics_names)
+    df_1a_thresholds = pd.DataFrame(data=phase_1a_thresholds)
+    df_2b_thresholds = pd.DataFrame(data=phase_2b_thresholds)
+    metrics_aoi = {}
     for team in team_scores:
-        summary_metrics_slide_layout = prs.slide_layouts[5]
-        slide = prs.slides.add_slide(summary_metrics_slide_layout)
+        team_aoi_metrics_slide = prs.slide_layouts[4]
+        slide = prs.slides.add_slide(team_aoi_metrics_slide)
         title = slide.shapes.title
-        title.text = "Summary of Results for " + team
+        title.text = (team + " - Site Scores - {0}").format(','.join(str(e) for e in classifications))
+
+        for aoi in team_scores[team]:
+            if aoi not in metrics_aoi.keys():
+                metrics_aoi[aoi] = {}
+            metrics_aoi[aoi].update(team_scores[team][aoi].results)
+
+        df_team_metric = None
+        for aoi in metrics_aoi:
+            metrics_2d = [0, 0, 0]
+            metrics_3d = [0, 0, 0]
+            other_metrics = [0, 0, 0]
+            for cls in classifications:
+                metrics_2d = list(map(add, metrics_2d,
+                                      [metrics_aoi[aoi]['threshold_geometry'][cls]['2D']['completeness'],
+                                       metrics_aoi[aoi]['threshold_geometry'][cls]['2D']['correctness'],
+                                       metrics_aoi[aoi]['threshold_geometry'][cls]['2D']['jaccardIndex']]))
+                metrics_3d = list(map(add, metrics_3d,
+                                      [metrics_aoi[aoi]['threshold_geometry'][cls]["3D"]['completeness'],
+                                       metrics_aoi[aoi]['threshold_geometry'][cls]['3D']['correctness'],
+                                       metrics_aoi[aoi]['threshold_geometry'][cls]['3D']['jaccardIndex']]))
+                other_metrics = list(map(add, other_metrics,
+                                         [metrics_aoi[aoi]["gelocation_error"],
+                                          metrics_aoi[aoi]['relative_accuracy'][cls]["hrmse"],
+                                          metrics_aoi[aoi]['relative_accuracy'][cls]["zrmse"]]))
+            metrics_2d = [np.round(x / classifications.__len__(), decimals=2) for x in metrics_2d]
+            metrics_3d = [np.round(x / classifications.__len__(), decimals=2) for x in metrics_3d]
+            other_metrics = [np.round(x / classifications.__len__(), decimals=2) for x in other_metrics]
+            metrics_column = {aoi: metrics_2d + metrics_3d + other_metrics}
+            df_aoi_metric = pd.DataFrame(data=metrics_column)
+            if df_team_metric is not None:
+                df_team_metric = pd.concat([df_team_metric, df_aoi_metric], axis=1)
+            else:
+                df_team_metric = pd.DataFrame(data=metrics_column)
+
+        df_full_table = pd.concat([df_metrics_names,
+                                   df_1a_thresholds,
+                                   df_2b_thresholds,
+                                   df_team_metric],
+                                  axis=1)
+        top = Inches(1)
+        left = Inches(0.5)
+        width = Inches(12.3)
+        height = Inches(5.6)
+        df_to_table(slide, df_full_table, left, top, width, height)
 
 
-def create_mean_scores_by_site(baa_thresholds, prs, averaged_results, aois, classifications):
+def create_mean_scores_by_site_slide(baa_thresholds, prs, averaged_results, aois, classifications):
     # Check how many classifications we deal with
     if type(classifications) is int:
         classifications = [classifications]
@@ -120,7 +193,10 @@ def create_mean_scores_by_site(baa_thresholds, prs, averaged_results, aois, clas
     # Create columns from summarized results
     df_performer_metrics = None
     metrics_names = {'Metrics': ['2D Correctness', '2D Completeness', '2D IOU', '3D Correctness',
-                                 '3D Completeness', '3D IOU', 'Geolocation Error', 'H-RMSE', 'Z-RMSE']}
+                                 '3D Completeness', '3D IOU', 'Geolocation Error', 'H-RMSE', 'Z-RMSE',
+                                 'Mean Model Size (MB)', 'Textures (qualitative)', 'Model fitting (qualitative)',
+                                 'Model fitting (qualitative)', 'Wall Clock Time (hrs/sq. km)',
+                                 'Cost per sq. km ($USD)']}
     phase_1a_thresholds = {'Phase 1A Thresholds': [baa_thresholds.correctness_2d[0],
                                                    baa_thresholds.completeness_2d[0],
                                                    baa_thresholds.jaccard_index_2d[0],
@@ -139,34 +215,34 @@ def create_mean_scores_by_site(baa_thresholds, prs, averaged_results, aois, clas
     df_1a_thresholds = pd.DataFrame(data=phase_1a_thresholds)
     df_2b_thresholds = pd.DataFrame(data=phase_2b_thresholds)
     for team in averaged_results:
-        metrics_2D = [0, 0, 0]
-        metrics_3D = [0, 0, 0]
+        metrics_2d = [0, 0, 0]
+        metrics_3d = [0, 0, 0]
         other_metrics = [0, 0, 0]
         for cls in classifications:
-            metrics_2D = list(map(add, metrics_2D, [averaged_results[team][cls]["2d_completeness"],
-                          averaged_results[team][cls]["2d_correctness"],
-                          averaged_results[team][cls]["2d_jaccard_index"]]))
-            metrics_3D = list(map(add, metrics_3D, [averaged_results[team][cls]["3d_completeness"],
-                          averaged_results[team][cls]["3d_correctness"],
-                          averaged_results[team][cls]["3d_jaccard_index"]]))
+            metrics_2d = list(map(add, metrics_2d, [averaged_results[team][cls]["2d_completeness"],
+                                                    averaged_results[team][cls]["2d_correctness"],
+                                                    averaged_results[team][cls]["2d_jaccard_index"]]))
+            metrics_3d = list(map(add, metrics_3d, [averaged_results[team][cls]["3d_completeness"],
+                                                    averaged_results[team][cls]["3d_correctness"],
+                                                    averaged_results[team][cls]["3d_jaccard_index"]]))
             other_metrics = list(map(add, other_metrics, [averaged_results[team]["geolocation_error"],
-                             averaged_results[team][cls]["hrmse"],
-                             averaged_results[team][cls]["zrmse"]]))
-        metrics_2D = [np.round(x / classifications.__len__(),decimals=2) for x in metrics_2D]
-        metrics_3D = [np.round(x / classifications.__len__(), decimals=2) for x in metrics_3D]
+                                                          averaged_results[team][cls]["hrmse"],
+                                                          averaged_results[team][cls]["zrmse"]]))
+        metrics_2d = [np.round(x / classifications.__len__(), decimals=2) for x in metrics_2d]
+        metrics_3d = [np.round(x / classifications.__len__(), decimals=2) for x in metrics_3d]
         other_metrics = [np.round(x / classifications.__len__(), decimals=2) for x in other_metrics]
-        metrics_column = {team: metrics_2D + metrics_3D + other_metrics}
+        metrics_column = {team: metrics_2d + metrics_3d + other_metrics}
         df_team_metrics = pd.DataFrame(data=metrics_column)
         if df_performer_metrics is not None:
-            df_performer_metrics = pd.concat([df_performer_metrics, df_team_metrics],axis=1)
+            df_performer_metrics = pd.concat([df_performer_metrics, df_team_metrics], axis=1)
         else:
             df_performer_metrics = pd.DataFrame(data=metrics_column)
 
-    df_mean_scores = pd.concat([df_metrics_names,
-                                df_1a_thresholds,
-                                df_2b_thresholds,
-                                df_performer_metrics],
-                               axis=1)
+    df_full_table = pd.concat([df_metrics_names,
+                               df_1a_thresholds,
+                               df_2b_thresholds,
+                               df_performer_metrics],
+                              axis=1)
 
     summary_metrics_slide_layout = prs.slide_layouts[4]
     slide = prs.slides.add_slide(summary_metrics_slide_layout)
@@ -174,9 +250,28 @@ def create_mean_scores_by_site(baa_thresholds, prs, averaged_results, aois, clas
     title.text = "Mean Scores from {0} - Class: {1}".format('-'.join(aois), ','.join(str(e) for e in classifications))
     top = Inches(1)
     left = Inches(0.5)
-    width = Inches(12)
-    height = Inches(6.0)
-    df_to_table(slide, df_mean_scores, left, top, width, height)
+    width = Inches(12.3)
+    height = Inches(5.6)
+    df_to_table(slide, df_full_table, left, top, width, height)
+
+
+def create_metrics_images_slide(prs, aoi, configs):
+    metrics_images_layout = prs.slide_layouts[4]
+    slide = prs.slides.add_slide(metrics_images_layout)
+    title = slide.shapes.title
+    title.text = aoi
+    for team in configs:
+        # Get output results prefix
+        search_path = configs[team][aoi]['path'].parent
+        file_prefix = Path(configs[team][aoi]['INPUT.TEST']['DSMFilename']).name
+        file_path_prefix = Path(search_path, file_prefix)
+        suffixes = ["_000_objectwise_obj3dJaccardIndex.png", "_000_objectwise_objHRMSE.png"]
+        for suffix in suffixes:
+            filename_path = Path(str(file_path_prefix.absolute()) + suffix)
+            if filename_path.is_file():
+                # TODO: Figure out how to space images
+                slide.shapes.add_picture(str(filename_path.absolute()), 0, 0)
+
 
 
 def create_title_slide(prs):
@@ -191,29 +286,34 @@ def create_title_slide(prs):
     subtitle_box.text = "JHU/APL"
 
 
-def create_ppt(input, output, team_scores, averaged_results, baa_thresolds, aois):
+def create_ppt(layout_slides_input, output_slides, team_scores, averaged_results, baa_thresholds, aois, configs):
     """ Take the input powerpoint file and use it as the template for the output
     file.
     """
-    prs = Presentation(input)
+    prs = Presentation(layout_slides_input)
     # Use the output from analyze_ppt to understand which layouts and placeholders
     # to use
     create_title_slide(prs)
 
-    create_mean_scores_by_site(baa_thresolds, prs, averaged_results, aois, 6)
-    create_mean_scores_by_site(baa_thresolds, prs, averaged_results, aois, 17)
-    create_mean_scores_by_site(baa_thresolds, prs, averaged_results, aois, [6, 17])
+    create_mean_scores_by_site_slide(baa_thresholds, prs, averaged_results, aois, 6)
+    create_mean_scores_by_site_slide(baa_thresholds, prs, averaged_results, aois, 17)
+    create_mean_scores_by_site_slide(baa_thresholds, prs, averaged_results, aois, [6, 17])
 
-    create_team_based_scores(baa_thresolds, prs, team_scores, aois)
+    create_team_based_aoi_scores_slide(baa_thresholds, prs, team_scores, 6)
+    create_team_based_aoi_scores_slide(baa_thresholds, prs, team_scores, 17)
+    create_team_based_aoi_scores_slide(baa_thresholds, prs, team_scores, [6, 17])
 
-    prs.save(output)
+    for aoi in aois:
+        create_metrics_images_slide(prs, aoi, configs)
+
+    prs.save(output_slides)
 
 
 def main():
     args = parse_args()
     baa_thresholds = BAAThresholds()
-    averaged_results, team_scores = summarize_metrics(args.rootdir, args.teams, args.aois)
-    create_ppt(args.infile.name, args.outfile.name, team_scores, averaged_results, baa_thresholds, args.aois)
+    averaged_results, team_scores, configs = summarize_metrics(args.rootdir, args.teams, args.aois)
+    create_ppt(args.infile.name, args.outfile.name, team_scores, averaged_results, baa_thresholds, args.aois, configs)
 
 
 if __name__ == "__main__":
