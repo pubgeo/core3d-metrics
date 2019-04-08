@@ -160,7 +160,11 @@ class plot:
         cv2.drawContours(stoplight_chart, contours, -1, black, 2)
         if "saveName" in kwargs:
             title = kwargs['saveName']
-        fn = os.path.join(self.saveDir, title + self.saveExe)
+
+        if len(self.savePrefix) > 0:
+            saveName = self.savePrefix + title
+
+        fn = os.path.join(self.saveDir, saveName + self.saveExe)
 
         cv2.imwrite(fn, stoplight_chart[..., ::-1])
 

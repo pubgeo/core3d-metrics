@@ -258,28 +258,49 @@ def create_mean_scores_by_site_slide(baa_thresholds, prs, averaged_results, aois
     df_to_table(slide, df_full_table, left, top, width, height)
 
 
-def create_metrics_images_slide(prs, aoi, configs):
-    metrics_images_layout = prs.slide_layouts[4]
-    slide = prs.slides.add_slide(metrics_images_layout)
-    title = slide.shapes.title
-    title.text = aoi
-    for team in configs:
-        # Get output results prefix
-        search_path = configs[team][aoi]['path'].parent
-        file_prefix = Path(configs[team][aoi]['INPUT.TEST']['DSMFilename']).name
-        file_path_prefix = Path(search_path, file_prefix)
-        image_creation_suffixes = ["_000_thresholdGeometry_falseNegetive.png", "_000_thresholdGeometry_falsePositive.png"]
-        fn_image = cv2.imread(str(Path(str(file_path_prefix.absolute()) + image_creation_suffixes[0])))
-        fp_image = cv2.imread(str(Path(str(file_path_prefix.absolute()) + image_creation_suffixes[1])))
-        fn_image = cv2.cvtColor(fn_image, cv2.COLOR_BGRA2GRAY)
-        fp_image = cv2.cvtColor(fp_image, cv2.COLOR_BGRA2GRAY)
+def create_metrics_images_slide(prs, aoi, configs, results):
 
-        suffixes = ["_000_relVertAcc_hgtErr_clipped.png"]
-        for suffix in suffixes:
-            filename_path = Path(str(file_path_prefix.absolute()) + suffix)
-            if filename_path.is_file():
-                # TODO: Figure out how to space images
-                slide.shapes.add_picture(str(filename_path.absolute()), 0, 0)
+    # Set image initial sizes
+    top_row = Inches(1.5)
+    left = Inches(-2)
+    height = Inches(2.5)
+    width = Inches(2.5)
+    for index, ref_match_value in enumerate(zip(configs[next(iter(configs))][aoi]['INPUT.REF']['CLSMatchValue'])):
+        left = Inches(-2)
+        # Create new slide for each class
+        metrics_images_layout = prs.slide_layouts[8]
+        slide = prs.slides.add_slide(metrics_images_layout)
+        title = slide.shapes.title
+        title.text = aoi + ", Class: " + str(ref_match_value[0])
+        text_box = slide.shapes.add_textbox(Inches(7.92),Inches(7.15), Inches(4.3), Inches(0.29))  # top, left, width, height
+        text_frame = text_box.text_frame
+        text_frame.text = "* Metric presented in parentheses is Jaccard Index (IOU)"
+        text_frame.fit_text()
+
+
+
+        for team in configs:
+            left = left + Inches(3)
+            top_row = Inches(1.5)
+            # Get output results prefix
+            search_path = configs[team][aoi]['path'].parent
+            file_prefix = Path(configs[team][aoi]['INPUT.TEST']['DSMFilename']).name
+            file_path_prefix = Path(search_path, file_prefix)
+            suffixes = ["_" + "%03d" % index + "_thresholdGeometry_stoplight.png",
+                        "_" + "%03d" % index + "_relVertAcc_hgtErr_clipped.png"]
+            jaccard_indices = [str('%.3f' % (results[team][aoi].results['threshold_geometry'][ref_match_value[0]]['2D']['jaccardIndex'])),
+                               str('%.3f' % (results[team][aoi].results['threshold_geometry'][ref_match_value[0]]['3D']['jaccardIndex']))]
+            for suffix in suffixes:
+                filename_path = Path(str(file_path_prefix.absolute()) + suffix)
+                if filename_path.is_file():
+                    text_box = slide.shapes.add_textbox(left, top_row - Inches(0.25), width, 0.5)
+                    text_frame = text_box.text_frame
+                    if suffix == "_" + "%03d" % index + "_thresholdGeometry_stoplight.png":
+                        text_frame.text = team + " (" + jaccard_indices[0] + ")"
+                    else:
+                        text_frame.text = team + " (" + jaccard_indices[1] + ")"
+                    slide.shapes.add_picture(str(filename_path.absolute()), left, top_row, height=height, width=width)
+                    top_row = top_row + Inches(3)
 
 
 def create_title_slide(prs):
@@ -312,7 +333,7 @@ def create_ppt(layout_slides_input, output_slides, team_scores, averaged_results
     create_team_based_aoi_scores_slide(baa_thresholds, prs, team_scores, [6, 17])
 
     for aoi in aois:
-        create_metrics_images_slide(prs, aoi, configs)
+        create_metrics_images_slide(prs, aoi, configs, team_scores)
 
     prs.save(output_slides)
 
