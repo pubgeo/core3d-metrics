@@ -265,13 +265,13 @@ def create_metrics_images_slide(prs, aoi, configs):
         search_path = configs[team][aoi]['path'].parent
         file_prefix = Path(configs[team][aoi]['INPUT.TEST']['DSMFilename']).name
         file_path_prefix = Path(search_path, file_prefix)
-        suffixes = ["_000_objectwise_obj3dJaccardIndex.png", "_000_objectwise_objHRMSE.png"]
+        suffixes = ["_000_objectwise_obj3dJaccardIndex.png", "_000_objectwise_objHRMSE.png",
+                    "_000_relVertAcc_hgtErr_clipped.png"]
         for suffix in suffixes:
             filename_path = Path(str(file_path_prefix.absolute()) + suffix)
             if filename_path.is_file():
                 # TODO: Figure out how to space images
                 slide.shapes.add_picture(str(filename_path.absolute()), 0, 0)
-
 
 
 def create_title_slide(prs):

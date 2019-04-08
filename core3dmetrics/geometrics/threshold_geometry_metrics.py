@@ -63,19 +63,19 @@ def run_threshold_geometry_metrics(refDSM, refDTM, refMask, testDSM, testDTM, te
         errorMap[~ref_footprint & ~test_footprint] = np.nan
         plot.make(errorMap, 'Height Error', 291, saveName=PLOTS_SAVE_PREFIX+"errHgt", colorbar=True)
         plot.make(errorMap, 'Height Error (clipped)', 292, saveName=PLOTS_SAVE_PREFIX+"errHgtClipped", colorbar=True,
-            vmin=-5,vmax=5)
+                  vmin=-5, vmax=5)
 
     # 2D ANALYSIS==========
 
     # 2D metric arrays
-    tp_2D_array =  test_footprint &  ref_footprint
-    fn_2D_array = ~test_footprint &  ref_footprint
-    fp_2D_array =  test_footprint & ~ref_footprint
+    tp_2D_array = test_footprint & ref_footprint
+    fn_2D_array = ~test_footprint & ref_footprint
+    fp_2D_array = test_footprint & ref_footprint
 
     # 2D total area (in pixels)
-    tp_total_area = np.sum(tp_2D_array,dtype=np.uint64)
-    fn_total_area = np.sum(fn_2D_array,dtype=np.uint64)
-    fp_total_area = np.sum(fp_2D_array,dtype=np.uint64)
+    tp_total_area = np.sum(tp_2D_array, dtype=np.uint64)
+    fn_total_area = np.sum(fn_2D_array, dtype=np.uint64)
+    fp_total_area = np.sum(fp_2D_array, dtype=np.uint64)
 
     # error check (exact, as this is an integer comparison)
     if (tp_total_area + fn_total_area) != ref_total_area:
