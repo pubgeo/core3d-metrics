@@ -11,6 +11,9 @@ from pathlib import Path
 from argparse import ArgumentParser, ArgumentError
 import pandas as pd
 from operator import add
+from cv2 import cv2
+from matplotlib import pyplot as plt
+from matplotlib.image import imread
 
 
 def directory_type(arg_string):
@@ -265,8 +268,13 @@ def create_metrics_images_slide(prs, aoi, configs):
         search_path = configs[team][aoi]['path'].parent
         file_prefix = Path(configs[team][aoi]['INPUT.TEST']['DSMFilename']).name
         file_path_prefix = Path(search_path, file_prefix)
-        suffixes = ["_000_objectwise_obj3dJaccardIndex.png", "_000_objectwise_objHRMSE.png",
-                    "_000_relVertAcc_hgtErr_clipped.png"]
+        image_creation_suffixes = ["_000_thresholdGeometry_falseNegetive.png", "_000_thresholdGeometry_falsePositive.png"]
+        fn_image = cv2.imread(str(Path(str(file_path_prefix.absolute()) + image_creation_suffixes[0])))
+        fp_image = cv2.imread(str(Path(str(file_path_prefix.absolute()) + image_creation_suffixes[1])))
+        fn_image = cv2.cvtColor(fn_image, cv2.COLOR_BGRA2GRAY)
+        fp_image = cv2.cvtColor(fp_image, cv2.COLOR_BGRA2GRAY)
+
+        suffixes = ["_000_relVertAcc_hgtErr_clipped.png"]
         for suffix in suffixes:
             filename_path = Path(str(file_path_prefix.absolute()) + suffix)
             if filename_path.is_file():

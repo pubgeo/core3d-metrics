@@ -161,6 +161,8 @@ def run_geometrics(config_file, ref_path=None, test_path=None, output_path=None,
     ref_dsm_no_data_value = no_data_value
     ref_dtm_no_data_value = no_data_value
     ref_cls_no_data_value = geo.getNoDataValue(ref_cls_filename)
+    if ref_cls_no_data_value != 65:
+        print("WARNING! NODATA TAG IN CLS FILE IS LIKELY INCORRECT. IT SHOULD BE 65.")
     ignore_mask = np.zeros_like(ref_cls, np.bool)
 
     if ref_dsm_no_data_value is not None:
@@ -267,7 +269,7 @@ def run_geometrics(config_file, ref_path=None, test_path=None, output_path=None,
                 test_mask[test_cls == v] = True
 
         if PLOTS_ENABLE:
-            plot.savePrefix = original_save_prefix + "%03d"%index + "_"
+            plot.savePrefix = original_save_prefix + "%03d" % index + "_"
             plot.make(test_mask.astype(np.int), 'Test Evaluation Mask', 154, saveName="input_testMask")
             plot.make(ref_mask.astype(np.int), 'Reference Evaluation Mask', 114, saveName="input_refMask")
 
@@ -321,7 +323,7 @@ def run_geometrics(config_file, ref_path=None, test_path=None, output_path=None,
 
     if align:
         metrics['registration_offset'] = xyz_offset
-        metrics['gelocation_error'] = np.linalg.norm(xyz_offset)
+        metrics['geolocation_error'] = np.linalg.norm(xyz_offset)
 
     # Run the terrain model metrics and report results.
     if test_dtm_filename:
@@ -348,9 +350,9 @@ def run_geometrics(config_file, ref_path=None, test_path=None, output_path=None,
         print('WARNING: No test MTL file, skipping material metrics')
 
     fileout = os.path.join(output_path, os.path.basename(config_file) + "_metrics.json")
-    with open(fileout,'w') as fid:
-        json.dump(metrics,fid,indent=2)
-    print(json.dumps(metrics,indent=2))
+    with open(fileout, 'w') as fid:
+        json.dump(metrics, fid,indent=2)
+    print(json.dumps(metrics, indent=2))
     print("Metrics report: " + fileout)
 
     #  If displaying figures, wait for user before existing
@@ -381,7 +383,7 @@ def main(args=None):
 
     #optional argument, enables saving of aligned image to disk
     parser.add_argument('--save-aligned', dest='savealigned', required=False, action='store_true',
-                       help="Save aligned images (not enabled by default)")
+                        help="Save aligned images (not enabled by default)")
 
     group = parser.add_mutually_exclusive_group(required=False)
     group.add_argument('--save-plots', dest='saveplots', action='store_true', help="Save plots. Overrides config file setting.")
@@ -391,9 +393,9 @@ def main(args=None):
     # optional argument
     # note if "--test-ignore" specified without argument, testignore==1
     parser.add_argument('--test-ignore', dest='testignore',
-        help="Ignore test NoDataValue(s) (0=off, 1=ignore CLS, 2=ignore DSM/DTM",
-        required=False, nargs='?', default=0, const=1, 
-        choices=range(0,3), type=int, metavar='')
+                        help="Ignore test NoDataValue(s) (0=off, 1=ignore CLS, 2=ignore DSM/DTM",
+                        required=False, nargs='?', default=0, const=1,
+                        choices=range(0,3), type=int, metavar='')
 
     args, unknown = parser.parse_known_args(args)
 

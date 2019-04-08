@@ -68,10 +68,10 @@ def run_objectwise_metrics(refDSM, refDTM, refMask, testDSM, testDTM, testMask, 
     image_out = refMask.astype(float).copy() - 1
     #image_out[image_out == -1] = np.nan
     image_2d_completeness = image_out.copy()
-    image_2d_correctness  = image_out.copy()
+    image_2d_correctness = image_out.copy()
     image_2d_jaccard_index = image_out.copy()
     image_3d_completeness = image_out.copy()
-    image_3d_correctness  = image_out.copy()
+    image_3d_correctness = image_out.copy()
     image_3d_jaccard_index = image_out.copy()
     image_hrmse = image_out.copy()
     image_zrmse = image_out.copy()

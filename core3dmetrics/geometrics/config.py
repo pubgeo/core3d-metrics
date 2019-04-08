@@ -14,7 +14,7 @@ resource_package = __name__
 
 
 # HELPER: Locate absolute file path in dict via GLOB
-def findfiles(data,path=None):
+def findfiles(data, path=None):
 
     for key,file in data.items():
         if not key.lower().endswith('filename'): continue
@@ -27,7 +27,7 @@ def findfiles(data,path=None):
 
         # absolute path to file
         if not os.path.isabs(file):
-            if path: file = os.path.join(path,file)
+            if path: file = os.path.join(path, file)
             file = os.path.abspath(file)
 
         # locate file (use glob to allow wildcards)
@@ -113,7 +113,7 @@ def parse_config(configfile,refpath=None,testpath=None):
             else:
                 config[s]['MergeRadius'] = 2  # meters
         else:
-            config[s] = {'Enable':True,
+            config[s] = {'Enable': True,
                         'MergeRadius': 2
                         }  # meters
 
@@ -128,11 +128,11 @@ def parse_config(configfile,refpath=None,testpath=None):
             config[s][i] = True
         s = 'OPTIONS'; i = 'SaveAligned'
         if i in config[s]:  # Optional Field
-             config[s][i] = parser.getboolean(s,i)
+             config[s][i] = parser.getboolean(s, i)
         else:
             config[s][i] = False
-        s = 'PLOTS'; i = 'ShowPlots'; config[s][i] = parser.getboolean(s,i) 
-        s = 'PLOTS'; i = 'SavePlots'; config[s][i] = parser.getboolean(s,i)
+        s = 'PLOTS'; i = 'ShowPlots'; config[s][i] = parser.getboolean(s, i)
+        s = 'PLOTS'; i = 'SavePlots'; config[s][i] = parser.getboolean(s, i)
         s = 'MATERIALS.REF'; i = 'MaterialNames'; config[s][i] = config[s][i].split(',')
         s = 'MATERIALS.REF'; i = 'MaterialIndicesToIgnore'; config[s][i] = [int(v) for v in config[s][i].split(',')]
 

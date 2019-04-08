@@ -9,8 +9,6 @@ from .metrics_util import getUnitArea
 
 def run_threshold_geometry_metrics(refDSM, refDTM, refMask, testDSM, testDTM, testMask,
                                    tform, ignoreMask, plot=None, verbose=True):
-
-
     # INPUT PARSING==========
 
     # parse plot input
@@ -35,8 +33,8 @@ def run_threshold_geometry_metrics(refDSM, refDTM, refMask, testDSM, testDTM, te
     test_height[~test_footprint] = 0
 
     # total 2D area (in pixels)
-    ref_total_area = np.sum(ref_footprint,dtype=np.uint64)
-    test_total_area = np.sum(test_footprint,dtype=np.uint64)
+    ref_total_area = np.sum(ref_footprint, dtype=np.uint64)
+    test_total_area = np.sum(test_footprint, dtype=np.uint64)
 
     # total 3D volume (in meters^3)
     ref_total_volume = np.sum(np.absolute(ref_height)) * unitArea
@@ -70,7 +68,7 @@ def run_threshold_geometry_metrics(refDSM, refDTM, refMask, testDSM, testDTM, te
     # 2D metric arrays
     tp_2D_array = test_footprint & ref_footprint
     fn_2D_array = ~test_footprint & ref_footprint
-    fp_2D_array = test_footprint & ref_footprint
+    fp_2D_array = test_footprint & ~ref_footprint
 
     # 2D total area (in pixels)
     tp_total_area = np.sum(tp_2D_array, dtype=np.uint64)
@@ -98,6 +96,7 @@ def run_threshold_geometry_metrics(refDSM, refDTM, refMask, testDSM, testDTM, te
         plot.make(tp_2D_array, 'True Positive Regions',  283, saveName=PLOTS_SAVE_PREFIX+"truePositive")
         plot.make(fn_2D_array, 'False Negative Regions', 281, saveName=PLOTS_SAVE_PREFIX+"falseNegetive")
         plot.make(fp_2D_array, 'False Positive Regions', 282, saveName=PLOTS_SAVE_PREFIX+"falsePositive")
+        plot.make_stoplight_plot(fp_image=fp_2D_array, fn_image=fn_2D_array, ref=ref_footprint, saveName=PLOTS_SAVE_PREFIX+"stoplight")
 
         layer = np.zeros_like(ref_footprint).astype(np.uint8) + 3  # Initialize as True Negative
         layer[tp_2D_array] = 1  # TP

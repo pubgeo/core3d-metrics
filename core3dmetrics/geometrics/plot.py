@@ -9,6 +9,12 @@ if os.getenv('DISPLAY') is None and not platform.system() == "Windows":
 
 import matplotlib.pyplot as plt
 
+import cv2
+
+try:
+    from cv2 import cv2
+except ImportError:
+    pass
 
 
 class plot:
@@ -115,7 +121,48 @@ class plot:
         if not self.showPlots:
             plt.close(plt.gcf())
 
+    def make_stoplight_plot(self, fp_image=None, fn_image= None, ref=None, title='', fig=None, **kwargs):
+        if ref is None:
+            return plt
+        plt.figure(fig)
+        plt.clf()
+        plt.title(title)
+        if 'badValue' in kwargs:
+            fp_image = np.array(fp_image)
+            fp_image[fp_image == kwargs['badValue']] = np.nan
+            fn_image = np.array(fn_image)
+            fn_image[fp_image == kwargs['badValue']] = np.nan
+        if fp_image is None or fn_image is None:
+             return plt
+         # Create the image
+        if fp_image.shape != fn_image.shape:
+            raise ValueError("Dimension mismatch")
+        stoplight_chart = np.multiply(np.ones((fp_image.shape[0], fp_image.shape[1], 3), dtype=np.uint8), 220)
+        green = [0, 255, 0]
+        red = [0, 0, 255]
+        yellow = [0, 255, 255]
+        white = [255, 255, 255]
+        black = [0, 0, 0]
+        blue = [0, 0, 255]
 
+        fp_image_8 = np.uint8(fp_image)
+        fn_image_8 = np.uint8(fn_image)
+        stoplight_chart[fp_image_8 == 1] = blue
+        stoplight_chart[fn_image_8 == 1] = red
+
+        ref = np.uint8(ref)
+
+        if cv2.__version__ == "4.0.0":
+            contours, hierarchy = cv2.findContours(ref, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+        else:
+            _, contours, hierarchy = cv2.findContours(ref, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+
+        cv2.drawContours(stoplight_chart, contours, -1, black, 2)
+        if "saveName" in kwargs:
+            title = kwargs['saveName']
+        fn = os.path.join(self.saveDir, title + self.saveExe)
+
+        cv2.imwrite(fn, stoplight_chart[..., ::-1])
 
     def save(self, saveName, figNum=None):
 
@@ -128,5 +175,5 @@ class plot:
         if len(self.savePrefix) > 0:
             saveName = self.savePrefix + saveName
 
-        fn  = os.path.join(self.saveDir, saveName + self.saveExe)
+        fn = os.path.join(self.saveDir, saveName + self.saveExe)
         plt.savefig(fn, dpi=self.dpi)
