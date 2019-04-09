@@ -277,8 +277,6 @@ def create_metrics_images_slide(prs, aoi, configs, results):
         text_frame.text = "* Metric presented in parentheses is Jaccard Index (IOU)"
         text_frame.fit_text()
 
-
-
         for team in configs:
             left = left + Inches(3)
             top_row = Inches(1.5)

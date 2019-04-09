@@ -184,10 +184,10 @@ def run_objectwise_metrics(refDSM, refDTM, refMask, testDSM, testDTM, testMask, 
     summary['relative_accuracy']['hrmse'] = {}
     summary['relative_accuracy']['zrmse'] = {}
 
-    summary['threshold_geometry']['2D']['correctness']['values']  = np.zeros(num_objs)
+    summary['threshold_geometry']['2D']['correctness']['values'] = np.zeros(num_objs)
     summary['threshold_geometry']['2D']['completeness']['values'] = np.zeros(num_objs)
     summary['threshold_geometry']['2D']['jaccardIndex']['values'] = np.zeros(num_objs)
-    summary['threshold_geometry']['3D']['correctness']['values']  = np.zeros(num_objs)
+    summary['threshold_geometry']['3D']['correctness']['values'] = np.zeros(num_objs)
     summary['threshold_geometry']['3D']['completeness']['values'] = np.zeros(num_objs)
     summary['threshold_geometry']['3D']['jaccardIndex']['values'] = np.zeros(num_objs)
     summary['relative_accuracy']['zrmse']['values'] = np.zeros(num_objs)
