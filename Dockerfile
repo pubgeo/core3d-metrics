@@ -2,13 +2,16 @@ FROM jhuapl/pubgeo:latest
 RUN apt update && apt upgrade -y && \
   DEBIAN_FRONTEND=noninteractive apt install -y --fix-missing --no-install-recommends \
     git \
+    libglib2.0-0 \
+    libsm6 \
 	python3 \
 	python3-pip \
 	python3-gdal \
 	python3-tk \
 	python3-scipy
+
 RUN apt autoremove -y && rm -rf /var/lib/apt/lists/*
-RUN pip3 install matplotlib laspy setuptools "jsonschema==2.6.0" "numpy>=1.13"
+RUN pip3 install matplotlib laspy setuptools "jsonschema==2.6.0" "numpy>=1.13" opencv-python
 WORKDIR /
 
 ARG DOCKER_DEPLOY=true

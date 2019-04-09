@@ -152,7 +152,7 @@ class plot:
 
         ref = np.uint8(ref)
 
-        if cv2.__version__ == "4.0.0":
+        if cv2.__version__[0] == "4":
             contours, hierarchy = cv2.findContours(ref, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
         else:
             _, contours, hierarchy = cv2.findContours(ref, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
