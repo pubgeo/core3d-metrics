@@ -109,7 +109,6 @@ class plot:
                 if 'cm_labels' in kwargs:
                     hCM.set_ticklabels(kwargs['cm_labels'], True)
 
-
         if self.showPlots:
             plt.show(block=False)
 
@@ -164,6 +163,31 @@ class plot:
         fn = os.path.join(self.saveDir, saveName + self.saveExe)
 
         cv2.imwrite(fn, stoplight_chart[..., ::-1])
+
+    def make_error_map(self, error_map=None, ref=None, title='', fig=None, **kwargs):
+        if ref is None:
+            return plt
+        plt.figure(fig)
+        plt.clf()
+        plt.title(title)
+        if 'badValue' in kwargs:
+            error_map = np.array(error_map)
+            error_map[error_map == kwargs['badValue']] = np.nan
+        # Edit error map for coloring
+        error_map_temp = error_map + 100
+        error_map_temp = np.nan_to_num(error_map_temp)
+        err_color = cv2.applyColorMap(np.uint8(error_map_temp), cv2.COLORMAP_PARULA)
+        err_color[error_map_temp == 0] = [0, 0, 0]
+
+        if "saveName" in kwargs:
+            title = kwargs['saveName']
+
+        if len(self.savePrefix) > 0:
+            saveName = self.savePrefix + title
+
+        fn = os.path.join(self.saveDir, saveName + self.saveExe)
+
+        cv2.imwrite(fn, err_color)
 
     def save(self, saveName, figNum=None):
 
