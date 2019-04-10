@@ -187,26 +187,21 @@ class plot:
         # Trucnate errors to +-5 meters
         error_ground_track = np.nan_to_num(error_map)
         error_map_temp = error_map
-        error_map_temp[error_map < -10] = -10
-        error_map_temp[error_map > 10] = 10
+        error_map_temp[error_map < -5] = -5
+        error_map_temp[error_map > 5] = 5
         error_map_temp = np.nan_to_num(error_map_temp)
-        # clahe = cv2.createCLAHE(clipLimit=25.0, tileGridSize=(8, 8))
-        # error_map_temp = clahe.apply(error_map_temp)
         error_map_temp = self.stretch_contrast(error_map_temp)
-
         lut = np.zeros((256, 1, 3), dtype=np.uint8)
-
         # Hue
         lut[0:127, 0, 0] = 0  # Red Hue
-        lut[128:256, 0, 0] = 230  # Blue Hue
+        lut[128:256, 0, 0] = 120  # Blue Hue
         # Saturation
         lut[0:127, 0, 1] = np.uint8(np.linspace(255, 0, num=127))  # Red Hue
-        lut[128:256, 0, 1] = np.uint8(np.linspace(0, 255, num=128)) # Blue Hue
+        lut[128:256, 0, 1] = np.uint8(np.linspace(0, 255, num=128))  # Blue Hue
         # Value
         lut[:, 0, 2] = 255  # Always max value
-
-        lut = cv2.cvtColor(lut, cv2.COLOR_HSV2RGB)
-
+        lut = cv2.cvtColor(lut, cv2.COLOR_HSV2BGR)
+        # Apply colormap
         err_color = cv2.applyColorMap(error_map_temp, lut)
         err_color[error_ground_track == 0] = gray
 
