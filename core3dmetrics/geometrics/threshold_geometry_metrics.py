@@ -62,7 +62,7 @@ def run_threshold_geometry_metrics(refDSM, refDTM, refMask, testDSM, testDTM, te
         plot.make(errorMap, 'Height Error', 291, saveName=PLOTS_SAVE_PREFIX+"errHgt", colorbar=True)
         plot.make(errorMap, 'Height Error (clipped)', 292, saveName=PLOTS_SAVE_PREFIX+"errHgtClipped", colorbar=True,
                   vmin=-5, vmax=5)
-        plot.make_error_map(errorMap, 'Height Error Image', saveName=PLOTS_SAVE_PREFIX+"errHgtImageOnly")
+        plot.make_error_map(error_map=errorMap, ref=ref_footprint, saveName=PLOTS_SAVE_PREFIX+"errHgtImageOnly")
 
     # 2D ANALYSIS==========
 

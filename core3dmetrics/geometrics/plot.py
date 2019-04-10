@@ -165,10 +165,11 @@ class plot:
         cv2.imwrite(fn, stoplight_chart[..., ::-1])
 
     def stretch_contrast(self, image):
-        a = min(image)
-        b = max(image)
+        a = image.min()
+        b = image.max()
         r = b-a
-        image = round(((image - a)/r)*255)
+        image = ((image - a)/r)*255
+        image = np.uint8(image)
         return image
 
     def make_error_map(self, error_map=None, ref=None, title='', fig=None, **kwargs):
@@ -181,14 +182,42 @@ class plot:
             error_map = np.array(error_map)
             error_map[error_map == kwargs['badValue']] = np.nan
         # Edit error map for coloring
-        error_map_temp = error_map + 100
-        error_ground_track = np.nan_to_num(error_map_temp)
-        error_ground_track = np.uint8(error_ground_track)
-        error_map_temp = np.uint8(error_map_temp)
-        clahe = cv2.createCLAHE(clipLimit=25.0, tileGridSize=(8, 8))
-        error_map_temp = clahe.apply(error_map_temp)
-        err_color = cv2.applyColorMap(error_map_temp, cv2.COLORMAP_PARULA)
-        err_color[error_ground_track == 0] = [0, 0, 0]
+        black = [0, 0, 0]
+        gray = [220, 220, 220]
+        # Trucnate errors to +-5 meters
+        error_ground_track = np.nan_to_num(error_map)
+        error_map_temp = error_map
+        error_map_temp[error_map < -10] = -10
+        error_map_temp[error_map > 10] = 10
+        error_map_temp = np.nan_to_num(error_map_temp)
+        # clahe = cv2.createCLAHE(clipLimit=25.0, tileGridSize=(8, 8))
+        # error_map_temp = clahe.apply(error_map_temp)
+        error_map_temp = self.stretch_contrast(error_map_temp)
+
+        lut = np.zeros((256, 1, 3), dtype=np.uint8)
+
+        # Hue
+        lut[0:127, 0, 0] = 0  # Red Hue
+        lut[128:256, 0, 0] = 230  # Blue Hue
+        # Saturation
+        lut[0:127, 0, 1] = np.uint8(np.linspace(255, 0, num=127))  # Red Hue
+        lut[128:256, 0, 1] = np.uint8(np.linspace(0, 255, num=128)) # Blue Hue
+        # Value
+        lut[:, 0, 2] = 255  # Always max value
+
+        lut = cv2.cvtColor(lut, cv2.COLOR_HSV2RGB)
+
+        err_color = cv2.applyColorMap(error_map_temp, lut)
+        err_color[error_ground_track == 0] = gray
+
+        ref = np.uint8(ref)
+
+        if cv2.__version__[0] == "4":
+            contours, hierarchy = cv2.findContours(ref, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+        else:
+            _, contours, hierarchy = cv2.findContours(ref, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+
+        cv2.drawContours(err_color, contours, -1, black, 2)
 
         if "saveName" in kwargs:
             title = kwargs['saveName']
