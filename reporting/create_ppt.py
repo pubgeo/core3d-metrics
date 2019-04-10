@@ -285,7 +285,7 @@ def create_metrics_images_slide(prs, aoi, configs, results):
             file_prefix = Path(configs[team][aoi]['INPUT.TEST']['DSMFilename']).name
             file_path_prefix = Path(search_path, file_prefix)
             suffixes = ["_" + "%03d" % index + "_thresholdGeometry_stoplight.png",
-                        "_" + "%03d" % index + "_relVertAcc_hgtErr_clipped.png"]
+                        "_" + "%03d" % index + "_thresholdGeometry_errHgtImageOnly.png"]
             jaccard_indices = [str('%.3f' % (results[team][aoi].results['threshold_geometry'][ref_match_value[0]]['2D']['jaccardIndex'])),
                                str('%.3f' % (results[team][aoi].results['threshold_geometry'][ref_match_value[0]]['3D']['jaccardIndex']))]
             for suffix in suffixes:

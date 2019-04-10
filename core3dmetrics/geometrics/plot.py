@@ -164,6 +164,13 @@ class plot:
 
         cv2.imwrite(fn, stoplight_chart[..., ::-1])
 
+    def stretch_contrast(self, image):
+        a = min(image)
+        b = max(image)
+        r = b-a
+        image = round(((image - a)/r)*255)
+        return image
+
     def make_error_map(self, error_map=None, ref=None, title='', fig=None, **kwargs):
         if ref is None:
             return plt
@@ -175,9 +182,13 @@ class plot:
             error_map[error_map == kwargs['badValue']] = np.nan
         # Edit error map for coloring
         error_map_temp = error_map + 100
-        error_map_temp = np.nan_to_num(error_map_temp)
-        err_color = cv2.applyColorMap(np.uint8(error_map_temp), cv2.COLORMAP_PARULA)
-        err_color[error_map_temp == 0] = [0, 0, 0]
+        error_ground_track = np.nan_to_num(error_map_temp)
+        error_ground_track = np.uint8(error_ground_track)
+        error_map_temp = np.uint8(error_map_temp)
+        clahe = cv2.createCLAHE(clipLimit=25.0, tileGridSize=(8, 8))
+        error_map_temp = clahe.apply(error_map_temp)
+        err_color = cv2.applyColorMap(error_map_temp, cv2.COLORMAP_PARULA)
+        err_color[error_ground_track == 0] = [0, 0, 0]
 
         if "saveName" in kwargs:
             title = kwargs['saveName']
