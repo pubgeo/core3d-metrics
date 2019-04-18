@@ -136,7 +136,7 @@ class plot:
          # Create the image
         if fp_image.shape != fn_image.shape:
             raise ValueError("Dimension mismatch")
-        stoplight_chart = np.multiply(np.ones((fp_image.shape[0], fp_image.shape[1], 3), dtype=np.uint8), 220)
+        stoplight_chart = np.multiply(np.ones((fp_image.shape[0], fp_image.shape[1], 3), dtype=np.uint8), 255)
         red = [255, 0, 0]
         black = [0, 0, 0]
         blue = [0, 0, 255]
