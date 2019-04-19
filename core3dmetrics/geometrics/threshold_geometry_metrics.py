@@ -103,10 +103,10 @@ def run_threshold_geometry_metrics(refDSM, refDTM, refMask, testDSM, testDTM, te
         layer[tp_2D_array] = 1  # TP
         layer[fp_2D_array] = 2  # FP
         layer[fn_2D_array] = 4  # FN
-        cmap = [[1, 1, 1], # TP
-                [0, 0, 1], # FP
-                [1, 1, 1], # TN
-                [1, 0, 0]] # FN
+        cmap = [[1, 1, 1],  # TP
+                [0, 0, 1],  # FP
+                [1, 1, 1],  # TN
+                [1, 0, 0]]  # FN
         plot.make(layer, 'Object Footprint Errors', 293, saveName=PLOTS_SAVE_PREFIX + "errFootprint", colorbar=False, cmap=cmap)
 
     # 3D ANALYSIS==========
