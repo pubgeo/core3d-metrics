@@ -136,15 +136,11 @@ class plot:
          # Create the image
         if fp_image.shape != fn_image.shape:
             raise ValueError("Dimension mismatch")
-        stoplight_chart = np.multiply(np.ones((fp_image.shape[0], fp_image.shape[1], 3), dtype=np.uint8), 255)
+        stoplight_chart = np.multiply(np.ones((fp_image.shape[0], fp_image.shape[1], 3), dtype=np.uint8), 220)
         red = [255, 0, 0]
         black = [0, 0, 0]
         blue = [0, 0, 255]
-
-        fp_image_8 = np.uint8(fp_image)
-        fn_image_8 = np.uint8(fn_image)
-        stoplight_chart[fp_image_8 == 1] = blue
-        stoplight_chart[fn_image_8 == 1] = red
+        white = [255,255,255]
 
         ref = np.uint8(ref)
 
@@ -154,6 +150,12 @@ class plot:
             _, contours, hierarchy = cv2.findContours(ref, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
 
         cv2.drawContours(stoplight_chart, contours, -1, black, 2)
+        cv2.fillPoly(stoplight_chart, contours, white)
+        fp_image_8 = np.uint8(fp_image)
+        fn_image_8 = np.uint8(fn_image)
+        stoplight_chart[fp_image_8 == 1] = blue
+        stoplight_chart[fn_image_8 == 1] = red
+
         if "saveName" in kwargs:
             title = kwargs['saveName']
 

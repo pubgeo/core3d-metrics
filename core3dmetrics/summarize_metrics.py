@@ -14,6 +14,7 @@ class BAAThresholds:
 
     def __init__(self):
         self.geolocation_error = np.array([2, 1.5, 1.5, 1])*3.5
+        self.spherical_error = np.array([.86, .86, .86, .86])
         self.completeness_2d = np.array([0.8, 0.85, 0.9, 0.95])
         self.correctness_2d = np.array([0.8, 0.85, 0.9, 0.95])
         self.completeness_3d = np.array([0.6, 0.7, 0.8, 0.9])
