@@ -226,6 +226,48 @@ class plot:
 
         cv2.imwrite(fn, err_color)
 
+    def make_obj_error_map(self, error_map=None, ref=None, title='', fig=None, **kwargs):
+        if ref is None:
+            return plt
+        plt.figure(fig)
+        plt.clf()
+        plt.title(title)
+        if 'badValue' in kwargs:
+            error_map = np.array(error_map)
+            error_map[error_map == kwargs['badValue']] = np.nan
+        # Edit error map for coloring
+        black = [0, 0, 0]
+        gray = [220, 220, 220]
+        # Trucnate errors to +5 meters
+        error_ground_track = np.nan_to_num(error_map)
+        error_map_temp = error_map
+        error_map_temp[error_map > 2] = 2
+        error_map_temp = np.nan_to_num(error_map_temp)
+        error_map_temp = self.stretch_contrast(error_map_temp)
+
+        # Apply colormap
+        err_color = cv2.applyColorMap(error_map_temp, cv2.COLORMAP_JET)
+        err_color[error_ground_track == 0] = gray
+
+        ref = np.uint8(ref)
+
+        if cv2.__version__[0] == "4":
+            contours, hierarchy = cv2.findContours(ref, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+        else:
+            _, contours, hierarchy = cv2.findContours(ref, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+
+        cv2.drawContours(err_color, contours, -1, black, 2)
+
+        if "saveName" in kwargs:
+            title = kwargs['saveName']
+
+        if len(self.savePrefix) > 0:
+            saveName = self.savePrefix + title
+
+        fn = os.path.join(self.saveDir, saveName + self.saveExe)
+
+        cv2.imwrite(fn, err_color)
+
     def save(self, saveName, figNum=None):
 
         if saveName is None:

@@ -148,7 +148,10 @@ def run_objectwise_metrics(refDSM, refDTM, refMask, testDSM, testDTM, testMask, 
 
         plot.make(image_hrmse, 'Objectwise HRMSE', 371, saveName=PLOTS_SAVE_PREFIX+"objHRMSE", colorbar=True, badValue=-1, vmin=0, vmax=2)
         plot.make(image_zrmse, 'Objectwise ZRMSE', 372, saveName=PLOTS_SAVE_PREFIX+"objZRMSE", colorbar=True, badValue=-1,  vmin=0, vmax=1)
-
+        plot.make_obj_error_map(error_map=image_hrmse, ref=refMask, badValue=-1,
+                                saveName=PLOTS_SAVE_PREFIX + "HRMSE_Image_Only")
+        plot.make_obj_error_map(error_map=image_zrmse, ref=refMask, badValue=-1,
+                                saveName=PLOTS_SAVE_PREFIX + "ZRMSE_Image_Only")
     # Make per metric reporting structure
     num_objs = len(metric_list)
     summary = {}

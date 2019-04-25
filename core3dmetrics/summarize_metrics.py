@@ -70,7 +70,7 @@ def summarize_metrics(root_dir, teams, aois, ref_path=None, test_path=None):
                         except KeyError:
                             print('No objectwise metrics found...')
                     n["registration_offset"] = json_data["registration_offset"]
-                    n["gelocation_error"] = json_data["gelocation_error"]
+                    n["geolocation_error"] = json_data["geolocation_error"]
                     n["terrain_accuracy"] = None
                     json_data = n
                     del n
@@ -124,7 +124,7 @@ def summarize_metrics(root_dir, teams, aois, ref_path=None, test_path=None):
         sum_zrmse = {}
         averaged_results[team] = {}
         for aoi in all_results[team]:
-            sum_geolocation_error = sum_geolocation_error + all_results[team][aoi].results["gelocation_error"]
+            sum_geolocation_error = sum_geolocation_error + all_results[team][aoi].results["geolocation_error"]
             for cls in all_results[team][aoi].results["threshold_geometry"]:
                 if cls not in sum_2d_completeness.keys():
                     sum_2d_completeness[cls] = 0
