@@ -238,9 +238,13 @@ class plot:
         # Edit error map for coloring
         black = [0, 0, 0]
         gray = [220, 220, 220]
+        dark_blue = [205, 0, 0]
         # Trucnate errors to +5 meters
         error_ground_track = np.nan_to_num(error_map)
-        error_map_temp = error_map
+        error_map_temp = error_map.copy()
+        error_map_zeros = error_map.copy()
+        error_map_zeros[error_map == 0] = 300  # some big number over 255
+        error_map_zeros = np.uint16(error_map_zeros)
         error_map_temp[error_map > 2] = 2
         error_map_temp = np.nan_to_num(error_map_temp)
         error_map_temp = self.stretch_contrast(error_map_temp)
@@ -248,6 +252,7 @@ class plot:
         # Apply colormap
         err_color = cv2.applyColorMap(error_map_temp, cv2.COLORMAP_JET)
         err_color[error_ground_track == 0] = gray
+        err_color[error_map_zeros == 300] = dark_blue
 
         ref = np.uint8(ref)
 
