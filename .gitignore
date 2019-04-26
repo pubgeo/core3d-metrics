@@ -8,5 +8,5 @@ build/*
 *.pptx
 *.ppt
 dist/*
-
+/Notes
 reporting/
