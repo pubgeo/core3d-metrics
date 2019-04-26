@@ -170,7 +170,8 @@ class plot:
         a = image.min()
         b = image.max()
         r = b-a
-        image = ((image - a)/r)*255
+        if not (np.unique(image).__len__() and np.unique(image)[0] == 0):
+            image = ((image - a)/r)*255
         image = np.uint8(image)
         return image
 

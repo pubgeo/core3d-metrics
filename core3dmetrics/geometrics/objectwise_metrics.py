@@ -32,7 +32,10 @@ def metric_stats(val):
     s['stddev'] = np.std(val)
     s['pctl'] = {}
     s['pctl']['rank'] = [0, 10, 20, 25, 30, 40, 50, 60, 70, 75, 80, 90, 91, 92, 93, 94, 95, 96, 96, 98, 99, 100]
-    s['pctl']['value'] = np.percentile(val, s['pctl']['rank']).tolist()
+    try:
+        s['pctl']['value'] = np.percentile(val, s['pctl']['rank']).tolist()
+    except IndexError:
+        s['pctl']['value'] = [np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan]
     return s
 
 
