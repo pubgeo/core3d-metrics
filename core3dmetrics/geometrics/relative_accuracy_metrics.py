@@ -86,7 +86,7 @@ def run_relative_accuracy_metrics(refDSM, testDSM, refMask, testMask, ignoreMask
         'z50': z50,
         'zrmse': z68,
         'z90': z90,
-		'h50': h50,
+        'h50': h50,
         'hrmse': h63,
         'h90': h90
     }
