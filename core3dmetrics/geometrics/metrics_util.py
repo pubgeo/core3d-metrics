@@ -87,7 +87,7 @@ def getMatchValueSets(refCLS_matchSets, testCLS_matchSets, refCLS_classes, testC
         refMatchValueValid = validateMatchValues(refMatchValue, refCLS_classes)
         testMatchValueValid = validateMatchValues(testMatchValue, testCLS_classes)
 
-        if len(refMatchValueValid):
+        if len(refMatchValueValid) and len(testMatchValueValid):
             refCLS_matchSetsValid.append(refMatchValueValid)
             testCLS_matchSetsValid.append(testMatchValueValid)
 

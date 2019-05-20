@@ -9,8 +9,6 @@ from .metrics_util import getUnitArea
 
 def run_threshold_geometry_metrics(refDSM, refDTM, refMask, testDSM, testDTM, testMask,
                                    tform, ignoreMask, plot=None, verbose=True):
-
-
     # INPUT PARSING==========
 
     # parse plot input
@@ -35,8 +33,8 @@ def run_threshold_geometry_metrics(refDSM, refDTM, refMask, testDSM, testDTM, te
     test_height[~test_footprint] = 0
 
     # total 2D area (in pixels)
-    ref_total_area = np.sum(ref_footprint,dtype=np.uint64)
-    test_total_area = np.sum(test_footprint,dtype=np.uint64)
+    ref_total_area = np.sum(ref_footprint, dtype=np.uint64)
+    test_total_area = np.sum(test_footprint, dtype=np.uint64)
 
     # total 3D volume (in meters^3)
     ref_total_volume = np.sum(np.absolute(ref_height)) * unitArea
@@ -63,19 +61,20 @@ def run_threshold_geometry_metrics(refDSM, refDTM, refMask, testDSM, testDTM, te
         errorMap[~ref_footprint & ~test_footprint] = np.nan
         plot.make(errorMap, 'Height Error', 291, saveName=PLOTS_SAVE_PREFIX+"errHgt", colorbar=True)
         plot.make(errorMap, 'Height Error (clipped)', 292, saveName=PLOTS_SAVE_PREFIX+"errHgtClipped", colorbar=True,
-            vmin=-5,vmax=5)
+                  vmin=-5, vmax=5)
+        plot.make_error_map(error_map=errorMap, ref=ref_footprint, saveName=PLOTS_SAVE_PREFIX+"errHgtImageOnly")
 
     # 2D ANALYSIS==========
 
     # 2D metric arrays
-    tp_2D_array =  test_footprint &  ref_footprint
-    fn_2D_array = ~test_footprint &  ref_footprint
-    fp_2D_array =  test_footprint & ~ref_footprint
+    tp_2D_array = test_footprint & ref_footprint
+    fn_2D_array = ~test_footprint & ref_footprint
+    fp_2D_array = test_footprint & ~ref_footprint
 
     # 2D total area (in pixels)
-    tp_total_area = np.sum(tp_2D_array,dtype=np.uint64)
-    fn_total_area = np.sum(fn_2D_array,dtype=np.uint64)
-    fp_total_area = np.sum(fp_2D_array,dtype=np.uint64)
+    tp_total_area = np.sum(tp_2D_array, dtype=np.uint64)
+    fn_total_area = np.sum(fn_2D_array, dtype=np.uint64)
+    fp_total_area = np.sum(fp_2D_array, dtype=np.uint64)
 
     # error check (exact, as this is an integer comparison)
     if (tp_total_area + fn_total_area) != ref_total_area:
@@ -98,15 +97,16 @@ def run_threshold_geometry_metrics(refDSM, refDTM, refMask, testDSM, testDTM, te
         plot.make(tp_2D_array, 'True Positive Regions',  283, saveName=PLOTS_SAVE_PREFIX+"truePositive")
         plot.make(fn_2D_array, 'False Negative Regions', 281, saveName=PLOTS_SAVE_PREFIX+"falseNegetive")
         plot.make(fp_2D_array, 'False Positive Regions', 282, saveName=PLOTS_SAVE_PREFIX+"falsePositive")
+        plot.make_stoplight_plot(fp_image=fp_2D_array, fn_image=fn_2D_array, ref=ref_footprint, saveName=PLOTS_SAVE_PREFIX+"stoplight")
 
         layer = np.zeros_like(ref_footprint).astype(np.uint8) + 3  # Initialize as True Negative
         layer[tp_2D_array] = 1  # TP
         layer[fp_2D_array] = 2  # FP
         layer[fn_2D_array] = 4  # FN
-        cmap = [[1, 1, 1], # TP
-                [0, 0, 1], # FP
-                [1, 1, 1], # TN
-                [1, 0, 0]] # FN
+        cmap = [[1, 1, 1],  # TP
+                [0, 0, 1],  # FP
+                [1, 1, 1],  # TN
+                [1, 0, 0]]  # FN
         plot.make(layer, 'Object Footprint Errors', 293, saveName=PLOTS_SAVE_PREFIX + "errFootprint", colorbar=False, cmap=cmap)
 
     # 3D ANALYSIS==========

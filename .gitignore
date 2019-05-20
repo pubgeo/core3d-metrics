@@ -5,4 +5,8 @@ private_data/
 build/*
 *.egg*
 *~
+*.pptx
+*.ppt
 dist/*
+/Notes
+reporting/

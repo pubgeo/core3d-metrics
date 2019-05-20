@@ -10,7 +10,7 @@ from .threshold_geometry_metrics import run_threshold_geometry_metrics
 from .relative_accuracy_metrics import run_relative_accuracy_metrics
 
 
-def eval_metrcs(refDSM, refDTM, refMask, testDSM, testDTM, testMask, tform, ignoreMask, plot=None, verbose=True):
+def eval_metrics(refDSM, refDTM, refMask, testDSM, testDTM, testMask, tform, ignoreMask, plot=None, verbose=True):
 
     # Evaluate threshold geometry metrics using refDTM as the testDTM to mitigate effects of terrain modeling
     # uncertainty
@@ -32,7 +32,10 @@ def metric_stats(val):
     s['stddev'] = np.std(val)
     s['pctl'] = {}
     s['pctl']['rank'] = [0, 10, 20, 25, 30, 40, 50, 60, 70, 75, 80, 90, 91, 92, 93, 94, 95, 96, 96, 98, 99, 100]
-    s['pctl']['value'] = np.percentile(val, s['pctl']['rank']).tolist()
+    try:
+        s['pctl']['value'] = np.percentile(val, s['pctl']['rank']).tolist()
+    except IndexError:
+        s['pctl']['value'] = [np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan]
     return s
 
 
@@ -68,10 +71,10 @@ def run_objectwise_metrics(refDSM, refDTM, refMask, testDSM, testDTM, testMask, 
     image_out = refMask.astype(float).copy() - 1
     #image_out[image_out == -1] = np.nan
     image_2d_completeness = image_out.copy()
-    image_2d_correctness  = image_out.copy()
+    image_2d_correctness = image_out.copy()
     image_2d_jaccard_index = image_out.copy()
     image_3d_completeness = image_out.copy()
-    image_3d_correctness  = image_out.copy()
+    image_3d_correctness = image_out.copy()
     image_3d_jaccard_index = image_out.copy()
     image_hrmse = image_out.copy()
     image_zrmse = image_out.copy()
@@ -112,7 +115,8 @@ def run_objectwise_metrics(refDSM, refDTM, refMask, testDSM, testDTM, testMask, 
             test_use_counter[test_region-1] = test_use_counter[test_region-1] + 1
 
         # TODO:  Not practical as implemented to enable plots. plots is forced to false.
-        [result_geo, result_acc] = eval_metrcs(refDSM, refDTM, ref_objs, testDSM, testDTM, test_objs, tform, ignoreMask, plot=None, verbose=verbose)
+        [result_geo, result_acc] = eval_metrics(refDSM, refDTM, ref_objs, testDSM, testDTM, test_objs, tform,
+                                                ignoreMask, plot=None, verbose=verbose)
 
         this_metric = dict()
         this_metric['ref_objects'] = test_regions.tolist()
@@ -147,7 +151,10 @@ def run_objectwise_metrics(refDSM, refDTM, refMask, testDSM, testDTM, testMask, 
 
         plot.make(image_hrmse, 'Objectwise HRMSE', 371, saveName=PLOTS_SAVE_PREFIX+"objHRMSE", colorbar=True, badValue=-1, vmin=0, vmax=2)
         plot.make(image_zrmse, 'Objectwise ZRMSE', 372, saveName=PLOTS_SAVE_PREFIX+"objZRMSE", colorbar=True, badValue=-1,  vmin=0, vmax=1)
-
+        plot.make_obj_error_map(error_map=image_hrmse, ref=refMask, badValue=-1,
+                                saveName=PLOTS_SAVE_PREFIX + "HRMSE_Image_Only")
+        plot.make_obj_error_map(error_map=image_zrmse, ref=refMask, badValue=-1,
+                                saveName=PLOTS_SAVE_PREFIX + "ZRMSE_Image_Only")
     # Make per metric reporting structure
     num_objs = len(metric_list)
     summary = {}
@@ -184,10 +191,10 @@ def run_objectwise_metrics(refDSM, refDTM, refMask, testDSM, testDTM, testMask, 
     summary['relative_accuracy']['hrmse'] = {}
     summary['relative_accuracy']['zrmse'] = {}
 
-    summary['threshold_geometry']['2D']['correctness']['values']  = np.zeros(num_objs)
+    summary['threshold_geometry']['2D']['correctness']['values'] = np.zeros(num_objs)
     summary['threshold_geometry']['2D']['completeness']['values'] = np.zeros(num_objs)
     summary['threshold_geometry']['2D']['jaccardIndex']['values'] = np.zeros(num_objs)
-    summary['threshold_geometry']['3D']['correctness']['values']  = np.zeros(num_objs)
+    summary['threshold_geometry']['3D']['correctness']['values'] = np.zeros(num_objs)
     summary['threshold_geometry']['3D']['completeness']['values'] = np.zeros(num_objs)
     summary['threshold_geometry']['3D']['jaccardIndex']['values'] = np.zeros(num_objs)
     summary['relative_accuracy']['zrmse']['values'] = np.zeros(num_objs)

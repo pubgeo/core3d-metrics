@@ -18,9 +18,14 @@ def run_relative_accuracy_metrics(refDSM, testDSM, refMask, testMask, ignoreMask
     # Z68 approximates ZRMSE assuming normal error distribution.
     delta = testDSM - refDSM
     overlap = refMask & testMask & validMask
-    z68 = np.percentile(abs(delta[overlap]),68)
-    z50 = np.percentile(abs(delta[overlap]),50)
-    z90 = np.percentile(abs(delta[overlap]),90)
+    if np.unique(overlap).size is 1:
+        z68 = 100
+        z50 = 100
+        z90 = 100
+    else:
+        z68 = np.percentile(abs(delta[overlap]), 68)
+        z50 = np.percentile(abs(delta[overlap]), 50)
+        z90 = np.percentile(abs(delta[overlap]), 90)
 
     # Generate relative vertical accuracy plots
     if PLOTS_ENABLE:
@@ -28,20 +33,28 @@ def run_relative_accuracy_metrics(refDSM, testDSM, refMask, testMask, ignoreMask
         errorMap[~overlap] = np.nan
         plot.make(errorMap, 'Object Height Error', 581, saveName="relVertAcc_hgtErr", colorbar=True)
         plot.make(errorMap, 'Object Height Error (Clipped)', 582, saveName="relVertAcc_hgtErr_clipped", colorbar=True,
-            vmin=-5,vmax=5)
+            vmin=-5, vmax=5)
 
     # Compute relative horizontal accuracy
     # Consider only objects selected in reference mask.
 
     # Find region edge pixels
-    kernel = np.ones((3, 3), np.int)
-    refEdge = convolve2d(refMask.astype(np.int), kernel, mode="same", boundary="symm")
-    testEdge = convolve2d(testMask.astype(np.int), kernel, mode="same", boundary="symm")
-    validEdge = convolve2d(validMask.astype(np.int), kernel, mode="same", boundary="symm")
-    refEdge = (refEdge < 9) & refMask & (validEdge == 9) 
-    testEdge = (testEdge < 9) & testMask & (validEdge == 9)
-    refPts = refEdge.nonzero()
-    testPts = testEdge.nonzero()
+    if np.histogram(refMask)[0][9] != 1:
+        kernel = np.ones((3, 3), np.int)
+        refEdge = convolve2d(refMask.astype(np.int), kernel, mode="same", boundary="symm")
+        testEdge = convolve2d(testMask.astype(np.int), kernel, mode="same", boundary="symm")
+        validEdge = convolve2d(validMask.astype(np.int), kernel, mode="same", boundary="symm")
+        refEdge = (refEdge < 9) & refMask & (validEdge == 9)
+        testEdge = (testEdge < 9) & testMask & (validEdge == 9)
+        refPts = refEdge.nonzero()
+        testPts = testEdge.nonzero()
+        if (np.unique(testEdge).__len__() == 1 and np.unique(testEdge)[0] == False) or \
+                (np.unique(refEdge).__len__() == 1 and np.unique(refEdge)[0] == False):
+            refPts = np.where(refMask == True)
+            testPts = np.where(testMask == True)
+    else:
+        refPts = np.where(refMask == True)
+        testPts = np.where(testMask == True)
 
     # Use KD Tree to find test point nearest each reference point
     tree = cKDTree(np.transpose(testPts))
@@ -50,9 +63,9 @@ def run_relative_accuracy_metrics(refDSM, testDSM, refMask, testMask, ignoreMask
 
     # Calculate horizontal percentile errors.
     # H63 approximates HRMSE assuming binormal error distribution.
-    h63 = np.percentile(abs(dist),63)
-    h50 = np.percentile(abs(dist),50)
-    h90 = np.percentile(abs(dist),90)
+    h63 = np.percentile(abs(dist), 63)
+    h50 = np.percentile(abs(dist), 50)
+    h90 = np.percentile(abs(dist), 90)
 
     # Generate relative horizontal accuracy plots
     if PLOTS_ENABLE:
@@ -73,7 +86,7 @@ def run_relative_accuracy_metrics(refDSM, testDSM, refMask, testMask, ignoreMask
         'z50': z50,
         'zrmse': z68,
         'z90': z90,
-		'h50': h50,
+        'h50': h50,
         'hrmse': h63,
         'h90': h90
     }
