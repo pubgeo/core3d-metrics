@@ -109,6 +109,7 @@ def run_geometrics(config_file, ref_path=None, test_path=None, output_path=None,
         if save_aligned:
             geo.arrayToGeotiff(ref_mtl, os.path.join(output_path, basename + '_ref_mtl_reg_out'), ref_cls_filename, no_data_value)
     else:
+        ref_mtl = None
         print('NO REFERENCE MTL')
 
     # Read test model files and apply XYZ offsets.
@@ -343,11 +344,11 @@ def run_geometrics(config_file, ref_path=None, test_path=None, output_path=None,
         print('WARNING: No test DTM file, skipping terrain accuracy metrics')
 
     # Run the threshold material metrics and report results.
-    if test_mtl_filename:
+    if test_mtl_filename and ref_mtl:
         metrics['threshold_materials'] = geo.run_material_metrics(ref_ndx, ref_mtl, test_mtl, material_names,
                                                                   material_indices_to_ignore, plot=plot)
     else:
-        print('WARNING: No test MTL file, skipping material metrics')
+        print('WARNING: No test MTL file or no reference material, skipping material metrics')
 
     fileout = os.path.join(output_path, os.path.basename(config_file) + "_metrics.json")
     with open(fileout, 'w') as fid:
