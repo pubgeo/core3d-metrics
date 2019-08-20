@@ -2,6 +2,7 @@ import numpy as np
 import os
 import json
 import math
+from scipy.ndimage.measurements import label
 
 from .metrics_util import calcMops
 from .metrics_util import getUnitArea
@@ -20,6 +21,19 @@ def run_threshold_geometry_metrics(refDSM, refDTM, refMask, testDSM, testDTM, te
 
     # Determine evaluation units.
     unitArea = getUnitArea(tform)
+
+    # Create NDX image if not provided
+    if 'refNDX' in locals():
+        print("NDX image found")
+    else:
+        print("NDX image not provided, creating one from mask...")
+        refNDX, num_features = label(refMask.astype(int))
+
+    if 'testNDX' in locals():
+        print("NDX image found")
+    else:
+        print("NDX image not provided, creating one from mask...")
+        testNDX, num_features = label(testMask.astype(int))
 
     # 2D footprints for evaluation
     ref_footprint = refMask & ~ignoreMask
