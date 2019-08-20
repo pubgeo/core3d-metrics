@@ -61,6 +61,16 @@ def run_objectwise_metrics(refDSM, refDTM, refMask, testDSM, testDTM, testMask, 
     ref_ndx_orig, num_ref_regions = ndimage.label(ref_ndx_orig)
     test_ndx, num_test_regions = ndimage.label(testMask)
 
+    # Get Height from DSM-DTM
+    ref_height = refDSM.astype(np.float64) - refDTM.astype(np.float64)
+    ref_height[ref_ndx == 0] = 0
+    test_height = testDSM.astype(np.float64) - testDTM.astype(np.float64)
+    test_height[test_ndx == 0] = 0
+
+    # TODO: Calculate volume per index
+
+    # TODO: Calculate area per index
+
     # Keep track of how many times each region is used
     test_use_counter = np.zeros([num_test_regions, 1])
     ref_use_counter = np.zeros([num_ref_regions, 1])
