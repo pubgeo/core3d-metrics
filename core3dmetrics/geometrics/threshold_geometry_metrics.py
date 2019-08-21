@@ -159,12 +159,14 @@ def run_threshold_geometry_metrics(refDSM, refDTM, refMask, testDSM, testDTM, te
     metrics = {
         '2D': calcMops(tp_total_area, fn_total_area, fp_total_area),
         '3D': calcMops(tp_total_volume, fn_total_volume, fp_total_volume),
+        'area': {'reference_area': np.int(ref_total_area), 'test_area': np.int(test_total_area)},
+        'volume': {'reference_volume': np.float(ref_total_volume), 'test_volume': np.float(test_total_volume)}
     }
 
     # verbose reporting
     if verbose:
         print('METRICS REPORT:')
-        print(json.dumps(metrics,indent=2))
+        print(json.dumps(metrics, indent=2))
 
     # return metric dictionary
     return metrics

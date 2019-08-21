@@ -2,8 +2,8 @@
 import numpy as np
 
 import scipy.ndimage as ndimage
-
-
+import time
+from itertools import groupby
 
 from .metrics_util import getUnitWidth
 from .threshold_geometry_metrics import run_threshold_geometry_metrics
@@ -67,10 +67,6 @@ def run_objectwise_metrics(refDSM, refDTM, refMask, testDSM, testDTM, testMask, 
     test_height = testDSM.astype(np.float64) - testDTM.astype(np.float64)
     test_height[test_ndx == 0] = 0
 
-    # TODO: Calculate volume per index
-
-    # TODO: Calculate area per index
-
     # Keep track of how many times each region is used
     test_use_counter = np.zeros([num_test_regions, 1])
     ref_use_counter = np.zeros([num_ref_regions, 1])
@@ -88,6 +84,13 @@ def run_objectwise_metrics(refDSM, refDTM, refMask, testDSM, testDTM, testMask, 
     image_3d_jaccard_index = image_out.copy()
     image_hrmse = image_out.copy()
     image_zrmse = image_out.copy()
+
+    # Initialize min/max area/volume
+    max_area = 0
+    min_area = 0
+    max_volume = 0
+    min_volume = 0
+
     for loop_region in range(1, num_ref_regions+1):
 
         # Reference region under evaluation
@@ -134,6 +137,16 @@ def run_objectwise_metrics(refDSM, refDTM, refMask, testDSM, testDTM, testMask, 
         this_metric['threshold_geometry'] = result_geo
         this_metric['relative_accuracy'] = result_acc
 
+        # Calculate min and max area/volume
+        if this_metric['threshold_geometry']['area']['test_area'] > max_area or loop_region == 1:
+            max_area = this_metric['threshold_geometry']['area']['test_area']
+        if this_metric['threshold_geometry']['area']['test_area'] < min_area or loop_region == 1:
+            min_area = this_metric['threshold_geometry']['area']['test_area']
+        if this_metric['threshold_geometry']['volume']['test_volume'] > max_volume or loop_region == 1:
+            max_volume = this_metric['threshold_geometry']['volume']['test_volume']
+        if this_metric['threshold_geometry']['volume']['test_volume'] < min_volume or loop_region == 1:
+            min_volume = this_metric['threshold_geometry']['volume']['test_volume']
+
         metric_list.append(this_metric)
 
         # Add scores to images
@@ -148,9 +161,64 @@ def run_objectwise_metrics(refDSM, refDTM, refMask, testDSM, testDTM, testMask, 
             image_hrmse[ind] = result_acc['hrmse']
             image_zrmse[ind] = result_acc['zrmse']
 
+    # Sort metrics by area
+    start_time = time.time()
+    # Calculate bins for area and volume
+    num_bins = 10
+    area_range = max_area-min_area
+    volume_range = max_volume-min_volume
+    area_bin_width = np.round(area_range/num_bins)
+    volume_bin_width = np.round(volume_range/num_bins)
+    area_bins = []
+    volume_bins = []
+    for i in range(0, num_bins+1):
+        area_bins.append(np.floor(min_area) + i * area_bin_width)
+        volume_bins.append(np.floor(min_volume) + i*volume_bin_width)
+
+    # Create dicts with bins as keys
+    iou_2d_area_bins = dict((el, []) for el in area_bins)
+    iou_2d_volume_bins = dict((el, []) for el in volume_bins)
+    iou_3d_area_bins = dict((el, []) for el in area_bins)
+    iou_3d_volume_bins = dict((el, []) for el in volume_bins)
+
+    # Keys are area/volume, Values are IOU
+    for current_metric in metric_list:
+        current_area = current_metric['threshold_geometry']['area']['test_area']
+        current_volume = current_metric['threshold_geometry']['volume']['test_volume']
+        for area_bin_edge in area_bins:
+            if current_area <= area_bin_edge:
+                iou_2d_area_bins[area_bin_edge].append(current_metric['threshold_geometry']['2D']['jaccardIndex'])
+                iou_3d_area_bins[area_bin_edge].append(current_metric['threshold_geometry']['3D']['jaccardIndex'])
+                break
+        for volume_bin_edge in volume_bins:
+            if current_volume <= volume_bin_edge:
+                iou_2d_volume_bins[volume_bin_edge].append(current_metric['threshold_geometry']['2D']['jaccardIndex'])
+                iou_3d_volume_bins[volume_bin_edge].append(current_metric['threshold_geometry']['3D']['jaccardIndex'])
+                break
+
+    # Average IOUs in bins
+    for current_bin in area_bins:
+        iou_2d_area_bins[current_bin] = np.mean(iou_2d_area_bins[current_bin])
+        iou_3d_area_bins[current_bin] = np.mean(iou_3d_area_bins[current_bin])
+    for current_bin in volume_bins:
+        iou_2d_volume_bins[current_bin] = np.mean(iou_2d_volume_bins[current_bin])
+        iou_3d_volume_bins[current_bin] = np.mean(iou_3d_volume_bins[current_bin])
+
+    print("--- %s seconds ---" % (time.time()-start_time))
+
     # plot
     if PLOTS_ENABLE:
         print('Input plots...')
+
+        # IOU Histograms
+        plot.make_iou_histogram(iou_2d_area_bins, 'Area (pixels)', '2D Mean IOUs by Area', 373, saveName=PLOTS_SAVE_PREFIX +
+                                                                                                  "obj2dIOUbyArea")
+        plot.make_iou_histogram(iou_2d_volume_bins, 'Volume (m^3)', '2D Mean IOUs by Volume', 374, saveName=PLOTS_SAVE_PREFIX +
+                                                                                                     "obj2dIOUbyVolume")
+        plot.make_iou_histogram(iou_3d_area_bins, 'Area (pixels)', '3D Mean IOUs by Area', 375, saveName=PLOTS_SAVE_PREFIX +
+                                                                                                  "obj3dIOUbyArea")
+        plot.make_iou_histogram(iou_3d_volume_bins, 'Volume (m^3)', '3D Mean IOUs by Volume', 376, saveName=PLOTS_SAVE_PREFIX +
+                                                                                                     "obj3dIOUbyVolume")
 
         plot.make(image_2d_completeness, 'Objectwise 2D Completeness', 351, saveName=PLOTS_SAVE_PREFIX + "obj2dCompleteness", colorbar=True, badValue=-1, vmin=0, vmax=1)
         plot.make(image_2d_correctness, 'Objectwise 2D Correctness', 352, saveName=PLOTS_SAVE_PREFIX + "obj2dCorrectness", colorbar=True, badValue=-1, vmin=0, vmax=1)

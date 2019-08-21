@@ -227,6 +227,26 @@ class plot:
 
         cv2.imwrite(fn, err_color)
 
+    def make_iou_histogram(self, iou_list, sort_type='', title='', fig=None, width=4000, **kwargs):
+        plt.figure(fig)
+        plt.clf()
+        plt.title(title)
+        # Create bar plot
+        plt.bar(iou_list.keys(), iou_list.values(), width, color='g', edgecolor='k', linewidth=1)
+        plt.xlabel(sort_type)
+        plt.ylabel('IOU')
+        if self.showPlots:
+            plt.show(block=False)
+
+        if self.autoSave:
+            if "saveName" in kwargs:
+                title = kwargs['saveName']
+            self.save(title)
+
+        if not self.showPlots:
+            plt.close(plt.gcf())
+
+
     def make_obj_error_map(self, error_map=None, ref=None, title='', fig=None, **kwargs):
         if ref is None:
             return plt
