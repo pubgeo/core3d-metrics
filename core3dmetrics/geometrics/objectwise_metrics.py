@@ -3,7 +3,6 @@ import numpy as np
 
 import scipy.ndimage as ndimage
 import time
-from itertools import groupby
 
 from .metrics_util import getUnitWidth
 from .threshold_geometry_metrics import run_threshold_geometry_metrics
@@ -162,7 +161,6 @@ def run_objectwise_metrics(refDSM, refDTM, refMask, testDSM, testDTM, testMask, 
             image_zrmse[ind] = result_acc['zrmse']
 
     # Sort metrics by area
-    start_time = time.time()
     # Calculate bins for area and volume
     num_bins = 10
     area_range = max_area-min_area
@@ -203,8 +201,6 @@ def run_objectwise_metrics(refDSM, refDTM, refMask, testDSM, testDTM, testMask, 
     for current_bin in volume_bins:
         iou_2d_volume_bins[current_bin] = np.mean(iou_2d_volume_bins[current_bin])
         iou_3d_volume_bins[current_bin] = np.mean(iou_3d_volume_bins[current_bin])
-
-    print("--- %s seconds ---" % (time.time()-start_time))
 
     # plot
     if PLOTS_ENABLE:
