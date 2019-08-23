@@ -207,24 +207,32 @@ def run_objectwise_metrics(refDSM, refDTM, refMask, testDSM, testDTM, testMask, 
         print('Input plots...')
 
         # IOU Histograms
-        plot.make_iou_histogram(iou_2d_area_bins, 'Area (pixels)', '2D Mean IOUs by Area', 373, saveName=PLOTS_SAVE_PREFIX +
-                                                                                                  "obj2dIOUbyArea")
-        plot.make_iou_histogram(iou_2d_volume_bins, 'Volume (m^3)', '2D Mean IOUs by Volume', 374, saveName=PLOTS_SAVE_PREFIX +
-                                                                                                     "obj2dIOUbyVolume")
-        plot.make_iou_histogram(iou_3d_area_bins, 'Area (pixels)', '3D Mean IOUs by Area', 375, saveName=PLOTS_SAVE_PREFIX +
-                                                                                                  "obj3dIOUbyArea")
-        plot.make_iou_histogram(iou_3d_volume_bins, 'Volume (m^3)', '3D Mean IOUs by Volume', 376, saveName=PLOTS_SAVE_PREFIX +
-                                                                                                     "obj3dIOUbyVolume")
+        plot.make_iou_histogram(iou_2d_area_bins, 'Area (pixels)',
+                                '2D Mean IOUs by Area', 373, saveName=PLOTS_SAVE_PREFIX +"obj2dIOUbyArea")
+        plot.make_iou_histogram(iou_2d_volume_bins, 'Volume (m^3)',
+                                '2D Mean IOUs by Volume', 374, saveName=PLOTS_SAVE_PREFIX +"obj2dIOUbyVolume")
+        plot.make_iou_histogram(iou_3d_area_bins, 'Area (pixels)',
+                                '3D Mean IOUs by Area', 375, saveName=PLOTS_SAVE_PREFIX +"obj3dIOUbyArea")
+        plot.make_iou_histogram(iou_3d_volume_bins, 'Volume (m^3)',
+                                '3D Mean IOUs by Volume', 376, saveName=PLOTS_SAVE_PREFIX +"obj3dIOUbyVolume")
 
-        plot.make(image_2d_completeness, 'Objectwise 2D Completeness', 351, saveName=PLOTS_SAVE_PREFIX + "obj2dCompleteness", colorbar=True, badValue=-1, vmin=0, vmax=1)
-        plot.make(image_2d_correctness, 'Objectwise 2D Correctness', 352, saveName=PLOTS_SAVE_PREFIX + "obj2dCorrectness", colorbar=True, badValue=-1, vmin=0, vmax=1)
-        plot.make(image_2d_jaccard_index, 'Objectwise 2D Jaccard Index', 353, saveName=PLOTS_SAVE_PREFIX + "obj2dJaccardIndex", colorbar=True, badValue=-1, vmin=0, vmax=1)
-        plot.make(image_3d_completeness, 'Objectwise 3D Completeness', 361, saveName=PLOTS_SAVE_PREFIX + "obj3dCompleteness", colorbar=True, badValue=-1, vmin=0, vmax=1)
-        plot.make(image_3d_correctness, 'Objectwise 3D Correctness', 362, saveName=PLOTS_SAVE_PREFIX + "obj3dCorrectness", colorbar=True, badValue=-1, vmin=0, vmax=1)
-        plot.make(image_3d_jaccard_index, 'Objectwise 3D Jaccard Index', 363, saveName=PLOTS_SAVE_PREFIX + "obj3dJaccardIndex", colorbar=True, badValue=-1, vmin=0, vmax=1)
+        plot.make(image_2d_completeness, 'Objectwise 2D Completeness',
+                  351, saveName=PLOTS_SAVE_PREFIX + "obj2dCompleteness", colorbar=True, badValue=-1, vmin=0, vmax=1)
+        plot.make(image_2d_correctness, 'Objectwise 2D Correctness',
+                  352, saveName=PLOTS_SAVE_PREFIX + "obj2dCorrectness", colorbar=True, badValue=-1, vmin=0, vmax=1)
+        plot.make(image_2d_jaccard_index, 'Objectwise 2D Jaccard Index',
+                  353, saveName=PLOTS_SAVE_PREFIX + "obj2dJaccardIndex", colorbar=True, badValue=-1, vmin=0, vmax=1)
+        plot.make(image_3d_completeness, 'Objectwise 3D Completeness',
+                  361, saveName=PLOTS_SAVE_PREFIX + "obj3dCompleteness", colorbar=True, badValue=-1, vmin=0, vmax=1)
+        plot.make(image_3d_correctness, 'Objectwise 3D Correctness',
+                  362, saveName=PLOTS_SAVE_PREFIX + "obj3dCorrectness", colorbar=True, badValue=-1, vmin=0, vmax=1)
+        plot.make(image_3d_jaccard_index, 'Objectwise 3D Jaccard Index',
+                  363, saveName=PLOTS_SAVE_PREFIX + "obj3dJaccardIndex", colorbar=True, badValue=-1, vmin=0, vmax=1)
 
-        plot.make(image_hrmse, 'Objectwise HRMSE', 371, saveName=PLOTS_SAVE_PREFIX+"objHRMSE", colorbar=True, badValue=-1, vmin=0, vmax=2)
-        plot.make(image_zrmse, 'Objectwise ZRMSE', 372, saveName=PLOTS_SAVE_PREFIX+"objZRMSE", colorbar=True, badValue=-1,  vmin=0, vmax=1)
+        plot.make(image_hrmse, 'Objectwise HRMSE',
+                  371, saveName=PLOTS_SAVE_PREFIX+"objHRMSE", colorbar=True, badValue=-1, vmin=0, vmax=2)
+        plot.make(image_zrmse, 'Objectwise ZRMSE',
+                  372, saveName=PLOTS_SAVE_PREFIX+"objZRMSE", colorbar=True, badValue=-1,  vmin=0, vmax=1)
         plot.make_obj_error_map(error_map=image_hrmse, ref=refMask, badValue=-1,
                                 saveName=PLOTS_SAVE_PREFIX + "HRMSE_Image_Only")
         plot.make_obj_error_map(error_map=image_zrmse, ref=refMask, badValue=-1,
