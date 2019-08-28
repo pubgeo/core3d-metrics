@@ -96,6 +96,10 @@
             "CLSFilename",
             "CLSMatchValue"
          ],
+         "optional": [
+            "ImagePairFilename",
+            "ImagePairDataFilename"
+         ],
          "additionalProperties": false,
          "properties": {
             "DSMFilename": {
@@ -113,6 +117,26 @@
             },
             "CLSFilename": {
                "type": "string"
+            },
+            "ImagePairFilename": {
+               "oneOf": [
+                  {
+                     "type": "string"
+                  },
+                  {
+                     "type": "null"
+                  }
+               ]
+            },
+             "ImagePairDataFilename": {
+               "oneOf": [
+                  {
+                     "type": "string"
+                  },
+                  {
+                     "type": "null"
+                  }
+               ]
             },
             "MTLFilename": {
                "oneOf": [

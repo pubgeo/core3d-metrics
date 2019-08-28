@@ -1,7 +1,7 @@
 import os
 import platform
 import numpy as np
-
+import csv
 import matplotlib  as mpl
 if os.getenv('DISPLAY') is None and not platform.system() == "Windows":
     import matplotlib
@@ -246,6 +246,25 @@ class plot:
         if not self.showPlots:
             plt.close(plt.gcf())
 
+    def make_iou_scatter(self, iou_list, sort_type='', title='', fig=None, width=4000, **kwargs):
+        ax = plt.figure(fig)
+        plt.clf()
+        plt.title(title)
+        # Create bar plot
+        plt.scatter(iou_list.keys(), iou_list.values(), s=20, color='r', edgecolor='black')
+        plt.xscale('log')
+        plt.xlabel(sort_type)
+        plt.ylabel('IOU')
+        if self.showPlots:
+            plt.show(block=False)
+
+        if self.autoSave:
+            if "saveName" in kwargs:
+                title = kwargs['saveName']
+            self.save(title)
+
+        if not self.showPlots:
+            plt.close(plt.gcf())
 
     def make_obj_error_map(self, error_map=None, ref=None, title='', fig=None, **kwargs):
         if ref is None:
@@ -307,3 +326,183 @@ class plot:
 
         fn = os.path.join(self.saveDir, saveName + self.saveExe)
         plt.savefig(fn, dpi=self.dpi)
+
+    def make_image_pair_plots(self, performer_pair_data_file, performer_pair_file, figNum, **kwargs):
+        data_file = performer_pair_data_file
+        image_pair_file = performer_pair_file
+        image_pair_example = ImagePairPlot(data_file, image_pair_file)
+        plt.set_cmap('viridis')
+        image_pair_example.create_plot(figNum)
+
+        if self.showPlots:
+            plt.show(block=False)
+
+        if self.autoSave:
+            if "saveName" in kwargs:
+                title = kwargs['saveName']
+            self.save(title)
+
+        if not self.showPlots:
+            plt.close(plt.gcf())
+
+        plt.set_cmap('jet')
+
+
+class ImagePair:
+    def __init__(self, azimuth_1, azimuth_2, off_nadir_1, off_nadir_2, month_1, month_2, gsd_1, gsd_2):
+        self.azimuth_1 = azimuth_1
+        self.azimuth_2 = azimuth_2
+        self.off_nadir_1 = off_nadir_1
+        self.off_nadir_2 = off_nadir_2
+        self.month_1 = month_1
+        self.month_2 = month_2
+        self.gsd_1 = gsd_1
+        self.gsd_2 = gsd_2
+
+
+class ImagePairPlot:
+    def __init__(self, data_file_path, image_pair_file_path):
+        self.data_file_path = data_file_path
+        self.image_pair_file_path = image_pair_file_path
+        # sortedbydate file
+        self.gsd_values = []
+        self.month_values = []
+        self.off_nadir_values = []
+        self.azimuth_values = []
+        self.order_id = []
+        # PairStats File
+        self.image1_orderid = []
+        self.image2_orderid = []
+        self.pair_intersection_angle = []
+        self.incidence_angle = []
+        self.matching_filename_index_1 = []
+        self.matching_filename_index_2 = []
+        self.image_pairs = []
+
+        # PairStats
+        with open(self.image_pair_file_path, mode='r') as infile:
+            reader = csv.reader(infile)
+            column_id = {k: v for v, k in enumerate(next(reader))}
+            for rows in reader:
+                # Ignore discarded rows
+                if rows[column_id['discarded']] == 'yes':
+                    continue
+                image1_orderID = (rows[column_id['image1']][19:])
+                image2_orderID = (rows[column_id['image2']][19:])
+                self.image1_orderid.append(image1_orderID)
+                self.image2_orderid.append(image2_orderID)
+                self.pair_intersection_angle.append(float(rows[column_id['intersection_angle']]))
+                self.incidence_angle.append(np.round(float(rows[column_id['incidence_angle']]), 1))
+
+        # sortedbydate
+        with open(self.data_file_path, mode='r') as infile:
+            reader = csv.reader(infile)
+            column_id = {k: v for v, k in enumerate(next(reader))}
+            for rows in reader:
+                if not (rows[column_id['spectral range']] == 'PAN'):
+                    continue
+                self.gsd_values.append(float(rows[column_id['mean product gsd']]))
+                self.azimuth_values.append(float(rows[column_id['mean satellite azimuth']]))
+                self.off_nadir_values.append(90.0-float(rows[column_id['mean satellite elevation']]))
+                year = str(int(float(rows[column_id['date']])))[0:4]
+                month = str(int(float(rows[column_id['date']])))[4:6]
+                self.month_values.append(int(month))
+                orderID = rows[column_id['order id']]
+                try:
+                    indices = [i for i, x in enumerate(self.image1_orderid) if x==orderID]
+                    self.matching_filename_index_1.append(indices)
+                except ValueError:
+                    self.matching_filename_index_1.append(np.nan)
+                try:
+                    indices = [i for i, x in enumerate(self.image2_orderid) if x == orderID]
+                    self.matching_filename_index_2.append(indices)
+                except ValueError:
+                    self.matching_filename_index_2.append(np.nan)
+                self.order_id.append(rows[column_id['order id']])
+
+        # Sort into pairs
+        matching_pairs = []
+        for i, image_1_indices in enumerate(self.matching_filename_index_1):
+            for j, image_2_indices in enumerate(self.matching_filename_index_2):
+                check = any(item in self.matching_filename_index_1[i] for item in self.matching_filename_index_2[j])
+                if check:
+                    matching_pairs.append([i, j])
+
+        for pair in matching_pairs:
+            file_1_index = pair[0]
+            file_2_index = pair[1]
+
+            az_1 = self.azimuth_values[file_1_index]
+            az_2 = self.azimuth_values[file_2_index]
+            el_1 = self.off_nadir_values[file_1_index]
+            el_2 = self.off_nadir_values[file_2_index]
+            m_1 = self.month_values[file_1_index]
+            m_2 = self.month_values[file_2_index]
+            gsd_1 = self.gsd_values[file_1_index]
+            gsd_2 = self.gsd_values[file_2_index]
+            image_pair_temp = ImagePair(az_1, az_2, el_1, el_2, m_1, m_2, gsd_1, gsd_2)
+            self.image_pairs.append(image_pair_temp)
+
+    def create_plot(self, figNum):
+        pair_lines = []
+        for i, val in enumerate(self.image_pairs):
+            pair_lines.append([[-(val.azimuth_1 / (180/np.pi))+np.pi/2, val.off_nadir_1],
+                               [-(val.azimuth_2 / (180/np.pi))+np.pi/2, val.off_nadir_2]])
+
+        radial_label_angle = 0
+        gsd = self.gsd_values
+        month = self.month_values
+        r = self.off_nadir_values
+        theta = self.azimuth_values
+        theta = [-(x / (180/np.pi))+np.pi/2 for x in theta]
+
+        # Create scatter with data for Month
+        plt.figure(figNum, figsize=(17, 5))
+        ax = plt.subplot(121, projection='polar')
+        # Plot connecting lines
+        for i, points in enumerate(pair_lines):
+            sc = ax.plot([points[0][0], points[1][0]], [points[0][1], points[1][1]], '-ro', LineWidth=0.3,
+                         MarkerSize=0.1)
+        # Plot circles
+        sc = ax.scatter(theta, r, s=70, c=month, alpha=1, edgecolors='black')
+
+        # Format plot
+        lines, labels = plt.thetagrids(range(0, 360, 30),
+                                       ('E', '60°', '30°', 'N', '330°', '300°', 'W', '240°', '210°', 'S', '150°',
+                                        '120°'))
+        for label, angle in zip(labels, range(0, 360, 30)):
+            label.set_rotation(90 - angle)
+        # Add axis labels
+        ax.text((5 * np.pi) / 6, 100, 'Azimuth (deg)', fontsize=10)
+        ax.text((np.pi) / 11, 70, 'Off-nadir (deg)', fontsize=10)
+        # Add color bar
+        cbar = plt.colorbar(sc, pad=0.25)
+        ax.set_rmax(60)
+        ax.set_rlabel_position(radial_label_angle)  # get radial labels away from plotted line
+        ax.grid(True)
+        ax.set_title("Month of Year", y=-0.15, fontsize=18)
+
+        # Create scatter with data for GSD
+        ax2 = plt.subplot(122, projection='polar')
+        # Plot connecting lines
+        for i, points in enumerate(pair_lines):
+            sc = ax2.plot([points[0][0], points[1][0]], [points[0][1], points[1][1]], '-ro', LineWidth=0.3,
+                          MarkerSize=0.1)
+        # Plot Circles
+        sc = ax2.scatter(theta, r, s=70, c=gsd, alpha=1, edgecolors='black')
+        # Format plot
+        lines, labels = plt.thetagrids(range(0, 360, 30),
+                                       ('E', '60°', '30°', 'N', '330°', '300°', 'W', '240°', '210°', 'S', '150°',
+                                        '120°'))
+        for label, angle in zip(labels, range(0, 360, 30)):
+            label.set_rotation(90 - angle)
+            # Add axis labels
+        ax2.text((5 * np.pi) / 6, 100, 'Azimuth (deg)', fontsize=10)
+        ax2.text((np.pi) / 11, 70, 'Off-nadir (deg)', fontsize=10)
+        # Add color bar
+        cbar = plt.colorbar(sc, pad=0.25)
+        ax2.set_rmax(60)
+        ax2.set_rlabel_position(radial_label_angle)  # get radial labels away from plotted line
+        ax2.grid(True)
+        ax2.set_title("Ground Sample Distance (GSD)", y=-0.15, fontsize=18)
+        return plt

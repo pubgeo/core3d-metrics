@@ -50,7 +50,7 @@ def findfiles(data, path=None):
 
 
 # PARSE CONFIGURATION FILE
-def parse_config(configfile,refpath=None,testpath=None):
+def parse_config(configfile, refpath=None, testpath=None):
 
     print('\n=====CONFIGURATION=====')
 
@@ -117,13 +117,11 @@ def parse_config(configfile,refpath=None,testpath=None):
                         'MergeRadius': 2
                         }  # meters
 
-
-
         # bool(config[s][i]) does not interpret 'true'/'false' strings
         s = 'OPTIONS'; i = 'QuantizeHeight'; config[s][i] = parser.getboolean(s,i)
         s = 'OPTIONS'; i = 'AlignModel'
         if i in config[s]:  # Optional Field
-            config[s][i] = parser.getboolean(s,i)
+            config[s][i] = parser.getboolean(s, i)
         else:
             config[s][i] = True
         s = 'OPTIONS'; i = 'SaveAligned'

@@ -13,14 +13,14 @@ def eval_metrics(refDSM, refDTM, refMask, testDSM, testDTM, testMask, tform, ign
 
     # Evaluate threshold geometry metrics using refDTM as the testDTM to mitigate effects of terrain modeling
     # uncertainty
-    result_geo = run_threshold_geometry_metrics(refDSM, refDTM, refMask, testDSM, refDTM, testMask, tform, ignoreMask,
+    result_geo, unitArea = run_threshold_geometry_metrics(refDSM, refDTM, refMask, testDSM, refDTM, testMask, tform, ignoreMask,
                                                 plot=plot, verbose=verbose)
 
     # Run the relative accuracy metrics and report results.
     result_acc = run_relative_accuracy_metrics(refDSM, testDSM, refMask, testMask, ignoreMask,
                                                getUnitWidth(tform), plot=plot)
 
-    return result_geo, result_acc
+    return result_geo, result_acc, unitArea
 
 
 # Compute statistics on a list of values
@@ -127,7 +127,7 @@ def run_objectwise_metrics(refDSM, refDTM, refMask, testDSM, testDTM, testMask, 
             test_use_counter[test_region-1] = test_use_counter[test_region-1] + 1
 
         # TODO:  Not practical as implemented to enable plots. plots is forced to false.
-        [result_geo, result_acc] = eval_metrics(refDSM, refDTM, ref_objs, testDSM, testDTM, test_objs, tform,
+        [result_geo, result_acc, unitArea] = eval_metrics(refDSM, refDTM, ref_objs, testDSM, testDTM, test_objs, tform,
                                                 ignoreMask, plot=None, verbose=verbose)
 
         this_metric = dict()
@@ -179,10 +179,24 @@ def run_objectwise_metrics(refDSM, refDTM, refMask, testDSM, testDTM, testMask, 
     iou_3d_area_bins = dict((el, []) for el in area_bins)
     iou_3d_volume_bins = dict((el, []) for el in volume_bins)
 
+    # Create dicts with areas as keys
+    iou_2d_area = {}
+    iou_2d_volume = {}
+    iou_3d_area = {}
+    iou_3d_volume = {}
+
     # Keys are area/volume, Values are IOU
     for current_metric in metric_list:
-        current_area = current_metric['threshold_geometry']['area']['test_area']
+        current_area = current_metric['threshold_geometry']['area']['test_area']*unitArea # Convert area to meters^2
         current_volume = current_metric['threshold_geometry']['volume']['test_volume']
+
+        # Get IOUS by area/volume
+        iou_2d_area.update({current_area: current_metric['threshold_geometry']['2D']['jaccardIndex']})
+        iou_2d_volume.update({current_volume: current_metric['threshold_geometry']['2D']['jaccardIndex']})
+        iou_3d_area.update({current_area: current_metric['threshold_geometry']['3D']['jaccardIndex']})
+        iou_3d_volume.update({current_volume: current_metric['threshold_geometry']['3D']['jaccardIndex']})
+
+        # Create bins
         for area_bin_edge in area_bins:
             if current_area <= area_bin_edge:
                 iou_2d_area_bins[area_bin_edge].append(current_metric['threshold_geometry']['2D']['jaccardIndex'])
@@ -207,14 +221,23 @@ def run_objectwise_metrics(refDSM, refDTM, refMask, testDSM, testDTM, testMask, 
         print('Input plots...')
 
         # IOU Histograms
-        plot.make_iou_histogram(iou_2d_area_bins, 'Area (pixels)',
-                                '2D Mean IOUs by Area', 373, saveName=PLOTS_SAVE_PREFIX +"obj2dIOUbyArea")
+        plot.make_iou_histogram(iou_2d_area_bins, 'Area (m^2)',
+                                '2D Mean IOUs by Area', 373, saveName=PLOTS_SAVE_PREFIX +"obj2dIOUbyAreaHistogram")
         plot.make_iou_histogram(iou_2d_volume_bins, 'Volume (m^3)',
-                                '2D Mean IOUs by Volume', 374, saveName=PLOTS_SAVE_PREFIX +"obj2dIOUbyVolume")
-        plot.make_iou_histogram(iou_3d_area_bins, 'Area (pixels)',
-                                '3D Mean IOUs by Area', 375, saveName=PLOTS_SAVE_PREFIX +"obj3dIOUbyArea")
+                                '2D Mean IOUs by Volume', 374, saveName=PLOTS_SAVE_PREFIX +"obj2dIOUbyVolumeHistogram")
+        plot.make_iou_histogram(iou_3d_area_bins, 'Area (m^2)',
+                                '3D Mean IOUs by Area', 375, saveName=PLOTS_SAVE_PREFIX +"obj3dIOUbyAreaHistogram")
         plot.make_iou_histogram(iou_3d_volume_bins, 'Volume (m^3)',
-                                '3D Mean IOUs by Volume', 376, saveName=PLOTS_SAVE_PREFIX +"obj3dIOUbyVolume")
+                                '3D Mean IOUs by Volume', 376, saveName=PLOTS_SAVE_PREFIX +"obj3dIOUbyVolumeHistogram")
+        # Scatter plots
+        plot.make_iou_scatter(iou_2d_area, 'Area (m^2)',
+                                '2D IOUs by Area', 373, saveName=PLOTS_SAVE_PREFIX +"obj2dIOUbyAreaScatter")
+        plot.make_iou_scatter(iou_2d_volume, 'Volume (m^3)',
+                                '2D IOUs by Volume', 374, saveName=PLOTS_SAVE_PREFIX +"obj2dIOUbyVolumeScatter")
+        plot.make_iou_scatter(iou_3d_area, 'Area (m^2)',
+                                '3D IOUs by Area', 375, saveName=PLOTS_SAVE_PREFIX +"obj3dIOUbyAreaScatter")
+        plot.make_iou_scatter(iou_3d_volume, 'Volume (m^3)',
+                                '3D IOUs by Volume', 376, saveName=PLOTS_SAVE_PREFIX +"obj3dIOUbyVolumeScatter")
 
         plot.make(image_2d_completeness, 'Objectwise 2D Completeness',
                   351, saveName=PLOTS_SAVE_PREFIX + "obj2dCompleteness", colorbar=True, badValue=-1, vmin=0, vmax=1)

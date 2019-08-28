@@ -46,11 +46,15 @@ def run_geometrics(config_file, ref_path=None, test_path=None, output_path=None,
     ref_dtm_filename = config['INPUT.REF']['DTMFilename']
     ref_cls_filename = config['INPUT.REF']['CLSFilename']
     ref_ndx_filename = config['INPUT.REF']['NDXFilename']
-    ref_mtl_filename = config['INPUT.REF'].get('MTLFilename',None)
+    ref_mtl_filename = config['INPUT.REF'].get('MTLFilename', None)
 
     # Get material label names and list of material labels to ignore in evaluation.
     material_names = config['MATERIALS.REF']['MaterialNames']
     material_indices_to_ignore = config['MATERIALS.REF']['MaterialIndicesToIgnore']
+
+    # Get image pair files
+    performer_pair_file = config['INPUT.TEST'].get('ImagePairFilename', None)
+    performer_pair_data_file = config['INPUT.TEST'].get('ImagePairDataFilename', None)
     
     # Get plot settings from configuration file
     PLOTS_SHOW = config['PLOTS']['ShowPlots']
@@ -216,6 +220,8 @@ def run_geometrics(config_file, ref_path=None, test_path=None, output_path=None,
         no_data_value = np.round(no_data_value / unit_hgt) * unit_hgt
        
     if PLOTS_ENABLE:
+        # Make image pair plots
+        plot.make_image_pair_plots(performer_pair_data_file, performer_pair_file, 201, saveName="image_pair_plot")
         # Reference models can include data voids, so ignore invalid data on display
         plot.make(ref_dsm, 'Reference DSM', 111, colorbar=True, saveName="input_refDSM", badValue=no_data_value)
         plot.make(ref_dtm, 'Reference DTM', 112, colorbar=True, saveName="input_refDTM", badValue=no_data_value)
@@ -295,7 +301,7 @@ def run_geometrics(config_file, ref_path=None, test_path=None, output_path=None,
 
         # Evaluate threshold geometry metrics using refDTM as the testDTM to mitigate effects of terrain modeling
         # uncertainty
-        result = geo.run_threshold_geometry_metrics(ref_dsm, ref_dtm, ref_mask, test_dsm, ref_dtm, test_mask, tform,
+        result, _ = geo.run_threshold_geometry_metrics(ref_dsm, ref_dtm, ref_mask, test_dsm, ref_dtm, test_mask, tform,
                                                     ignore_mask, plot=plot)
         if ref_match_value == test_match_value:
             result['CLSValue'] = ref_match_value

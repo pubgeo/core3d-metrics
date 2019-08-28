@@ -169,4 +169,4 @@ def run_threshold_geometry_metrics(refDSM, refDTM, refMask, testDSM, testDTM, te
         print(json.dumps(metrics, indent=2))
 
     # return metric dictionary
-    return metrics
+    return metrics, unitArea

@@ -51,7 +51,7 @@ def summarize_metrics(root_dir, teams, aois, ref_path=None, test_path=None):
                         n["threshold_geometry"] = json_data["threshold_geometry"]
                         n["relative_accuracy"] = json_data["relative_accuracy"]
                         n["registration_offset"] = offset_data["offset"]
-                        n["gelocation_error"] = np.linalg.norm(n["registration_offset"], 2)
+                        n["geolocation_error"] = np.linalg.norm(n["registration_offset"], 2)
                         n["terrain_accuracy"] = None
                         json_data = n
                         del n, offset_data
