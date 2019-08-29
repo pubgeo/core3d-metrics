@@ -328,6 +328,8 @@ class plot:
         plt.savefig(fn, dpi=self.dpi)
 
     def make_image_pair_plots(self, performer_pair_data_file, performer_pair_file, figNum, **kwargs):
+        if performer_pair_data_file is None or performer_pair_file is None:
+            return
         data_file = performer_pair_data_file
         image_pair_file = performer_pair_file
         image_pair_example = ImagePairPlot(data_file, image_pair_file)
