@@ -1,10 +1,5 @@
 FROM jhuapl/pubgeo:latest
 
-# APL Certs
-# COPY JHUAPL-MS-Root-CA-05-21-2038-B64-text.crt /usr/local/share/cacertificates/
-# RUN update-ca-certificates
-
-
 RUN apt update && apt upgrade -y && \
   DEBIAN_FRONTEND=noninteractive apt install -y --fix-missing --no-install-recommends \
     git \
