@@ -10,11 +10,11 @@ import numpy as np
 import argparse
 import json
 
-
 try:
     import core3dmetrics.geometrics as geo
 except:
     import geometrics as geo
+
 
 
 # PRIMARY FUNCTION: RUN_GEOMETRICS
@@ -218,7 +218,7 @@ def run_geometrics(config_file, ref_path=None, test_path=None, output_path=None,
         test_dsm = np.round(test_dsm / unit_hgt) * unit_hgt
         test_dtm = np.round(test_dtm / unit_hgt) * unit_hgt
         no_data_value = np.round(no_data_value / unit_hgt) * unit_hgt
-       
+
     if PLOTS_ENABLE:
         # Make image pair plots
         plot.make_image_pair_plots(performer_pair_data_file, performer_pair_file, 201, saveName="image_pair_plot")
@@ -238,8 +238,8 @@ def run_geometrics(config_file, ref_path=None, test_path=None, output_path=None,
 
         # material maps
         if ref_mtl_filename and test_mtl_filename:
-            plot.make(ref_mtl, 'Reference Materials', 191, colorbar=True, saveName="input_refMTL",vmin=0,vmax=13)
-            plot.make(test_mtl, 'Test Materials', 192, colorbar=True, saveName="input_testMTL",vmin=0,vmax=13)
+            plot.make(ref_mtl, 'Reference Materials', 191, colorbar=True, saveName="input_refMTL", vmin=0, vmax=13)
+            plot.make(test_mtl, 'Test Materials', 192, colorbar=True, saveName="input_testMTL", vmin=0, vmax=13)
 
     # Run the threshold geometry metrics and report results.
     metrics = dict()
@@ -388,7 +388,7 @@ def main(args=None):
     group.add_argument('--no-align', dest='align', action='store_false', help="Disable alignment")
     group.set_defaults(align=True)
 
-    #optional argument, enables saving of aligned image to disk
+    # optional argument, enables saving of aligned image to disk
     parser.add_argument('--save-aligned', dest='savealigned', required=False, action='store_true',
                         help="Save aligned images (not enabled by default)")
 

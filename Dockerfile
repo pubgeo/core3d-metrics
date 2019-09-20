@@ -1,4 +1,10 @@
 FROM jhuapl/pubgeo:latest
+
+# APL Certs
+# COPY JHUAPL-MS-Root-CA-05-21-2038-B64-text.crt /usr/local/share/cacertificates/
+# RUN update-ca-certificates
+
+
 RUN apt update && apt upgrade -y && \
   DEBIAN_FRONTEND=noninteractive apt install -y --fix-missing --no-install-recommends \
     git \
@@ -17,8 +23,8 @@ WORKDIR /
 ARG DOCKER_DEPLOY=true
 ENV DOCKER_DEPLOY=$DOCKER_DEPLOY
 RUN if [ "$DOCKER_DEPLOY" = true ] ; then \
-	pip3 install --no-deps git+https://github.com/pubgeo/core3d-metrics; \
-    fi
+	pip3 install --no-deps git+https://github.com/Sean-S-Wang/core3d-metrics.git; \
+    fi 
 
 RUN apt purge -y \
     git

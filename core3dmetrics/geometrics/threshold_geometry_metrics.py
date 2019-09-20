@@ -121,14 +121,14 @@ def run_threshold_geometry_metrics(refDSM, refDTM, refMask, testDSM, testDTM, te
 
     # separate test height into above & below ground sets
     test_above = np.copy(test_height)
-    test_above[test_height<0] = 0
+    test_above[test_height < 0] = 0
 
     test_below = np.copy(test_height)
-    test_below[test_height>0] = 0
+    test_below[test_height > 0] = 0
     test_below = np.absolute(test_below)
 
     # 3D metric arrays
-    tp_3D_array = np.minimum(ref_height,test_above) # ref/test height overlap
+    tp_3D_array = np.minimum(ref_height, test_above) # ref/test height overlap
     fn_3D_array = (ref_height - tp_3D_array) # test too short
     fp_3D_array = (test_above - tp_3D_array) + test_below # test too tall OR test below ground
 
