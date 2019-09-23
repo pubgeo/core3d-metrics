@@ -1,9 +1,9 @@
 import numpy as np
-from instancemetrics.TileEvaluator import TileEvaluator, merge_false_positives
+from core3dmetrics.instancemetrics.TileEvaluator import TileEvaluator, merge_false_positives
 import time as time
-from instancemetrics.Building_Classes import Building, create_raster_from_building_objects
-from instancemetrics.MetricsCalculator import MetricsCalculator as MetricsCalc
-from instancemetrics.MetricsContainer import MetricsContainer
+from core3dmetrics.instancemetrics.Building_Classes import Building, create_raster_from_building_objects
+from core3dmetrics.instancemetrics.MetricsCalculator import MetricsCalculator as MetricsCalc
+from core3dmetrics.instancemetrics.MetricsContainer import MetricsContainer
 
 
 def print_progress_bar(iteration, total, prefix='', suffix='', decimals=1, length=100, fill='#'):
