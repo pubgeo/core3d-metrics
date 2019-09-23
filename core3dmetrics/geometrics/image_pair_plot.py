@@ -203,12 +203,10 @@ class ImagePairPlot:
 
         return pdop, hdop, vdop
 
+
 def main():
-    data_file = Path(r"C:\Users\wangss1\Documents\CORE3D-Phase1B\ImageDataAndPlotScripts-ForImagePairs\1b-jax-sortedbydate.csv")
-    image_pair_file = Path(r"C:\Users\wangss1\Documents\CORE3D-Phase1B\ImageDataAndPlotScripts-ForImagePairs\D-S-4_PairStats.csv")
-    image_pair_example = ImagePairPlot(data_file, image_pair_file)
-    image_pair_example.create_plot(201)
-    print("done")
+    print("Debug")
+
 
 if __name__ == "__main__":
     main()

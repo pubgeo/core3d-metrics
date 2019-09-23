@@ -72,6 +72,9 @@ def summarize_metrics(root_dir, teams, aois, ref_path=None, test_path=None):
                     n["registration_offset"] = json_data["registration_offset"]
                     n["geolocation_error"] = json_data["geolocation_error"]
                     n["terrain_accuracy"] = None
+                    n["instance_f1"] = json_data["objectwise"][cls]["instance_f1"]
+                    n["instance_f1_merge_fp"] = json_data["objectwise"][cls]["instance_f1_merge_fp"]
+                    n["instance_f1_merge_fn"] = json_data["objectwise"][cls]["instance_f1_merge_fn"]
                     json_data = n
                     del n
 

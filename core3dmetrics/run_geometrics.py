@@ -16,7 +16,6 @@ except:
     import geometrics as geo
 
 
-
 # PRIMARY FUNCTION: RUN_GEOMETRICS
 def run_geometrics(config_file, ref_path=None, test_path=None, output_path=None,
                    align=True, allow_test_ignore=False, save_aligned=False, save_plots=None):
@@ -248,7 +247,7 @@ def run_geometrics(config_file, ref_path=None, test_path=None, output_path=None,
     threshold_geometry_results = []
     relative_accuracy_results = []
     objectwise_results = []
-    
+
     # Check that match values are valid
     ref_cls_match_sets, test_cls_match_sets = geo.getMatchValueSets(config['INPUT.REF']['CLSMatchValue'],
                                                                     config['INPUT.TEST']['CLSMatchValue'],

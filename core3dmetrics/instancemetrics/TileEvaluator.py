@@ -275,7 +275,10 @@ class TileEvaluator:
         if uncertain_mask is not None:
             stoplight_chart[uncertain_mask == 1] = white
         # get contours of ground truth buildings
-        ret, threshed = cv.threshold(gt, 0, 2 ** 16, cv.THRESH_BINARY)
+        gt_binary = gt.copy()
+        gt_binary[gt != 0] = 1
+        gt_binary = gt_binary.astype(np.uint8)
+        ret, threshed = cv.threshold(gt_binary, 0, 255, cv.THRESH_BINARY)
         compressed = threshed.astype(np.uint8)
         contours, hierarchy = cv.findContours(compressed, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_NONE)
 
@@ -357,13 +360,7 @@ def merge_false_positives(edge_x, edge_y, gt_buildings, performer_buildings):
 
 
 def main():
-    # TODO: remove dom1 paths from code
-    gt_path = '//dom1/Core/Dept/AOS/AOSShare/NGA-FFDA/Stephanie/albu_rgb-test-provisional-train_w_rowhomes-Uncompressed/JAX_Tile_001_GTI.tif'
-    non_building_labels = np.array([0])
-    eval1 = TileEvaluator()
-    img = eval1.read_image(gt_path)
-    unique_instances = eval1.get_num_instances(img, non_building_labels)
-    parse_osm()
+    print("Debug")
 
 
 if __name__ == "__main__":

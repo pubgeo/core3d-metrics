@@ -7,6 +7,7 @@ import time
 from .metrics_util import getUnitWidth
 from .threshold_geometry_metrics import run_threshold_geometry_metrics
 from .relative_accuracy_metrics import run_relative_accuracy_metrics
+from instancemetrics.instance_metrics import eval_instance_metrics
 
 
 def eval_metrics(refDSM, refDTM, refMask, testDSM, testDTM, testMask, tform, ignoreMask, plot=None, verbose=True):
@@ -70,6 +71,22 @@ def run_objectwise_metrics(refDSM, refDTM, refMask, testDSM, testDTM, testMask, 
     test_use_counter = np.zeros([num_test_regions, 1])
     ref_use_counter = np.zeros([num_ref_regions, 1])
 
+    # Calculate instance metrics
+    class instance_parameters:
+        def __init__(self):
+            self.IOU_THRESHOLD = 0.45
+            self.MIN_AREA_FILTER = 0
+            self.UNCERTAIN_VALUE = 65
+    params = instance_parameters()
+    metrics_container_no_merge, metrics_container_merge_fp, metrics_container_merge_fn = \
+        eval_instance_metrics(ref_ndx, params, test_ndx)
+    no_merge_f1 = metrics_container_no_merge.f1_score
+    merge_fp_f1 = metrics_container_merge_fp.f1_score
+    merge_fn_f1 = metrics_container_merge_fn.f1_score
+    num_buildings_performer = np.unique(test_ndx).__len__()-1
+    num_buildings_truth = np.unique(ref_ndx).__len__()-1
+
+    # Initialize metric list
     metric_list = []
     # Make images to visualize certain metrics
     # Unused regions will be marked as zero, background as -1
@@ -220,6 +237,14 @@ def run_objectwise_metrics(refDSM, refDTM, refMask, testDSM, testDTM, testMask, 
     if PLOTS_ENABLE:
         print('Input plots...')
 
+        # Save instance level stoplight charts
+        plot.make_instance_stoplight_charts(metrics_container_no_merge.stoplight_chart,
+                                            saveName=PLOTS_SAVE_PREFIX+"instanceStoplightNoMerge")
+        plot.make_instance_stoplight_charts(metrics_container_merge_fp.stoplight_chart,
+                                            saveName=PLOTS_SAVE_PREFIX + "instanceStoplightMergeFP")
+        plot.make_instance_stoplight_charts(metrics_container_merge_fn.stoplight_chart,
+                                            saveName=PLOTS_SAVE_PREFIX + "instanceStoplightMergeFN")
+
         # IOU Histograms
         plot.make_iou_histogram(iou_2d_area_bins, 'Area (m^2)',
                                 '2D Mean IOUs by Area', 373, saveName=PLOTS_SAVE_PREFIX +"obj2dIOUbyAreaHistogram")
@@ -333,7 +358,12 @@ def run_objectwise_metrics(refDSM, refDTM, refMask, testDSM, testDTM, testMask, 
     # Make summary of metrics
     results = {
         'summary': summary,
-        'objects': metric_list
+        'objects': metric_list,
+        'instance_f1': no_merge_f1,
+        'instance_f1_merge_fp': merge_fp_f1,
+        'instance_f1_merge_fn': merge_fn_f1,
+        'num_buildings_gt': num_buildings_truth,
+        'num_buildings_perf': num_buildings_performer
     }
 
     return results, test_ndx, ref_ndx

@@ -120,6 +120,17 @@ class plot:
         if not self.showPlots:
             plt.close(plt.gcf())
 
+    def make_instance_stoplight_charts(self, stoplight_chart, **kwargs):
+        if "saveName" in kwargs:
+            title = kwargs['saveName']
+
+        if len(self.savePrefix) > 0:
+            saveName = self.savePrefix + title
+
+        fn = os.path.join(self.saveDir, saveName + self.saveExe)
+
+        cv2.imwrite(fn, stoplight_chart)
+
     def make_stoplight_plot(self, fp_image=None, fn_image= None, ref=None, title='', fig=None, **kwargs):
         if ref is None:
             return plt
@@ -245,6 +256,7 @@ class plot:
 
         if not self.showPlots:
             plt.close(plt.gcf())
+
 
     def make_iou_scatter(self, iou_list, sort_type='', title='', fig=None, width=4000, **kwargs):
         ax = plt.figure(fig)
