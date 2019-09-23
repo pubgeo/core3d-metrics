@@ -7,7 +7,7 @@ import time
 from .metrics_util import getUnitWidth
 from .threshold_geometry_metrics import run_threshold_geometry_metrics
 from .relative_accuracy_metrics import run_relative_accuracy_metrics
-from instancemetrics.instance_metrics import eval_instance_metrics
+from core3dmetrics.instancemetrics.instance_metrics import eval_instance_metrics
 
 
 def eval_metrics(refDSM, refDTM, refMask, testDSM, testDTM, testMask, tform, ignoreMask, plot=None, verbose=True):
