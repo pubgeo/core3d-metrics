@@ -1,11 +1,6 @@
-import json
-from pathlib import Path
-from xml.etree import ElementTree
-
-from numpy import uint16
 import numpy as np
-from osgeo import ogr, gdal, osr
-import os
+from osgeo import gdal
+
 
 _print_once = {}
 

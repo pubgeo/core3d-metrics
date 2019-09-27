@@ -6,7 +6,6 @@ import warnings
 import functools
 from .Building_Classes import Building
 from .MetricsCalculator import MetricsCalculator
-from .GeospatialConversions import parse_osm
 
 
 def deprecated(func):
