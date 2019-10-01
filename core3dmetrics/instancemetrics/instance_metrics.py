@@ -210,7 +210,6 @@ def eval_instance_metrics(gt_indx_raster, params, perf_indx_raster):
                                                             performer_buildings, params.IOU_THRESHOLD,
                                                             metrics_container_no_merge)
     metrics_container_no_merge.show_metrics()
-    # metrics_container_no_merge.show_stoplight_chart()
     # Merge performer buildings
     print("Merging FP buildings to account for closely spaced buildings...")
     merged_performer_buildings = merge_false_positives(edge_x, edge_y, gt_buildings, performer_buildings)
@@ -230,10 +229,8 @@ def eval_instance_metrics(gt_indx_raster, params, perf_indx_raster):
                                                             merged_performer_buildings, params.IOU_THRESHOLD,
                                                             metrics_container_merge_fp)
     metrics_container_merge_fp.show_metrics()
-    # metrics_container_merge_fp.show_stoplight_chart()
     # Merge gt buildings
     print("Merging GT buildings to account for closely spaced buildings...")
-    # merged_gt_buildings = merge_false_negatives(edge_x, edge_y, gt_buildings, performer_buildings)
     merged_gt_buildings = merge_false_positives(edge_x, edge_y, performer_buildings, gt_buildings)
     canvas = create_raster_from_building_objects(merged_gt_buildings, gt_indx_raster.shape[0], gt_indx_raster.shape[1])
     for _, current_perf_building in performer_buildings.items():
