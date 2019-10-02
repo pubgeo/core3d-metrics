@@ -253,23 +253,24 @@ class TileEvaluator:
         stoplight_chart = np.multiply(np.ones((gt.shape[0], gt.shape[1], 3), dtype=np.uint8), 220)
         green = [0, 255, 0]
         red = [0, 0, 255]
+        blue = [255, 0, 0]
         yellow = [0, 255, 255]
         white = [255, 255, 255]
         black = [0, 0, 0]
         # true positives
         for i in tp_indices:
-            stoplight_chart[perf == i] = green
+            stoplight_chart[perf == i] = white
         # false negatives
         for i in fn_indices:
-            stoplight_chart[gt == i] = red
+            stoplight_chart[gt == i] = blue
         # false positives
         for i in fp_indices:
-            stoplight_chart[perf == i] = yellow
+            stoplight_chart[perf == i] = red
         # ignored instances
         for i in ignore_gt_indices:
-            stoplight_chart[gt == i] = white
+            stoplight_chart[gt == i] = yellow
         for i in ignore_perf_indices:
-            stoplight_chart[perf == i] = white
+            stoplight_chart[perf == i] = yellow
         # uncertain instances
         if uncertain_mask is not None:
             stoplight_chart[uncertain_mask == 1] = white

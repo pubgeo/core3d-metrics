@@ -339,7 +339,7 @@ def run_geometrics(config_file, ref_path=None, test_path=None, output_path=None,
 
     # Run the terrain model metrics and report results.
     if test_dtm_filename:
-        dtm_z_threshold = config['OPTIONS'].get('TerrainZErrorThreshold',1)
+        dtm_z_threshold = config['OPTIONS'].get('TerrainZErrorThreshold', 1)
 
         # Make reference mask for terrain evaluation that identified elevated object where underlying terrain estimate
         # is expected to be inaccurate
