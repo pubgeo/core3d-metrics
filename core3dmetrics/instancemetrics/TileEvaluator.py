@@ -306,10 +306,10 @@ class TileEvaluator:
         return rgb_image
 
 
-def merge_false_positives(edge_x, edge_y, gt_buildings, performer_buildings):
+def merge_buildings(edge_x, edge_y, gt_buildings, performer_buildings):
     """
-    Merges the false positive buildings from 2 sets of building objects that have already been run through metrics and
-    outputs a new list of merged performer buildings. This makes evaluation more fair if performer buildings had many
+    Merges the overlapping buildings from 2 sets of building objects that have already been run through metrics and
+    outputs a new list of merged buildings. This makes evaluation more fair if performer buildings had many
     closely spaced buildings that all individually failed to meet the IOU threshold
     :param edge_x: maximum horizontal resolution
     :param edge_y: maximum vertical resolution
