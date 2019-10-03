@@ -204,7 +204,7 @@ def run_objectwise_metrics(refDSM, refDTM, refMask, testDSM, testDTM, testMask, 
 
     # Keys are area/volume, Values are IOU
     for current_metric in metric_list:
-        current_area = current_metric['threshold_geometry']['area']['test_area']*unitArea # Convert area to meters^2
+        current_area = current_metric['threshold_geometry']['area']['test_area']*unitArea  # Convert area to meters^2
         current_volume = current_metric['threshold_geometry']['volume']['test_volume']
 
         # Get IOUS by area/volume
