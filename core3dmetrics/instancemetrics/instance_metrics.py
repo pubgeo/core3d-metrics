@@ -1,5 +1,5 @@
 import numpy as np
-from core3dmetrics.instancemetrics.TileEvaluator import TileEvaluator, merge_false_positives
+from core3dmetrics.instancemetrics.TileEvaluator import TileEvaluator, merge_buildings
 import time as time
 from core3dmetrics.instancemetrics.Building_Classes import Building, create_raster_from_building_objects
 from core3dmetrics.instancemetrics.MetricsCalculator import MetricsCalculator as MetricsCalc
@@ -212,7 +212,7 @@ def eval_instance_metrics(gt_indx_raster, params, perf_indx_raster):
     metrics_container_no_merge.show_metrics()
     # Merge performer buildings
     print("Merging FP buildings to account for closely spaced buildings...")
-    merged_performer_buildings = merge_false_positives(edge_x, edge_y, gt_buildings, performer_buildings)
+    merged_performer_buildings = merge_buildings(edge_x, edge_y, gt_buildings, performer_buildings)
     # Create new performer_index raster
     canvas = create_raster_from_building_objects(merged_performer_buildings, perf_indx_raster.shape[0],
                                                  perf_indx_raster.shape[1])
@@ -223,30 +223,29 @@ def eval_instance_metrics(gt_indx_raster, params, perf_indx_raster):
         current_gt_building.iou_score = None
         current_gt_building.is_uncertain = False
     # Re-run metrics on merged performer buildings
-    metrics_container_merge_fp = MetricsContainer()
-    metrics_container_merge_fp.name = "Merge FP Performers"
-    metrics_container_merge_fp = calculate_metrics_iterator(gt_buildings, gt_indx_raster, ignored_gt, canvas,
+    metrics_container_merge_performer = MetricsContainer()
+    metrics_container_merge_performer.name = "Merge FP Performers"
+    metrics_container_merge_performer = calculate_metrics_iterator(gt_buildings, gt_indx_raster, ignored_gt, canvas,
                                                             merged_performer_buildings, params.IOU_THRESHOLD,
-                                                            metrics_container_merge_fp)
-    metrics_container_merge_fp.show_metrics()
+                                                            metrics_container_merge_performer)
+    metrics_container_merge_performer.show_metrics()
     # Merge gt buildings
     print("Merging GT buildings to account for closely spaced buildings...")
-    merged_gt_buildings = merge_false_positives(edge_x, edge_y, performer_buildings, gt_buildings)
+    merged_gt_buildings = merge_buildings(edge_x, edge_y, performer_buildings, gt_buildings)
     canvas = create_raster_from_building_objects(merged_gt_buildings, gt_indx_raster.shape[0], gt_indx_raster.shape[1])
     for _, current_perf_building in performer_buildings.items():
         current_perf_building.match = False
         current_perf_building.fp_overlap_with = []
         current_perf_building.iou_score = None
         current_perf_building.is_uncertain = False
-    metrics_container_merge_fn = MetricsContainer()
-    metrics_container_merge_fn.name = "Merge GTs"
-    metrics_container_merge_fn = calculate_metrics_iterator(merged_gt_buildings, gt_indx_raster, ignored_gt, canvas,
+    metrics_container_merge_gt = MetricsContainer()
+    metrics_container_merge_gt.name = "Merge GTs"
+    metrics_container_merge_gt = calculate_metrics_iterator(merged_gt_buildings, gt_indx_raster, ignored_gt, canvas,
                                                             performer_buildings, params.IOU_THRESHOLD,
-                                                            metrics_container_merge_fn)
-    metrics_container_merge_fn.show_metrics()
-    # metrics_container_merge_fn.show_stoplight_chart()
+                                                            metrics_container_merge_gt)
+    metrics_container_merge_gt.show_metrics()
     elapsed_time = time.time() - start_time
     print("Elapsed time: " + repr(elapsed_time))
-    return metrics_container_no_merge, metrics_container_merge_fp, metrics_container_merge_fn
+    return metrics_container_no_merge, metrics_container_merge_performer, metrics_container_merge_gt
     print("Done")
 

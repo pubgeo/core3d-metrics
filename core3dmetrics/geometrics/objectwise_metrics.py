@@ -204,7 +204,7 @@ def run_objectwise_metrics(refDSM, refDTM, refMask, testDSM, testDTM, testMask, 
 
     # Keys are area/volume, Values are IOU
     for current_metric in metric_list:
-        current_area = current_metric['threshold_geometry']['area']['test_area']*unitArea # Convert area to meters^2
+        current_area = current_metric['threshold_geometry']['area']['test_area']*unitArea  # Convert area to meters^2
         current_volume = current_metric['threshold_geometry']['volume']['test_volume']
 
         # Get IOUS by area/volume
@@ -241,9 +241,9 @@ def run_objectwise_metrics(refDSM, refDTM, refMask, testDSM, testDTM, testMask, 
         plot.make_instance_stoplight_charts(metrics_container_no_merge.stoplight_chart,
                                             saveName=PLOTS_SAVE_PREFIX+"instanceStoplightNoMerge")
         plot.make_instance_stoplight_charts(metrics_container_merge_fp.stoplight_chart,
-                                            saveName=PLOTS_SAVE_PREFIX + "instanceStoplightMergeFP")
+                                            saveName=PLOTS_SAVE_PREFIX + "instanceStoplightMergePerformer")
         plot.make_instance_stoplight_charts(metrics_container_merge_fn.stoplight_chart,
-                                            saveName=PLOTS_SAVE_PREFIX + "instanceStoplightMergeFN")
+                                            saveName=PLOTS_SAVE_PREFIX + "instanceStoplightMergeGT")
 
         # IOU Histograms
         plot.make_iou_histogram(iou_2d_area_bins, 'Area (m^2)',

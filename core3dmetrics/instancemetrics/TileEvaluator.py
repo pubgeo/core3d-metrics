@@ -253,23 +253,24 @@ class TileEvaluator:
         stoplight_chart = np.multiply(np.ones((gt.shape[0], gt.shape[1], 3), dtype=np.uint8), 220)
         green = [0, 255, 0]
         red = [0, 0, 255]
+        blue = [255, 0, 0]
         yellow = [0, 255, 255]
         white = [255, 255, 255]
         black = [0, 0, 0]
         # true positives
         for i in tp_indices:
-            stoplight_chart[perf == i] = green
+            stoplight_chart[perf == i] = white
         # false negatives
         for i in fn_indices:
-            stoplight_chart[gt == i] = red
+            stoplight_chart[gt == i] = blue
         # false positives
         for i in fp_indices:
-            stoplight_chart[perf == i] = yellow
+            stoplight_chart[perf == i] = red
         # ignored instances
         for i in ignore_gt_indices:
-            stoplight_chart[gt == i] = white
+            stoplight_chart[gt == i] = yellow
         for i in ignore_perf_indices:
-            stoplight_chart[perf == i] = white
+            stoplight_chart[perf == i] = yellow
         # uncertain instances
         if uncertain_mask is not None:
             stoplight_chart[uncertain_mask == 1] = white
@@ -306,10 +307,10 @@ class TileEvaluator:
         return rgb_image
 
 
-def merge_false_positives(edge_x, edge_y, gt_buildings, performer_buildings):
+def merge_buildings(edge_x, edge_y, gt_buildings, performer_buildings):
     """
-    Merges the false positive buildings from 2 sets of building objects that have already been run through metrics and
-    outputs a new list of merged performer buildings. This makes evaluation more fair if performer buildings had many
+    Merges the overlapping buildings from 2 sets of building objects that have already been run through metrics and
+    outputs a new list of merged buildings. This makes evaluation more fair if performer buildings had many
     closely spaced buildings that all individually failed to meet the IOU threshold
     :param edge_x: maximum horizontal resolution
     :param edge_y: maximum vertical resolution

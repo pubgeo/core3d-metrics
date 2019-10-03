@@ -69,6 +69,8 @@ def summarize_metrics(root_dir, teams, aois, ref_path=None, test_path=None):
                             n["objectwise"].update({current_class: json_data["objectwise"][cls]})
                         except KeyError:
                             print('No objectwise metrics found...')
+                        except IndexError:
+                            print('Classification doesnt exist...')
                     n["registration_offset"] = json_data["registration_offset"]
                     n["geolocation_error"] = json_data["geolocation_error"]
                     n["terrain_accuracy"] = None
@@ -80,6 +82,11 @@ def summarize_metrics(root_dir, teams, aois, ref_path=None, test_path=None):
                         n["instance_f1"] = np.nan
                         n["instance_f1_merge_fp"] = np.nan
                         n["instance_f1_merge_fn"] = np.nan
+                    except IndexError:
+                        n["instance_f1"] = np.nan
+                        n["instance_f1_merge_fp"] = np.nan
+                        n["instance_f1_merge_fn"] = np.nan
+                        print('Classification doesnt exist...')
 
                     json_data = n
                     del n
