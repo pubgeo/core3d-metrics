@@ -35,6 +35,7 @@ class ImagePairPlot:
         self.matching_filename_index_1 = []
         self.matching_filename_index_2 = []
         self.image_pairs = []
+        self.use_data_file_for_angles = False
 
         # PairStats
         with open(self.image_pair_file_path, mode='r') as infile:
@@ -42,14 +43,21 @@ class ImagePairPlot:
             column_id = {k: v for v, k in enumerate(next(reader))}
             for rows in reader:
                 # Ignore discarded rows
-                if rows[column_id['discarded']] == 'yes':
-                    continue
-                image1_orderID = (rows[column_id['image1']][19:])
-                image2_orderID = (rows[column_id['image2']][19:])
+                try:
+                    if rows[column_id['discarded']] == 'yes':
+                        continue
+                except KeyError:
+                    pass
+
+                image1_orderID = (rows[column_id['Image 1 filename']][35:55])
+                image2_orderID = (rows[column_id[' Image 2 filename']][35:55])
                 self.image1_orderid.append(image1_orderID)
                 self.image2_orderid.append(image2_orderID)
-                self.pair_intersection_angle.append(float(rows[column_id['intersection_angle']]))
-                self.incidence_angle.append(np.round(float(rows[column_id['incidence_angle']]), 1))
+                try:
+                    self.pair_intersection_angle.append(float(rows[column_id['intersection_angle']]))
+                    self.incidence_angle.append(np.round(float(rows[column_id['incidence_angle']]), 1))
+                except KeyError:
+                    self.use_data_file_for_angles = True
 
         # sortedbydate
         with open(self.data_file_path, mode='r') as infile:
@@ -66,7 +74,7 @@ class ImagePairPlot:
                 self.month_values.append(int(month))
                 orderID = rows[column_id['order id']]
                 try:
-                    indices = [i for i, x in enumerate(self.image1_orderid) if x==orderID]
+                    indices = [i for i, x in enumerate(self.image1_orderid) if x == orderID]
                     self.matching_filename_index_1.append(indices)
                 except ValueError:
                     self.matching_filename_index_1.append(np.nan)
