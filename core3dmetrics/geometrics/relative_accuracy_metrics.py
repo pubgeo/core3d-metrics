@@ -57,9 +57,12 @@ def run_relative_accuracy_metrics(refDSM, testDSM, refMask, testMask, ignoreMask
         testPts = np.where(testMask == True)
 
     # Use KD Tree to find test point nearest each reference point
-    tree = cKDTree(np.transpose(testPts))
-    dist, indexes = tree.query(np.transpose(refPts))
-    dist = dist * gsd
+    try:
+        tree = cKDTree(np.transpose(testPts))
+        dist, indexes = tree.query(np.transpose(refPts))
+        dist = dist * gsd
+    except ValueError:
+        dist = np.nan
 
     # Calculate horizontal percentile errors.
     # H63 approximates HRMSE assuming binormal error distribution.
