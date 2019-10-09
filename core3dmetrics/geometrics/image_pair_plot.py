@@ -18,9 +18,10 @@ class ImagePair:
 
 
 class ImagePairPlot:
-    def __init__(self, data_file_path, image_pair_file_path):
+    def __init__(self, data_file_path, image_pair_file_path, files_chosen_path):
         self.data_file_path = data_file_path
         self.image_pair_file_path = image_pair_file_path
+        self.files_chosen_path = files_chosen_path
         # sortedbydate file
         self.gsd_values = []
         self.month_values = []
@@ -36,6 +37,17 @@ class ImagePairPlot:
         self.matching_filename_index_2 = []
         self.image_pairs = []
         self.use_data_file_for_angles = False
+        self.image_names = []
+
+        # Get list of all images used for AOI
+        with open(self.files_chosen_path, mode='r') as infile:
+            reader = csv.reader(infile)
+            column_id = {k: v for v, k in enumerate(next(reader))}
+            for rows in reader:
+                if rows[column_id[' Used for stereo']] == 'NO':
+                    continue
+                image_name = rows[column_id['Image filename']][35:55]
+                self.image_names.append(image_name)
 
         # PairStats
         with open(self.image_pair_file_path, mode='r') as infile:
@@ -65,6 +77,9 @@ class ImagePairPlot:
             column_id = {k: v for v, k in enumerate(next(reader))}
             for rows in reader:
                 if not (rows[column_id['spectral range']] == 'PAN'):
+                    continue
+                # Compare used images with data file
+                if rows[column_id['filename']][35:55] not in self.image_names:
                     continue
                 self.gsd_values.append(float(rows[column_id['mean product gsd']]))
                 self.azimuth_values.append(float(rows[column_id['mean satellite azimuth']]))
