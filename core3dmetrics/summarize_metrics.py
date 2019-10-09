@@ -167,7 +167,7 @@ def summarize_metrics(root_dir, teams, aois, ref_path=None, test_path=None):
         averaged_results[team]["geolocation_error"] = np.round(
             sum_geolocation_error / all_results[team].__len__(), decimals=2)
         # TODO: Need to make config specific to each config file, but for now it doesn't matter
-        for cls in config["INPUT.REF"]["CLSMatchValue"]:
+        for cls in [6, 17]:  # config["INPUT.REF"]["CLSMatchValue"]:
             try:
                 averaged_results[team][cls] = {}
                 averaged_results[team][cls]["2d_completeness"] = np.round(
