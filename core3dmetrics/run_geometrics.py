@@ -167,6 +167,7 @@ def run_geometrics(config_file, ref_path=None, test_path=None, output_path=None,
     ref_cls_no_data_value = geo.getNoDataValue(ref_cls_filename)
     if ref_cls_no_data_value != 65:
         print("WARNING! NODATA TAG IN CLS FILE IS LIKELY INCORRECT. IT SHOULD BE 65.")
+        ref_cls_no_data_value = 65
     ignore_mask = np.zeros_like(ref_cls, np.bool)
 
     if ref_dsm_no_data_value is not None:

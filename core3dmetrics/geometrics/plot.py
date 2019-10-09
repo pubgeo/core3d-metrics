@@ -186,7 +186,7 @@ class plot:
         image = np.uint8(image)
         return image
 
-    def make_error_map(self, error_map=None, ref=None, title='', fig=None, **kwargs):
+    def make_error_map(self, error_map=None, ref=None, title='', fig=None, ignore=None, **kwargs):
         if ref is None:
             return plt
         plt.figure(fig)
@@ -264,6 +264,8 @@ class plot:
         plt.title(title)
         # Create bar plot
         plt.scatter(iou_list.keys(), iou_list.values(), s=20, color='r', edgecolor='black')
+        plt.ylim(0, 1.0)
+        plt.xlim(1, 10000000)
         plt.xscale('log')
         plt.xlabel(sort_type)
         plt.ylabel('IOU')

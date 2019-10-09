@@ -163,8 +163,8 @@ def parse_config(configfile, refpath=None, testpath=None):
 
   
     # for easier explotation, ensure some configuration options are tuple/list
-    opts = (('INPUT.TEST','CLSMatchValue'),('INPUT.REF','CLSMatchValue'),
-        ('MATERIALS.REF','MaterialIndicesToIgnore'))
+    opts = (('INPUT.TEST', 'CLSMatchValue'), ('INPUT.REF', 'CLSMatchValue'),
+            ('MATERIALS.REF', 'MaterialIndicesToIgnore'))
 
     for opt in opts:
         s = opt[0]; i = opt[1];
