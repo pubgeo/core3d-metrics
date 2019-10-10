@@ -44,8 +44,6 @@ class ImagePairPlot:
             reader = csv.reader(infile)
             column_id = {k: v for v, k in enumerate(next(reader))}
             for rows in reader:
-                if rows[column_id[' Used for stereo']] == 'NO':
-                    continue
                 image_name = rows[column_id['Image filename']][35:55]
                 self.image_names.append(image_name)
 
