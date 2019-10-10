@@ -253,10 +253,8 @@ def run_geometrics(config_file, ref_path=None, test_path=None, output_path=None,
     # Check that match values are valid
     ref_cls_match_sets, test_cls_match_sets = geo.getMatchValueSets(config['INPUT.REF']['CLSMatchValue'],
                                                                     config['INPUT.TEST']['CLSMatchValue'],
-                                                                    config['INPUT.REF']['CLSMatchValue'],
-                                                                    config['INPUT.TEST']['CLSMatchValue'])
-                                                                    #np.unique(ref_cls).tolist(),
-                                                                    #np.unique(test_cls).tolist())
+                                                                    np.unique(ref_cls).tolist(),
+                                                                    np.unique(test_cls).tolist())
 
     if PLOTS_ENABLE:
         # Update plot prefix include counter to be unique for each set of CLS value evaluated
