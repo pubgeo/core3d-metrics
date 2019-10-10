@@ -52,7 +52,7 @@ def calculate_metrics_iterator(gt_buildings, gt_indx_raster, ignored_gt, perf_in
     all_perimeter_ratio = []
     all_area_diff = []
     all_area_ratio = []
-    ignore_threshold = 0.5 # parser arg
+    ignore_threshold = 0.5  # parser arg
     print("Iterating through performer buildings")
     TP = 0
     FP = 0
