@@ -78,6 +78,9 @@ def calculate_metrics_iterator(gt_buildings, gt_indx_raster, ignored_gt, perf_in
                     break
 
             if iou >= iou_threshold:
+                # Do not let multiple matches with one GT building
+                if current_gt_building.match is True:
+                    break
                 TP = TP + 1
                 matched_performer_indices.append(current_perf_building.label)
                 current_gt_building.match = True
