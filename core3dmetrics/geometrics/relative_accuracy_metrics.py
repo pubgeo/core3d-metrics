@@ -81,9 +81,12 @@ def run_relative_accuracy_metrics(refDSM, testDSM, refMask, testMask, ignoreMask
         plt.imshow(refMask & validMask, cmap='Greys')
         plt.plot(refPts[1], refPts[0], 'r,')
         plt.plot(testPts[1], testPts[0], 'b,')
-
-        plt.plot((refPts[1], testPts[1][indexes]), (refPts[0], testPts[0][indexes]), 'y', linewidth=0.05)
-        plot.save("relHorzAcc_nearestPoints")
+        try:
+            plt.plot((refPts[1], testPts[1][indexes]), (refPts[0], testPts[0][indexes]), 'y', linewidth=0.05)
+            plot.save("relHorzAcc_nearestPoints")
+        except NameError:
+            # Not possible to calculate HRMSE because lack of performer polygon, namely indexes variable
+            pass
 
     metrics = {
         'z50': z50,
