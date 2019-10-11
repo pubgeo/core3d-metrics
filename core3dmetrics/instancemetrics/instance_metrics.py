@@ -273,6 +273,12 @@ def eval_instance_metrics(gt_indx_raster, params, perf_indx_raster):
         current_perf_building.fp_overlap_with = []
         current_perf_building.iou_score = None
         current_perf_building.is_uncertain = False
+    # Reset matched flags in gt_buildings
+    for _, current_gt_building in gt_buildings.items():
+        current_gt_building.match = False
+        current_gt_building.fp_overlap_with = []
+        current_gt_building.iou_score = None
+        current_gt_building.is_uncertain = False
     metrics_container_merge_gt = MetricsContainer()
     metrics_container_merge_gt.name = "Merge GTs"
     metrics_container_merge_gt = calculate_metrics_iterator(merged_gt_buildings, gt_indx_raster, ignored_gt, canvas,
