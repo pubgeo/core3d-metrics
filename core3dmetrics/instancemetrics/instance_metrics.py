@@ -109,7 +109,10 @@ def calculate_metrics_iterator(gt_buildings, gt_indx_raster, ignored_gt, perf_in
     fn_indices = [idx for idx in gt_buildings if gt_buildings[idx].match is False]
     FN = len(fn_indices)
     precision = TP / (TP + FP)
-    recall = TP / (TP + FN)
+    if TP + FN == 0:
+        recall = 0
+    else:
+        recall = TP / (TP + FN)
     if precision+recall == 0:
         f1_score = 0
     else:
