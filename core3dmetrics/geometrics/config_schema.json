@@ -98,7 +98,8 @@
          ],
          "optional": [
             "ImagePairFilename",
-            "ImagePairDataFilename"
+            "ImagePairDataFilename",
+            "FilesChosenFilename"
          ],
          "additionalProperties": false,
          "properties": {
@@ -128,7 +129,17 @@
                   }
                ]
             },
-             "ImagePairDataFilename": {
+            "ImagePairDataFilename": {
+               "oneOf": [
+                  {
+                     "type": "string"
+                  },
+                  {
+                     "type": "null"
+                  }
+               ]
+            },
+            "FilesChosenFilename": {
                "oneOf": [
                   {
                      "type": "string"

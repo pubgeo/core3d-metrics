@@ -4,7 +4,7 @@ import numpy as np
 class MetricsCalculator:
 
     def __init__(self):
-        self.iou_threshold = 0.45
+        self.iou_threshold = 0.5
 
     @staticmethod
     def calculate_iou(ground_truth_building, performer_building):

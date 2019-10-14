@@ -61,10 +61,14 @@ def summarize_metrics(root_dir, teams, aois, ref_path=None, test_path=None):
                     n["threshold_geometry"] = {}
                     n["relative_accuracy"] = {}
                     n["objectwise"] = {}
+                    classes_skipped = 0
                     for cls in range(0, json_data["threshold_geometry"].__len__()):
                         current_class = json_data["threshold_geometry"][cls]['CLSValue'][0]
+                        if np.isnan(json_data["threshold_geometry"][cls]['2D']['fscore']):
+                            classes_skipped = classes_skipped+1
+                            continue
                         n["threshold_geometry"].update({current_class: json_data["threshold_geometry"][cls]})
-                        n["relative_accuracy"].update({current_class: json_data["relative_accuracy"][cls]})
+                        n["relative_accuracy"].update({current_class: json_data["relative_accuracy"][cls-classes_skipped]})
                         try:
                             n["objectwise"].update({current_class: json_data["objectwise"][cls]})
                         except KeyError:
@@ -139,9 +143,11 @@ def summarize_metrics(root_dir, teams, aois, ref_path=None, test_path=None):
         sum_hrmse = {}
         sum_zrmse = {}
         averaged_results[team] = {}
+        evaluated_classes = []
         for aoi in all_results[team]:
             sum_geolocation_error = sum_geolocation_error + all_results[team][aoi].results["geolocation_error"]
             for cls in all_results[team][aoi].results["threshold_geometry"]:
+                evaluated_classes.append(cls)
                 if cls not in sum_2d_completeness.keys():
                     sum_2d_completeness[cls] = 0
                     sum_2d_correctness[cls] = 0
@@ -167,29 +173,29 @@ def summarize_metrics(root_dir, teams, aois, ref_path=None, test_path=None):
         averaged_results[team]["geolocation_error"] = np.round(
             sum_geolocation_error / all_results[team].__len__(), decimals=2)
         # TODO: Need to make config specific to each config file, but for now it doesn't matter
-        for cls in config["INPUT.REF"]["CLSMatchValue"]:
+        for cls in np.unique(evaluated_classes):
             try:
                 averaged_results[team][cls] = {}
                 averaged_results[team][cls]["2d_completeness"] = np.round(
-                    sum_2d_completeness[cls] / all_results[team].__len__(), decimals=2)
+                    sum_2d_completeness[cls] / evaluated_classes.count(cls), decimals=2)
                 averaged_results[team][cls]["2d_correctness"] = np.round(
-                    sum_2d_correctness[cls] / all_results[team].__len__(), decimals=2)
+                    sum_2d_correctness[cls] / evaluated_classes.count(cls), decimals=2)
                 averaged_results[team][cls]["2d_jaccard_index"] = np.round(
-                    sum_2d_jaccard_index[cls] / all_results[team].__len__(), decimals=2)
+                    sum_2d_jaccard_index[cls] / evaluated_classes.count(cls), decimals=2)
                 averaged_results[team][cls]["2d_fscore"] = np.round(
-                    sum_2d_fscore[cls] / all_results[team].__len__(), decimals=2)
+                    sum_2d_fscore[cls] / evaluated_classes.count(cls), decimals=2)
                 averaged_results[team][cls]["3d_completeness"] = np.round(
-                    sum_3d_completeness[cls] / all_results[team].__len__(), decimals=2)
+                    sum_3d_completeness[cls] / evaluated_classes.count(cls), decimals=2)
                 averaged_results[team][cls]["3d_correctness"] = np.round(
-                    sum_3d_correctness[cls] / all_results[team].__len__(), decimals=2)
+                    sum_3d_correctness[cls] /evaluated_classes.count(cls), decimals=2)
                 averaged_results[team][cls]["3d_jaccard_index"] = np.round(
-                    sum_3d_jaccard_index[cls] / all_results[team].__len__(), decimals=2)
+                    sum_3d_jaccard_index[cls] / evaluated_classes.count(cls), decimals=2)
                 averaged_results[team][cls]["fscore"] = np.round(
-                    sum_3d_fscore[cls] / all_results[team].__len__(), decimals=2)
+                    sum_3d_fscore[cls] / evaluated_classes.count(cls), decimals=2)
                 averaged_results[team][cls]["hrmse"] = np.round(
-                    sum_hrmse[cls] / all_results[team].__len__(), decimals=2)
+                    sum_hrmse[cls] / evaluated_classes.count(cls), decimals=2)
                 averaged_results[team][cls]["zrmse"] = np.round(
-                    sum_zrmse[cls] / all_results[team].__len__(), decimals=2)
+                    sum_zrmse[cls] / evaluated_classes.count(cls), decimals=2)
             except KeyError:
                 print('Class not found, skipping...')
                 continue

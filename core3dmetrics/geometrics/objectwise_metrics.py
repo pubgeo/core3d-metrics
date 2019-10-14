@@ -74,7 +74,7 @@ def run_objectwise_metrics(refDSM, refDTM, refMask, testDSM, testDTM, testMask, 
     # Calculate instance metrics
     class instance_parameters:
         def __init__(self):
-            self.IOU_THRESHOLD = 0.45
+            self.IOU_THRESHOLD = 0.5
             self.MIN_AREA_FILTER = 0
             self.UNCERTAIN_VALUE = 65
     params = instance_parameters()
