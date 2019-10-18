@@ -39,7 +39,8 @@ def metric_stats(val):
     return s
 
 
-def run_objectwise_metrics(refDSM, refDTM, refMask, testDSM, testDTM, testMask, tform, ignoreMask, merge_radius=2, plot=None, verbose=True):
+def run_objectwise_metrics(refDSM, refDTM, refMask, testDSM, testDTM, testMask, tform, ignoreMask, merge_radius=2,
+                           plot=None, verbose=True, geotiff_filename=None):
 
     # parse plot input
     if plot is None:
@@ -78,11 +79,11 @@ def run_objectwise_metrics(refDSM, refDTM, refMask, testDSM, testDTM, testMask, 
             self.MIN_AREA_FILTER = 0
             self.UNCERTAIN_VALUE = 65
     params = instance_parameters()
-    metrics_container_no_merge, metrics_container_merge_fp, metrics_container_merge_fn = \
+    metrics_container_no_merge, metrics_container_merge_performer, metrics_container_merge_gt = \
         eval_instance_metrics(ref_ndx, params, test_ndx)
     no_merge_f1 = metrics_container_no_merge.f1_score
-    merge_fp_f1 = metrics_container_merge_fp.f1_score
-    merge_fn_f1 = metrics_container_merge_fn.f1_score
+    merge_fp_f1 = metrics_container_merge_performer.f1_score
+    merge_fn_f1 = metrics_container_merge_gt.f1_score
     num_buildings_performer = np.unique(test_ndx).__len__()-1
     num_buildings_truth = np.unique(ref_ndx).__len__()-1
 
@@ -240,9 +241,9 @@ def run_objectwise_metrics(refDSM, refDTM, refMask, testDSM, testDTM, testMask, 
         # Save instance level stoplight charts
         plot.make_instance_stoplight_charts(metrics_container_no_merge.stoplight_chart,
                                             saveName=PLOTS_SAVE_PREFIX+"instanceStoplightNoMerge")
-        plot.make_instance_stoplight_charts(metrics_container_merge_fp.stoplight_chart,
+        plot.make_instance_stoplight_charts(metrics_container_merge_performer.stoplight_chart,
                                             saveName=PLOTS_SAVE_PREFIX + "instanceStoplightMergePerformer")
-        plot.make_instance_stoplight_charts(metrics_container_merge_fn.stoplight_chart,
+        plot.make_instance_stoplight_charts(metrics_container_merge_gt.stoplight_chart,
                                             saveName=PLOTS_SAVE_PREFIX + "instanceStoplightMergeGT")
 
         # IOU Histograms
@@ -363,7 +364,10 @@ def run_objectwise_metrics(refDSM, refDTM, refMask, testDSM, testDTM, testMask, 
         'instance_f1_merge_fp': merge_fp_f1,
         'instance_f1_merge_fn': merge_fn_f1,
         'num_buildings_gt': num_buildings_truth,
-        'num_buildings_perf': num_buildings_performer
+        'num_buildings_perf': num_buildings_performer,
+        'metrics_container_no_merge': metrics_container_no_merge,
+        'metrics_container_merge_fp': metrics_container_merge_performer,
+        'metrics_container_merge_fn': metrics_container_merge_gt
     }
 
     return results, test_ndx, ref_ndx

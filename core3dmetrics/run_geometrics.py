@@ -9,7 +9,7 @@ import gdalconst
 import numpy as np
 import argparse
 import json
-
+from pathlib import Path
 try:
     import core3dmetrics.geometrics as geo
 except:
@@ -287,7 +287,33 @@ def run_geometrics(config_file, ref_path=None, test_path=None, output_path=None,
                 merge_radius = config['OBJECTWISE']['MergeRadius']
                 [result, test_ndx, ref_ndx] = geo.run_objectwise_metrics(ref_dsm, ref_dtm, ref_mask, test_dsm, test_dtm,
                                                                          test_mask, tform, ignore_mask, merge_radius,
-                                                                         plot=plot)
+                                                                         plot=plot, geotiff_filename=ref_dsm_filename)
+
+                # Get UTM coordinates from pixel coordinates in building centroids
+                import gdal, osr, simplekml, csv
+                kml = simplekml.Kml()
+                ds = gdal.Open(ref_dsm_filename)
+                # get CRS from dataset
+                crs = osr.SpatialReference()
+                crs.ImportFromWkt(ds.GetProjectionRef())
+                # create lat/long crs with WGS84 datum
+                crsGeo = osr.SpatialReference()
+                crsGeo.ImportFromEPSG(4326)  # 4326 is the EPSG id of lat/long crs
+                t = osr.CoordinateTransformation(crs, crsGeo)
+                with open(Path(output_path, "objectwise_numbers.csv"), mode='w') as objectwise_csv:
+                    objectwise_writer = csv.writer(objectwise_csv, delimiter=',', quotechar='"',
+                                                   quoting=csv.QUOTE_MINIMAL)
+                    for i in result['metrics_container_no_merge'].iou_per_gt_building.keys():
+                        iou = result['metrics_container_no_merge'].iou_per_gt_building[i][0]
+                        x_coord = result['metrics_container_no_merge'].iou_per_gt_building[i][1][0]
+                        y_coord = result['metrics_container_no_merge'].iou_per_gt_building[i][1][1]
+                        geo_x_coord = tform[0] + y_coord * tform[1] + x_coord * tform[2]
+                        geo_y_coord = tform[3] + y_coord * tform[4] + x_coord * tform[5]
+                        (lat, long, z) = t.TransformPoint(geo_x_coord, geo_y_coord)
+                        objectwise_writer.writerow([iou, x_coord, y_coord, geo_x_coord, geo_y_coord, long, lat])
+                        pnt = kml.newpoint(name="Building Index: " + str(i), description=str(iou), coords=[(lat, long)])
+                kml.save(Path(output_path, "objectwise_ious.kml"))
+                # Result
                 if ref_match_value == test_match_value:
                     result['CLSValue'] = ref_match_value
                 else:

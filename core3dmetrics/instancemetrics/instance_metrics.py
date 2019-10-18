@@ -45,6 +45,7 @@ def calculate_metrics_iterator(gt_buildings, gt_indx_raster, ignored_gt, perf_in
     :return: metrics container containing all the metrics
     """
     # Iterate through performer buildings and calculate iou
+    iou_per_gt_building = {}
     matched_performer_indices = []
     ignored_performer = []
     fp_indices = []
@@ -78,6 +79,9 @@ def calculate_metrics_iterator(gt_buildings, gt_indx_raster, ignored_gt, perf_in
                     break
 
             if iou >= iou_threshold:
+                # Record IOU of matched GT building
+                iou_per_gt_building[current_gt_building.label] = [iou, [np.average(current_gt_building.points[:, 0]),
+                                                                        np.average(current_gt_building.points[:, 1])]]
                 # Do not let multiple matches with one GT building
                 if current_gt_building.match is True:
                     break
@@ -124,7 +128,7 @@ def calculate_metrics_iterator(gt_buildings, gt_indx_raster, ignored_gt, perf_in
                                                              ignored_gt, ignored_performer)
     metrics_container.set_values(TP, FP, FN, ignored_gt, ignored_performer, precision, recall, f1_score, None,
                                  fn_indices, matched_performer_indices, fp_indices, np.mean(all_area_diff),
-                                 np.mean(all_area_ratio), stoplight)
+                                 np.mean(all_area_ratio), stoplight, iou_per_gt_building)
     return metrics_container
 
 
