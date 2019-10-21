@@ -301,11 +301,14 @@ def run_geometrics(config_file, ref_path=None, test_path=None, output_path=None,
                 crsGeo.ImportFromEPSG(4326)  # 4326 is the EPSG id of lat/long crs
                 t = osr.CoordinateTransformation(crs, crsGeo)
                 # Use CORE3D objectwise
-                with open(Path(output_path, "objectwise_numbers.csv"), mode='w') as objectwise_csv:
+                current_class = test_match_value[0]
+                with open(Path(output_path, "objectwise_numbers_class_" + str(current_class) + ".csv"), mode='w') as \
+                        objectwise_csv:
                     objectwise_writer = csv.writer(objectwise_csv, delimiter=',', quotechar='"',
                                                    quoting=csv.QUOTE_MINIMAL)
                     objectwise_writer.writerow(
-                        ['iou_2d', 'iou_3d', 'hrmse', 'zrmse', 'x_coord', 'y_coord', 'geo_x_coord', 'geo_y_coord', 'long', 'lat'])
+                        ['Index', 'iou_2d', 'iou_3d', 'hrmse', 'zrmse', 'x_coord', 'y_coord', 'geo_x_coord',
+                         'geo_y_coord', 'long', 'lat'])
                     for current_object in result['objects']:
                         test_index = current_object['test_objects'][0]
                         iou_2d = current_object['threshold_geometry']['2D']['jaccardIndex']
@@ -318,18 +321,21 @@ def run_geometrics(config_file, ref_path=None, test_path=None, output_path=None,
                         geo_x_coord = tform[0] + y_coord * tform[1] + x_coord * tform[2]
                         geo_y_coord = tform[3] + y_coord * tform[4] + x_coord * tform[5]
                         (lat, long, z) = t.TransformPoint(geo_x_coord, geo_y_coord)
-                        objectwise_writer.writerow([iou_2d, iou_3d, hrmse, zrmse, x_coord, y_coord, geo_x_coord, geo_y_coord, long, lat])
+                        objectwise_writer.writerow([test_index, iou_2d, iou_3d, hrmse, zrmse, x_coord, y_coord,
+                                                    geo_x_coord, geo_y_coord, long, lat])
                         pnt = kml.newpoint(name="Building Index: " + str(test_index),
                                            description="2D IOU: " + str(iou_2d) + ' 3D IOU: ' + str(iou_3d) + ' HRMSE: '
                                                        + str(hrmse) + ' ZRMSE: ' + str(zrmse),
                                            coords=[(lat, long)])
-                    kml.save(Path(output_path, "objectwise_ious.kml"))
+                    kml.save(Path(output_path, "objectwise_ious_class_" + str(current_class) + ".kml"))
 
                 # Use FFDA objectwise
-                with open(Path(output_path, "objectwise_numbers_no_morphology.csv"), mode='w') as objectwise_csv:
+                with open(Path(output_path, "objectwise_numbers_no_morphology_class_" + str(current_class) + ".csv"),
+                          mode='w') as objectwise_csv:
                     objectwise_writer = csv.writer(objectwise_csv, delimiter=',', quotechar='"',
                                                    quoting=csv.QUOTE_MINIMAL)
-                    objectwise_writer.writerow(['iou', 'x_coord', 'y_coord', 'geo_x_coord', 'geo_y_coord', 'long', 'lat'])
+                    objectwise_writer.writerow(['iou', 'x_coord', 'y_coord', 'geo_x_coord',
+                                                'geo_y_coord', 'long', 'lat'])
                     for i in result['metrics_container_no_merge'].iou_per_gt_building.keys():
                         iou = result['metrics_container_no_merge'].iou_per_gt_building[i][0]
                         x_coord = result['metrics_container_no_merge'].iou_per_gt_building[i][1][0]
@@ -339,7 +345,7 @@ def run_geometrics(config_file, ref_path=None, test_path=None, output_path=None,
                         (lat, long, z) = t.TransformPoint(geo_x_coord, geo_y_coord)
                         objectwise_writer.writerow([iou, x_coord, y_coord, geo_x_coord, geo_y_coord, long, lat])
                         pnt = kml.newpoint(name="Building Index: " + str(i), description=str(iou), coords=[(lat, long)])
-                kml.save(Path(output_path, "objectwise_ious_no_morphology.kml"))
+                kml.save(Path(output_path, "objectwise_ious_no_morphology_class_" + str(current_class) + ".kml"))
                 # Result
                 if ref_match_value == test_match_value:
                     result['CLSValue'] = ref_match_value
@@ -354,7 +360,8 @@ def run_geometrics(config_file, ref_path=None, test_path=None, output_path=None,
                 obj_save_prefix = basename + "_%03d" % index + "_"
                 geo.arrayToGeotiff(test_ndx, os.path.join(output_path, obj_save_prefix + '_test_ndx_objs'),
                                    ref_cls_filename, no_data_value)
-                geo.arrayToGeotiff(ref_ndx, os.path.join(output_path, obj_save_prefix + '_ref_ndx_objs'), ref_cls_filename,
+                geo.arrayToGeotiff(ref_ndx, os.path.join(output_path, obj_save_prefix + '_ref_ndx_objs'),
+                                   ref_cls_filename,
                                    no_data_value)
             except Exception as e:
                 print(str(e))
