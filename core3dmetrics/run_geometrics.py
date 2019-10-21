@@ -300,9 +300,36 @@ def run_geometrics(config_file, ref_path=None, test_path=None, output_path=None,
                 crsGeo = osr.SpatialReference()
                 crsGeo.ImportFromEPSG(4326)  # 4326 is the EPSG id of lat/long crs
                 t = osr.CoordinateTransformation(crs, crsGeo)
+                # Use CORE3D objectwise
                 with open(Path(output_path, "objectwise_numbers.csv"), mode='w') as objectwise_csv:
                     objectwise_writer = csv.writer(objectwise_csv, delimiter=',', quotechar='"',
                                                    quoting=csv.QUOTE_MINIMAL)
+                    objectwise_writer.writerow(
+                        ['iou_2d', 'iou_3d', 'hrmse', 'zrmse', 'x_coord', 'y_coord', 'geo_x_coord', 'geo_y_coord', 'long', 'lat'])
+                    for current_object in result['objects']:
+                        test_index = current_object['test_objects'][0]
+                        iou_2d = current_object['threshold_geometry']['2D']['jaccardIndex']
+                        iou_3d = current_object['threshold_geometry']['3D']['jaccardIndex']
+                        hrmse = current_object['relative_accuracy']['hrmse']
+                        zrmse = current_object['relative_accuracy']['zrmse']
+                        x_coords, y_coords = np.where(test_ndx == test_index)
+                        x_coord = np.average(x_coords)
+                        y_coord = np.average(y_coords)
+                        geo_x_coord = tform[0] + y_coord * tform[1] + x_coord * tform[2]
+                        geo_y_coord = tform[3] + y_coord * tform[4] + x_coord * tform[5]
+                        (lat, long, z) = t.TransformPoint(geo_x_coord, geo_y_coord)
+                        objectwise_writer.writerow([iou_2d, iou_3d, hrmse, zrmse, x_coord, y_coord, geo_x_coord, geo_y_coord, long, lat])
+                        pnt = kml.newpoint(name="Building Index: " + str(test_index),
+                                           description="2D IOU: " + str(iou_2d) + ' 3D IOU: ' + str(iou_3d) + ' HRMSE: '
+                                                       + str(hrmse) + ' ZRMSE: ' + str(zrmse),
+                                           coords=[(lat, long)])
+                    kml.save(Path(output_path, "objectwise_ious.kml"))
+
+                # Use FFDA objectwise
+                with open(Path(output_path, "objectwise_numbers_no_morphology.csv"), mode='w') as objectwise_csv:
+                    objectwise_writer = csv.writer(objectwise_csv, delimiter=',', quotechar='"',
+                                                   quoting=csv.QUOTE_MINIMAL)
+                    objectwise_writer.writerow(['iou', 'x_coord', 'y_coord', 'geo_x_coord', 'geo_y_coord', 'long', 'lat'])
                     for i in result['metrics_container_no_merge'].iou_per_gt_building.keys():
                         iou = result['metrics_container_no_merge'].iou_per_gt_building[i][0]
                         x_coord = result['metrics_container_no_merge'].iou_per_gt_building[i][1][0]
@@ -312,12 +339,15 @@ def run_geometrics(config_file, ref_path=None, test_path=None, output_path=None,
                         (lat, long, z) = t.TransformPoint(geo_x_coord, geo_y_coord)
                         objectwise_writer.writerow([iou, x_coord, y_coord, geo_x_coord, geo_y_coord, long, lat])
                         pnt = kml.newpoint(name="Building Index: " + str(i), description=str(iou), coords=[(lat, long)])
-                kml.save(Path(output_path, "objectwise_ious.kml"))
+                kml.save(Path(output_path, "objectwise_ious_no_morphology.kml"))
                 # Result
                 if ref_match_value == test_match_value:
                     result['CLSValue'] = ref_match_value
                 else:
                     result['CLSValue'] = {'Ref': ref_match_value, "Test": test_match_value}
+                # Delete non-json dumpable metrics
+                del result['metrics_container_no_merge'], result['metrics_container_merge_fp'], result[
+                    'metrics_container_merge_fn']
                 objectwise_results.append(result)
     
                 # Save index files to compute objectwise metrics
@@ -391,7 +421,7 @@ def run_geometrics(config_file, ref_path=None, test_path=None, output_path=None,
 
     fileout = os.path.join(output_path, os.path.basename(config_file) + "_metrics.json")
     with open(fileout, 'w') as fid:
-        json.dump(metrics, fid,indent=2)
+        json.dump(metrics, fid, indent=2)
     print(json.dumps(metrics, indent=2))
     print("Metrics report: " + fileout)
 
