@@ -290,6 +290,7 @@ def run_geometrics(config_file, ref_path=None, test_path=None, output_path=None,
                                                                          plot=plot, geotiff_filename=ref_dsm_filename)
 
                 # Get UTM coordinates from pixel coordinates in building centroids
+                print("Creating KML and CSVs...")
                 import gdal, osr, simplekml, csv
                 kml = simplekml.Kml()
                 ds = gdal.Open(ref_dsm_filename)
