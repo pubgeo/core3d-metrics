@@ -149,8 +149,8 @@ def run_objectwise_metrics(refDSM, refDTM, refMask, testDSM, testDTM, testMask, 
                                                 ignoreMask, plot=None, verbose=verbose)
 
         this_metric = dict()
-        this_metric['ref_objects'] = test_regions.tolist()
-        this_metric['test_objects'] = ref_regions.tolist()
+        this_metric['ref_objects'] = ref_regions.tolist()
+        this_metric['test_objects'] = test_regions.tolist()
         this_metric['threshold_geometry'] = result_geo
         this_metric['relative_accuracy'] = result_acc
 
