@@ -40,7 +40,7 @@ def metric_stats(val):
 
 
 def run_objectwise_metrics(refDSM, refDTM, refMask, testDSM, testDTM, testMask, tform, ignoreMask, merge_radius=2,
-                           plot=None, verbose=True, geotiff_filename=None):
+                           plot=None, verbose=True, geotiff_filename=None, ignore_edges=False):
 
     # parse plot input
     if plot is None:
@@ -59,7 +59,7 @@ def run_objectwise_metrics(refDSM, refDTM, refMask, testDSM, testDTM, testMask, 
 
     # Create index regions
     ref_ndx, num_ref_regions = ndimage.label(ref_ndx)
-    ref_ndx_orig, num_ref_regions = ndimage.label(ref_ndx_orig)
+    ref_ndx_orig, num_ref_regions_orig = ndimage.label(ref_ndx_orig)
     test_ndx, num_test_regions = ndimage.label(testMask)
 
     # Get Height from DSM-DTM

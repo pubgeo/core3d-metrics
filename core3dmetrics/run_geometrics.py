@@ -107,6 +107,7 @@ def run_geometrics(config_file, ref_path=None, test_path=None, output_path=None,
     ref_dsm = geo.imageWarp(ref_dsm_filename, ref_cls_filename, noDataValue=no_data_value)
     ref_dtm = geo.imageWarp(ref_dtm_filename, ref_cls_filename, noDataValue=no_data_value)
     ref_ndx = geo.imageWarp(ref_ndx_filename, ref_cls_filename, interp_method=gdalconst.GRA_NearestNeighbour).astype(np.uint16)
+    ref_cls_orig = ref_cls.copy()
 
     if ref_mtl_filename:
         ref_mtl = geo.imageWarp(ref_mtl_filename, ref_cls_filename, interp_method=gdalconst.GRA_NearestNeighbour).astype(np.uint8)
@@ -171,6 +172,31 @@ def run_geometrics(config_file, ref_path=None, test_path=None, output_path=None,
         ref_cls_no_data_value = 65
     ignore_mask = np.zeros_like(ref_cls, np.bool)
 
+    # Add ignore mask on boundaries of cls
+    # Ignore edges
+    ignore_edges = True
+    if ignore_edges is True:
+        print("Applying ignore mask to edges of buildings...")
+        ref_cls_match_sets, test_cls_match_sets = geo.getMatchValueSets(config['INPUT.REF']['CLSMatchValue'],
+                                                                        config['INPUT.TEST']['CLSMatchValue'],
+                                                                        np.unique(ref_cls).tolist(),
+                                                                        np.unique(test_cls).tolist())
+
+        for index, (ref_match_value, test_match_value) in enumerate(zip(ref_cls_match_sets, test_cls_match_sets)):
+            import scipy.ndimage as ndimage
+            ref_mask = np.zeros_like(ref_cls, np.bool)
+            for v in ref_match_value:
+                ref_mask[ref_cls == v] = True
+            strel = ndimage.generate_binary_structure(2, 2)
+            dilated_cls = ndimage.binary_dilation(ref_mask, structure=strel, iterations=3)
+            eroded_cls = ndimage.binary_erosion(ref_mask, structure=strel, iterations=3)
+            dilation_mask = np.bitwise_xor(ref_mask, dilated_cls)
+            erosion_mask = np.bitwise_xor(ref_mask, eroded_cls)
+            ref_cls[dilation_mask == True] = ref_cls_no_data_value
+            ref_cls[erosion_mask == True] = ref_cls_no_data_value
+        print("Finished applying ignore mask to edges of buildings...")
+
+    # Create ignore mask
     if ref_dsm_no_data_value is not None:
         ignore_mask[ref_dsm == ref_dsm_no_data_value] = True
     if ref_dtm_no_data_value is not None:
@@ -180,7 +206,6 @@ def run_geometrics(config_file, ref_path=None, test_path=None, output_path=None,
 
     # optionally ignore test NoDataValue(s)
     if allow_test_ignore:
-
         if allow_test_ignore == 1:
             test_cls_no_data_value = geo.getNoDataValue(test_cls_filename)
             if test_cls_no_data_value is not None:
@@ -249,12 +274,6 @@ def run_geometrics(config_file, ref_path=None, test_path=None, output_path=None,
     threshold_geometry_results = []
     relative_accuracy_results = []
     objectwise_results = []
-
-    # Check that match values are valid
-    ref_cls_match_sets, test_cls_match_sets = geo.getMatchValueSets(config['INPUT.REF']['CLSMatchValue'],
-                                                                    config['INPUT.TEST']['CLSMatchValue'],
-                                                                    np.unique(ref_cls).tolist(),
-                                                                    np.unique(test_cls).tolist())
 
     if PLOTS_ENABLE:
         # Update plot prefix include counter to be unique for each set of CLS value evaluated
