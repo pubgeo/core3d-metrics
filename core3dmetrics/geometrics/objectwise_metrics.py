@@ -40,7 +40,7 @@ def metric_stats(val):
 
 
 def run_objectwise_metrics(refDSM, refDTM, refMask, testDSM, testDTM, testMask, tform, ignoreMask, merge_radius=2,
-                           plot=None, verbose=True, geotiff_filename=None, ignore_edges=False):
+                           plot=None, verbose=True, geotiff_filename=None):
 
     # parse plot input
     if plot is None:

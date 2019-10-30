@@ -71,6 +71,7 @@ def run_relative_accuracy_metrics(refDSM, testDSM, refMask, testMask, ignoreMask
     h90 = np.percentile(abs(dist), 90)
 
     # Generate relative horizontal accuracy plots
+    PLOTS_ENABLE = False  # Turn off this feature unless otherwise because it takes a lot of time
     if PLOTS_ENABLE:
         plot.make(refEdge, 'Reference Model Perimeters', 591,
                   saveName="relHorzAcc_edgeMapRef", cmap='Greys')

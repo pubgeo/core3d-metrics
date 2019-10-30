@@ -107,7 +107,6 @@ def run_geometrics(config_file, ref_path=None, test_path=None, output_path=None,
     ref_dsm = geo.imageWarp(ref_dsm_filename, ref_cls_filename, noDataValue=no_data_value)
     ref_dtm = geo.imageWarp(ref_dtm_filename, ref_cls_filename, noDataValue=no_data_value)
     ref_ndx = geo.imageWarp(ref_ndx_filename, ref_cls_filename, interp_method=gdalconst.GRA_NearestNeighbour).astype(np.uint16)
-    ref_cls_orig = ref_cls.copy()
 
     if ref_mtl_filename:
         ref_mtl = geo.imageWarp(ref_mtl_filename, ref_cls_filename, interp_method=gdalconst.GRA_NearestNeighbour).astype(np.uint8)
@@ -172,16 +171,16 @@ def run_geometrics(config_file, ref_path=None, test_path=None, output_path=None,
         ref_cls_no_data_value = 65
     ignore_mask = np.zeros_like(ref_cls, np.bool)
 
+    # Get reference and test classifications
+    ref_cls_match_sets, test_cls_match_sets = geo.getMatchValueSets(config['INPUT.REF']['CLSMatchValue'],
+                                                                    config['INPUT.TEST']['CLSMatchValue'],
+                                                                    np.unique(ref_cls).tolist(),
+                                                                    np.unique(test_cls).tolist())
     # Add ignore mask on boundaries of cls
     # Ignore edges
     ignore_edges = True
     if ignore_edges is True:
         print("Applying ignore mask to edges of buildings...")
-        ref_cls_match_sets, test_cls_match_sets = geo.getMatchValueSets(config['INPUT.REF']['CLSMatchValue'],
-                                                                        config['INPUT.TEST']['CLSMatchValue'],
-                                                                        np.unique(ref_cls).tolist(),
-                                                                        np.unique(test_cls).tolist())
-
         for index, (ref_match_value, test_match_value) in enumerate(zip(ref_cls_match_sets, test_cls_match_sets)):
             import scipy.ndimage as ndimage
             ref_mask = np.zeros_like(ref_cls, np.bool)
@@ -301,90 +300,87 @@ def run_geometrics(config_file, ref_path=None, test_path=None, output_path=None,
             plot.make(ref_mask.astype(np.int), 'Reference Evaluation Mask', 114, saveName="input_refMask")
 
         if config['OBJECTWISE']['Enable']:
-            try:
-                print("\nRunning objectwise metrics...")
-                merge_radius = config['OBJECTWISE']['MergeRadius']
-                [result, test_ndx, ref_ndx] = geo.run_objectwise_metrics(ref_dsm, ref_dtm, ref_mask, test_dsm, test_dtm,
-                                                                         test_mask, tform, ignore_mask, merge_radius,
-                                                                         plot=plot, geotiff_filename=ref_dsm_filename)
+            print("\nRunning objectwise metrics...")
+            merge_radius = config['OBJECTWISE']['MergeRadius']
+            [result, test_ndx, ref_ndx] = geo.run_objectwise_metrics(ref_dsm, ref_dtm, ref_mask, test_dsm, test_dtm,
+                                                                     test_mask, tform, ignore_mask, merge_radius,
+                                                                     plot=plot, geotiff_filename=ref_dsm_filename)
 
-                # Get UTM coordinates from pixel coordinates in building centroids
-                print("Creating KML and CSVs...")
-                import gdal, osr, simplekml, csv
-                kml = simplekml.Kml()
-                ds = gdal.Open(ref_dsm_filename)
-                # get CRS from dataset
-                crs = osr.SpatialReference()
-                crs.ImportFromWkt(ds.GetProjectionRef())
-                # create lat/long crs with WGS84 datum
-                crsGeo = osr.SpatialReference()
-                crsGeo.ImportFromEPSG(4326)  # 4326 is the EPSG id of lat/long crs
-                t = osr.CoordinateTransformation(crs, crsGeo)
-                # Use CORE3D objectwise
-                current_class = test_match_value[0]
-                with open(Path(output_path, "objectwise_numbers_class_" + str(current_class) + ".csv"), mode='w') as \
-                        objectwise_csv:
-                    objectwise_writer = csv.writer(objectwise_csv, delimiter=',', quotechar='"',
-                                                   quoting=csv.QUOTE_MINIMAL)
-                    objectwise_writer.writerow(
-                        ['Index', 'iou_2d', 'iou_3d', 'hrmse', 'zrmse', 'x_coord', 'y_coord', 'geo_x_coord',
-                         'geo_y_coord', 'long', 'lat'])
-                    for current_object in result['objects']:
-                        test_index = current_object['test_objects'][0]
-                        iou_2d = current_object['threshold_geometry']['2D']['jaccardIndex']
-                        iou_3d = current_object['threshold_geometry']['3D']['jaccardIndex']
-                        hrmse = current_object['relative_accuracy']['hrmse']
-                        zrmse = current_object['relative_accuracy']['zrmse']
-                        x_coords, y_coords = np.where(test_ndx == test_index)
-                        x_coord = np.average(x_coords)
-                        y_coord = np.average(y_coords)
-                        geo_x_coord = tform[0] + y_coord * tform[1] + x_coord * tform[2]
-                        geo_y_coord = tform[3] + y_coord * tform[4] + x_coord * tform[5]
-                        (lat, long, z) = t.TransformPoint(geo_x_coord, geo_y_coord)
-                        objectwise_writer.writerow([test_index, iou_2d, iou_3d, hrmse, zrmse, x_coord, y_coord,
-                                                    geo_x_coord, geo_y_coord, long, lat])
-                        pnt = kml.newpoint(name="Building Index: " + str(test_index),
-                                           description="2D IOU: " + str(iou_2d) + ' 3D IOU: ' + str(iou_3d) + ' HRMSE: '
-                                                       + str(hrmse) + ' ZRMSE: ' + str(zrmse),
-                                           coords=[(lat, long)])
-                    kml.save(Path(output_path, "objectwise_ious_class_" + str(current_class) + ".kml"))
+            # Get UTM coordinates from pixel coordinates in building centroids
+            print("Creating KML and CSVs...")
+            import gdal, osr, simplekml, csv
+            kml = simplekml.Kml()
+            ds = gdal.Open(ref_dsm_filename)
+            # get CRS from dataset
+            crs = osr.SpatialReference()
+            crs.ImportFromWkt(ds.GetProjectionRef())
+            # create lat/long crs with WGS84 datum
+            crsGeo = osr.SpatialReference()
+            crsGeo.ImportFromEPSG(4326)  # 4326 is the EPSG id of lat/long crs
+            t = osr.CoordinateTransformation(crs, crsGeo)
+            # Use CORE3D objectwise
+            current_class = test_match_value[0]
+            with open(Path(output_path, "objectwise_numbers_class_" + str(current_class) + ".csv"), mode='w') as \
+                    objectwise_csv:
+                objectwise_writer = csv.writer(objectwise_csv, delimiter=',', quotechar='"',
+                                               quoting=csv.QUOTE_MINIMAL)
+                objectwise_writer.writerow(
+                    ['Index', 'iou_2d', 'iou_3d', 'hrmse', 'zrmse', 'x_coord', 'y_coord', 'geo_x_coord',
+                     'geo_y_coord', 'long', 'lat'])
+                for current_object in result['objects']:
+                    test_index = current_object['test_objects'][0]
+                    iou_2d = current_object['threshold_geometry']['2D']['jaccardIndex']
+                    iou_3d = current_object['threshold_geometry']['3D']['jaccardIndex']
+                    hrmse = current_object['relative_accuracy']['hrmse']
+                    zrmse = current_object['relative_accuracy']['zrmse']
+                    x_coords, y_coords = np.where(test_ndx == test_index)
+                    x_coord = np.average(x_coords)
+                    y_coord = np.average(y_coords)
+                    geo_x_coord = tform[0] + y_coord * tform[1] + x_coord * tform[2]
+                    geo_y_coord = tform[3] + y_coord * tform[4] + x_coord * tform[5]
+                    (lat, long, z) = t.TransformPoint(geo_x_coord, geo_y_coord)
+                    objectwise_writer.writerow([test_index, iou_2d, iou_3d, hrmse, zrmse, x_coord, y_coord,
+                                                geo_x_coord, geo_y_coord, long, lat])
+                    pnt = kml.newpoint(name="Building Index: " + str(test_index),
+                                       description="2D IOU: " + str(iou_2d) + ' 3D IOU: ' + str(iou_3d) + ' HRMSE: '
+                                                   + str(hrmse) + ' ZRMSE: ' + str(zrmse),
+                                       coords=[(lat, long)])
+                kml.save(Path(output_path, "objectwise_ious_class_" + str(current_class) + ".kml"))
 
-                # Use FFDA objectwise
-                with open(Path(output_path, "objectwise_numbers_no_morphology_class_" + str(current_class) + ".csv"),
-                          mode='w') as objectwise_csv:
-                    objectwise_writer = csv.writer(objectwise_csv, delimiter=',', quotechar='"',
-                                                   quoting=csv.QUOTE_MINIMAL)
-                    objectwise_writer.writerow(['iou', 'x_coord', 'y_coord', 'geo_x_coord',
-                                                'geo_y_coord', 'long', 'lat'])
-                    for i in result['metrics_container_no_merge'].iou_per_gt_building.keys():
-                        iou = result['metrics_container_no_merge'].iou_per_gt_building[i][0]
-                        x_coord = result['metrics_container_no_merge'].iou_per_gt_building[i][1][0]
-                        y_coord = result['metrics_container_no_merge'].iou_per_gt_building[i][1][1]
-                        geo_x_coord = tform[0] + y_coord * tform[1] + x_coord * tform[2]
-                        geo_y_coord = tform[3] + y_coord * tform[4] + x_coord * tform[5]
-                        (lat, long, z) = t.TransformPoint(geo_x_coord, geo_y_coord)
-                        objectwise_writer.writerow([iou, x_coord, y_coord, geo_x_coord, geo_y_coord, long, lat])
-                        pnt = kml.newpoint(name="Building Index: " + str(i), description=str(iou), coords=[(lat, long)])
-                kml.save(Path(output_path, "objectwise_ious_no_morphology_class_" + str(current_class) + ".kml"))
-                # Result
-                if ref_match_value == test_match_value:
-                    result['CLSValue'] = ref_match_value
-                else:
-                    result['CLSValue'] = {'Ref': ref_match_value, "Test": test_match_value}
-                # Delete non-json dumpable metrics
-                del result['metrics_container_no_merge'], result['metrics_container_merge_fp'], result[
-                    'metrics_container_merge_fn']
-                objectwise_results.append(result)
-    
-                # Save index files to compute objectwise metrics
-                obj_save_prefix = basename + "_%03d" % index + "_"
-                geo.arrayToGeotiff(test_ndx, os.path.join(output_path, obj_save_prefix + '_test_ndx_objs'),
-                                   ref_cls_filename, no_data_value)
-                geo.arrayToGeotiff(ref_ndx, os.path.join(output_path, obj_save_prefix + '_ref_ndx_objs'),
-                                   ref_cls_filename,
-                                   no_data_value)
-            except Exception as e:
-                print(str(e))
+            # Use FFDA objectwise
+            with open(Path(output_path, "objectwise_numbers_no_morphology_class_" + str(current_class) + ".csv"),
+                      mode='w') as objectwise_csv:
+                objectwise_writer = csv.writer(objectwise_csv, delimiter=',', quotechar='"',
+                                               quoting=csv.QUOTE_MINIMAL)
+                objectwise_writer.writerow(['iou', 'x_coord', 'y_coord', 'geo_x_coord',
+                                            'geo_y_coord', 'long', 'lat'])
+                for i in result['metrics_container_no_merge'].iou_per_gt_building.keys():
+                    iou = result['metrics_container_no_merge'].iou_per_gt_building[i][0]
+                    x_coord = result['metrics_container_no_merge'].iou_per_gt_building[i][1][0]
+                    y_coord = result['metrics_container_no_merge'].iou_per_gt_building[i][1][1]
+                    geo_x_coord = tform[0] + y_coord * tform[1] + x_coord * tform[2]
+                    geo_y_coord = tform[3] + y_coord * tform[4] + x_coord * tform[5]
+                    (lat, long, z) = t.TransformPoint(geo_x_coord, geo_y_coord)
+                    objectwise_writer.writerow([iou, x_coord, y_coord, geo_x_coord, geo_y_coord, long, lat])
+                    pnt = kml.newpoint(name="Building Index: " + str(i), description=str(iou), coords=[(lat, long)])
+            kml.save(Path(output_path, "objectwise_ious_no_morphology_class_" + str(current_class) + ".kml"))
+            # Result
+            if ref_match_value == test_match_value:
+                result['CLSValue'] = ref_match_value
+            else:
+                result['CLSValue'] = {'Ref': ref_match_value, "Test": test_match_value}
+            # Delete non-json dumpable metrics
+            del result['metrics_container_no_merge'], result['metrics_container_merge_fp'], result[
+                'metrics_container_merge_fn']
+            objectwise_results.append(result)
+
+            # Save index files to compute objectwise metrics
+            obj_save_prefix = basename + "_%03d" % index + "_"
+            geo.arrayToGeotiff(test_ndx, os.path.join(output_path, obj_save_prefix + '_test_ndx_objs'),
+                               ref_cls_filename, no_data_value)
+            geo.arrayToGeotiff(ref_ndx, os.path.join(output_path, obj_save_prefix + '_ref_ndx_objs'),
+                               ref_cls_filename,
+                               no_data_value)
 
         # Evaluate threshold geometry metrics using refDTM as the testDTM to mitigate effects of terrain modeling
         # uncertainty
