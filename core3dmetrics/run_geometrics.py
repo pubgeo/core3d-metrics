@@ -178,7 +178,7 @@ def run_geometrics(config_file, ref_path=None, test_path=None, output_path=None,
                                                                     np.unique(test_cls).tolist())
     # Add ignore mask on boundaries of cls
     # Ignore edges
-    ignore_edges = True
+    ignore_edges = False
     if ignore_edges is True:
         print("Applying ignore mask to edges of buildings...")
         for index, (ref_match_value, test_match_value) in enumerate(zip(ref_cls_match_sets, test_cls_match_sets)):
