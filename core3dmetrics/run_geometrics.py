@@ -246,7 +246,8 @@ def run_geometrics(config_file, ref_path=None, test_path=None, output_path=None,
 
     if PLOTS_ENABLE:
         # Make image pair plots
-        plot.make_image_pair_plots(performer_pair_data_file, performer_pair_file, performer_files_chosen_file, 201, saveName="image_pair_plot")
+        plot.make_image_pair_plots(performer_pair_data_file, performer_pair_file, performer_files_chosen_file, 201,
+                                   saveName="image_pair_plot")
         # Reference models can include data voids, so ignore invalid data on display
         plot.make(ref_dsm, 'Reference DSM', 111, colorbar=True, saveName="input_refDSM", badValue=no_data_value)
         plot.make(ref_dtm, 'Reference DTM', 112, colorbar=True, saveName="input_refDTM", badValue=no_data_value)
