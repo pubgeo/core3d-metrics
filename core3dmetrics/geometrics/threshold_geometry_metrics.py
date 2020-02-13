@@ -9,7 +9,7 @@ from .metrics_util import getUnitArea
 
 
 def run_threshold_geometry_metrics(refDSM, refDTM, refMask, testDSM, testDTM, testMask,
-                                   tform, ignoreMask, plot=None, for_objectwise=True, verbose=True):
+                                   tform, ignoreMask, plot=None, for_objectwise=False, verbose=True):
     # INPUT PARSING==========
 
     # parse plot input
