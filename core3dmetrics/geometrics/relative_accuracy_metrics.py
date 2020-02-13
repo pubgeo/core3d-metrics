@@ -103,11 +103,11 @@ def run_relative_accuracy_metrics(refDSM, testDSM, refMask, testMask, ignoreMask
     # Generate histogram
     if not for_objectwise:
         plot.make_distance_histogram(signed_x_errors, fig=593, plot_title='Signed X Errors', skew=signed_x_errors_skew,
-                            kurtosis=signed_x_errors_kurtosis, bins=20)
+                            kurtosis=signed_x_errors_kurtosis, bins=21)
         plot.make_distance_histogram(signed_y_errors, fig=594, plot_title='Signed Y Errors', skew=signed_y_errors_skew,
-                            kurtosis=signed_y_errors_kurtosis, bins=20)
+                            kurtosis=signed_y_errors_kurtosis, bins=21)
         plot.make_distance_histogram(signed_z_errors, fig=595, plot_title='Signed Z Errors', skew=signed_z_errors_skew,
-                            kurtosis=signed_z_errors_kurtosis, bins=30)
+                            kurtosis=signed_z_errors_kurtosis, bins=31)
 
     # Generate relative horizontal accuracy plots
     PLOTS_ENABLE = False  # Turn off this feature unless otherwise because it takes a lot of time
