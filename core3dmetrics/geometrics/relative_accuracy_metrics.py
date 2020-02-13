@@ -18,7 +18,7 @@ def run_relative_accuracy_metrics(refDSM, testDSM, refMask, testMask, ignoreMask
     # Calculate Z percentile errors.
     # Z68 approximates ZRMSE assuming normal error distribution.
     delta = testDSM - refDSM
-    overlap = refMask & validMask
+    overlap = refMask & testMask & validMask
     signed_z_errors = delta[overlap]
     zrmse_explicit = np.sqrt(sum(signed_z_errors ** 2)/len(signed_z_errors))
     if np.unique(overlap).size is 1:
