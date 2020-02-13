@@ -4,7 +4,7 @@ from scipy.signal import convolve2d
 from scipy.spatial import cKDTree
 from scipy.stats import skew, kurtosis
 
-def run_relative_accuracy_metrics(refDSM, testDSM, refMask, testMask, ignoreMask, gsd, plot=None):
+def run_relative_accuracy_metrics(refDSM, testDSM, refMask, testMask, ignoreMask, gsd, for_objectwise=False, plot=None):
 
     PLOTS_ENABLE = True
     if plot is None: PLOTS_ENABLE = False
@@ -101,12 +101,13 @@ def run_relative_accuracy_metrics(refDSM, testDSM, refMask, testMask, ignoreMask
     signed_z_errors_kurtosis = kurtosis(signed_z_errors)
 
     # Generate histogram
-    plot.make_distance_histogram(signed_x_errors, fig=593, plot_title='Signed X Errors', skew=signed_x_errors_skew,
-                        kurtosis=signed_x_errors_kurtosis)
-    plot.make_distance_histogram(signed_y_errors, fig=594, plot_title='Signed Y Errors', skew=signed_y_errors_skew,
-                        kurtosis=signed_y_errors_kurtosis)
-    plot.make_distance_histogram(signed_z_errors, fig=595, plot_title='Signed Z Errors', skew=signed_z_errors_skew,
-                        kurtosis=signed_z_errors_kurtosis)
+    if not for_objectwise:
+        plot.make_distance_histogram(signed_x_errors, fig=593, plot_title='Signed X Errors', skew=signed_x_errors_skew,
+                            kurtosis=signed_x_errors_kurtosis, bins=20)
+        plot.make_distance_histogram(signed_y_errors, fig=594, plot_title='Signed Y Errors', skew=signed_y_errors_skew,
+                            kurtosis=signed_y_errors_kurtosis, bins=20)
+        plot.make_distance_histogram(signed_z_errors, fig=595, plot_title='Signed Z Errors', skew=signed_z_errors_skew,
+                            kurtosis=signed_z_errors_kurtosis, bins=30)
 
     # Generate relative horizontal accuracy plots
     PLOTS_ENABLE = False  # Turn off this feature unless otherwise because it takes a lot of time

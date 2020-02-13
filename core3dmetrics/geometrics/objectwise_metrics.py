@@ -19,7 +19,7 @@ def eval_metrics(refDSM, refDTM, refMask, testDSM, testDTM, testMask, tform, ign
 
     # Run the relative accuracy metrics and report results.
     result_acc = run_relative_accuracy_metrics(refDSM, testDSM, refMask, testMask, ignoreMask,
-                                               getUnitWidth(tform), plot=plot)
+                                               getUnitWidth(tform), for_objectwise=True, plot=plot)
 
     return result_geo, result_acc, unitArea
 
