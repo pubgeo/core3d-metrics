@@ -2,6 +2,7 @@
 import numpy as np
 from scipy.signal import convolve2d
 from scipy.spatial import cKDTree
+from scipy.stats import skew, kurtosis
 
 def run_relative_accuracy_metrics(refDSM, testDSM, refMask, testMask, ignoreMask, gsd, plot=None):
 
@@ -17,7 +18,9 @@ def run_relative_accuracy_metrics(refDSM, testDSM, refMask, testMask, ignoreMask
     # Calculate Z percentile errors.
     # Z68 approximates ZRMSE assuming normal error distribution.
     delta = testDSM - refDSM
-    overlap = refMask & testMask & validMask
+    overlap = refMask & validMask
+    signed_z_errors = delta[overlap]
+    zrmse_explicit = np.sqrt(sum(signed_z_errors ** 2)/len(signed_z_errors))
     if np.unique(overlap).size is 1:
         z68 = 100
         z50 = 100
@@ -28,6 +31,7 @@ def run_relative_accuracy_metrics(refDSM, testDSM, refMask, testMask, ignoreMask
         z90 = np.percentile(abs(delta[overlap]), 90)
 
     # Generate relative vertical accuracy plots
+    PLOTS_ENABLE = False
     if PLOTS_ENABLE:
         errorMap = np.copy(delta)
         errorMap[~overlap] = np.nan
@@ -57,10 +61,26 @@ def run_relative_accuracy_metrics(refDSM, testDSM, refMask, testMask, ignoreMask
         testPts = np.where(testMask == True)
 
     # Use KD Tree to find test point nearest each reference point
+    refPts_transpose = np.transpose(refPts)
+    testPts_transpose = np.transpose(testPts)
+    signed_x_errors = []
+    signed_y_errors = []
     try:
         tree = cKDTree(np.transpose(testPts))
         dist, indexes = tree.query(np.transpose(refPts))
+        # Store the x and y distances
+        for refPt_index, testPt_index in enumerate(indexes):
+            refPt = refPts_transpose[refPt_index]
+            testPt = testPts_transpose[testPt_index]
+            signed_x_errors.append(testPt[1] - refPt[1])
+            signed_y_errors.append(testPt[0] - refPt[0])
+        signed_x_errors = np.array(signed_x_errors) * gsd
+        signed_y_errors = np.array(signed_y_errors) * gsd
         dist = dist * gsd
+        # Sanity check
+        for i, x in enumerate(signed_x_errors):
+            if np.sqrt(signed_x_errors[i] ** 2 + signed_y_errors[i] ** 2) != dist[i]:
+                print("Error!")
     except ValueError:
         dist = np.nan
 
@@ -69,6 +89,24 @@ def run_relative_accuracy_metrics(refDSM, testDSM, refMask, testMask, ignoreMask
     h63 = np.percentile(abs(dist), 63)
     h50 = np.percentile(abs(dist), 50)
     h90 = np.percentile(abs(dist), 90)
+    hrmse_explicit = np.sqrt(sum(dist ** 2)/len(dist))
+
+    # Get statistics for data
+    signed_x_errors_skew = skew(signed_x_errors)
+    signed_y_errors_skew = skew(signed_y_errors)
+    signed_z_errors_skew = skew(signed_z_errors)
+
+    signed_x_errors_kurtosis = kurtosis(signed_x_errors)
+    signed_y_errors_kurtosis = kurtosis(signed_y_errors)
+    signed_z_errors_kurtosis = kurtosis(signed_z_errors)
+
+    # Generate histogram
+    plot.make_distance_histogram(signed_x_errors, fig=593, plot_title='Signed X Errors', skew=signed_x_errors_skew,
+                        kurtosis=signed_x_errors_kurtosis)
+    plot.make_distance_histogram(signed_y_errors, fig=594, plot_title='Signed Y Errors', skew=signed_y_errors_skew,
+                        kurtosis=signed_y_errors_kurtosis)
+    plot.make_distance_histogram(signed_z_errors, fig=595, plot_title='Signed Z Errors', skew=signed_z_errors_skew,
+                        kurtosis=signed_z_errors_kurtosis)
 
     # Generate relative horizontal accuracy plots
     PLOTS_ENABLE = False  # Turn off this feature unless otherwise because it takes a lot of time
@@ -95,6 +133,8 @@ def run_relative_accuracy_metrics(refDSM, testDSM, refMask, testMask, ignoreMask
         'z90': z90,
         'h50': h50,
         'hrmse': h63,
-        'h90': h90
+        'h90': h90,
+        'zrmse_explicit': zrmse_explicit,
+        'hrmse_explicit': hrmse_explicit
     }
     return metrics

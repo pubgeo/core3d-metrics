@@ -146,7 +146,7 @@ def run_objectwise_metrics(refDSM, refDTM, refMask, testDSM, testDTM, testMask, 
 
         # TODO:  Not practical as implemented to enable plots. plots is forced to false.
         [result_geo, result_acc, unitArea] = eval_metrics(refDSM, refDTM, ref_objs, testDSM, testDTM, test_objs, tform,
-                                                ignoreMask, plot=None, verbose=verbose)
+                                                ignoreMask, plot=plot, verbose=verbose)
 
         this_metric = dict()
         this_metric['ref_objects'] = ref_regions.tolist()
