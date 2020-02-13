@@ -9,11 +9,11 @@ from .metrics_util import getUnitArea
 
 
 def run_threshold_geometry_metrics(refDSM, refDTM, refMask, testDSM, testDTM, testMask,
-                                   tform, ignoreMask, plot=None, verbose=True):
+                                   tform, ignoreMask, plot=None, for_objectwise=True, verbose=True):
     # INPUT PARSING==========
 
     # parse plot input
-    if plot is None:
+    if plot is None or for_objectwise is True:
         PLOTS_ENABLE = False
     else:
         PLOTS_ENABLE = True
