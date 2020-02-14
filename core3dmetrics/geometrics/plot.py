@@ -132,7 +132,7 @@ class plot:
         plt.title(plot_title)
         plt.legend(["Histogram\nBin Width: " + str(bin_width) + " m"], loc='best')
         filename = os.path.join(self.saveDir, saveName + self.saveExe)
-
+        np.savetxt(os.path.join(self.saveDir, saveName + ".csv"), data)
         plt.savefig(filename, dpi=self.dpi)
 
     def make_instance_stoplight_charts(self, stoplight_chart, **kwargs):
