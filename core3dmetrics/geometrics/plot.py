@@ -120,27 +120,16 @@ class plot:
         if not self.showPlots:
             plt.close(plt.gcf())
 
-    def make_distance_histogram(self, data, fig=None, skew=None, kurtosis=None, bins=None, plot_title=''):
+    def make_distance_histogram(self, data, fig=None, bin_width=None, bins=None, plot_title=''):
         if len(self.savePrefix) > 0:
             saveName = self.savePrefix + plot_title
         plt.figure(fig)
         plt.clf()
-        n, bins, patches = plt.hist(data, bins=bins)
-        # Plot zero mean gaussian
-        mu = np.mean(data)
-        variance = np.var(data)
-        import math
-        import scipy.stats as stats
-        sigma = math.sqrt(variance)
-        x = np.linspace(mu - 3 * sigma, mu + 3 * sigma, 100)
-        plt.plot(x, int(n.max()) * stats.norm.pdf(x, mu, sigma))
-        # Labels
+        n, bins_out, patches = plt.hist(data, histtype='stepfilled', bins=int(bins))
         plt.xlabel("Distance (m)")
         plt.ylabel("Counts")
         plt.title(plot_title)
-        plt.text(0.5, n.max() - n.max() * 0.1,
-                 "Skew: " + str(skew) + "\nKurtosis: " + str(kurtosis) + "\nMean: " + str(np.mean(data)),
-                 bbox=dict(fc="none"))
+        plt.legend(["Histogram\nBin Width: " + str(bin_width) + " m"], loc='best')
         filename = os.path.join(self.saveDir, saveName + self.saveExe)
 
         plt.savefig(filename, dpi=self.dpi)

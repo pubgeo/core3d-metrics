@@ -100,14 +100,28 @@ def run_relative_accuracy_metrics(refDSM, testDSM, refMask, testMask, ignoreMask
     signed_y_errors_kurtosis = kurtosis(signed_y_errors)
     signed_z_errors_kurtosis = kurtosis(signed_z_errors)
 
+    signed_x_errors_median = float(np.median(signed_x_errors).item())
+    signed_y_errors_median = float(np.median(signed_y_errors).item())
+    signed_z_errors_median = float(np.median(signed_z_errors).item())
+
+    signed_x_errors_var = float(np.var(signed_x_errors).item())
+    signed_y_errors_var = float(np.var(signed_y_errors).item())
+    signed_z_errors_var = float(np.var(signed_z_errors).item())
+
+    signed_x_errors_mean = float(np.mean(signed_x_errors).item())
+    signed_y_errors_mean = float(np.mean(signed_y_errors).item())
+    signed_z_errors_mean = float(np.mean(signed_z_errors).item())
+
+    bin_range_horz = 1.0  # meters
+    bin_range_vert = 0.5  # meters
+    number_of_bins_x = int(np.ceil(abs(signed_x_errors.max() - signed_x_errors.min())/bin_range_horz))
+    number_of_bins_y = int(np.ceil(abs(signed_y_errors.max() - signed_y_errors.min()) / bin_range_horz))
+    number_of_bins_z = int(np.ceil(abs(signed_z_errors.max() - signed_z_errors.min())/bin_range_vert))
     # Generate histogram
     if not for_objectwise:
-        plot.make_distance_histogram(signed_x_errors, fig=593, plot_title='Signed X Errors', skew=signed_x_errors_skew,
-                            kurtosis=signed_x_errors_kurtosis, bins=21)
-        plot.make_distance_histogram(signed_y_errors, fig=594, plot_title='Signed Y Errors', skew=signed_y_errors_skew,
-                            kurtosis=signed_y_errors_kurtosis, bins=21)
-        plot.make_distance_histogram(signed_z_errors, fig=595, plot_title='Signed Z Errors', skew=signed_z_errors_skew,
-                            kurtosis=signed_z_errors_kurtosis, bins=31)
+        plot.make_distance_histogram(signed_x_errors, fig=593, plot_title='Signed X Errors', bin_width=bin_range_horz, bins=number_of_bins_x)
+        plot.make_distance_histogram(signed_y_errors, fig=594, plot_title='Signed Y Errors', bin_width=bin_range_horz, bins=number_of_bins_y)
+        plot.make_distance_histogram(signed_z_errors, fig=595, plot_title='Signed Z Errors', bin_width=bin_range_vert, bins=number_of_bins_z)
 
     # Generate relative horizontal accuracy plots
     PLOTS_ENABLE = False  # Turn off this feature unless otherwise because it takes a lot of time
@@ -136,6 +150,21 @@ def run_relative_accuracy_metrics(refDSM, testDSM, refMask, testMask, ignoreMask
         'hrmse': h63,
         'h90': h90,
         'zrmse_explicit': zrmse_explicit,
-        'hrmse_explicit': hrmse_explicit
+        'hrmse_explicit': hrmse_explicit,
+        'signed_x_errors_kurtosis': signed_x_errors_kurtosis,
+        'signed_y_errors_kurtosis': signed_y_errors_kurtosis,
+        'signed_z_errors_kurtosis': signed_z_errors_kurtosis,
+        'signed_x_errors_skew': signed_x_errors_skew,
+        'signed_y_errors_skew': signed_y_errors_skew,
+        'signed_z_errors_skew': signed_z_errors_skew,
+        'signed_x_errors_median': signed_x_errors_median,
+        'signed_y_errors_median': signed_y_errors_median,
+        'signed_z_errors_': signed_z_errors_median,
+        'signed_x_errors_var': signed_x_errors_var,
+        'signed_y_errors_var': signed_y_errors_var,
+        'signed_z_errors_var': signed_z_errors_var,
+        'signed_x_errors_mean': signed_x_errors_mean,
+        'signed_y_errors_mean': signed_y_errors_mean,
+        'signed_z_errors_mean': signed_z_errors_mean
     }
     return metrics
