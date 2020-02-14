@@ -125,6 +125,7 @@ class plot:
             saveName = self.savePrefix + plot_title
         plt.figure(fig)
         plt.clf()
+        plt.xlim(data.min(), data.max())
         n, bins_out, patches = plt.hist(data, histtype='stepfilled', bins=int(bins))
         plt.xlabel("Distance (m)")
         plt.ylabel("Counts")
