@@ -159,7 +159,7 @@ def run_relative_accuracy_metrics(refDSM, testDSM, refMask, testMask, ignoreMask
         'signed_z_errors_skew': signed_z_errors_skew,
         'signed_x_errors_median': signed_x_errors_median,
         'signed_y_errors_median': signed_y_errors_median,
-        'signed_z_errors_': signed_z_errors_median,
+        'signed_z_errors_median': signed_z_errors_median,
         'signed_x_errors_var': signed_x_errors_var,
         'signed_y_errors_var': signed_y_errors_var,
         'signed_z_errors_var': signed_z_errors_var,
