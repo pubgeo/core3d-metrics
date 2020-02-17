@@ -20,7 +20,12 @@ def run_relative_accuracy_metrics(refDSM, testDSM, refMask, testMask, ignoreMask
     delta = testDSM - refDSM
     overlap = refMask & testMask & validMask
     signed_z_errors = delta[overlap]
-    zrmse_explicit = np.sqrt(sum(signed_z_errors ** 2)/len(signed_z_errors))
+    try:
+        zrmse_explicit = np.sqrt(sum(signed_z_errors ** 2)/len(signed_z_errors))
+    except ZeroDivisionError:
+        print("Error")
+        zrmse_explicit = np.nan
+        signed_z_errors = np.array([np.nan])
     if np.unique(overlap).size is 1:
         z68 = 100
         z50 = 100
@@ -116,12 +121,18 @@ def run_relative_accuracy_metrics(refDSM, testDSM, refMask, testMask, ignoreMask
     bin_range_vert = 0.5  # meters
     number_of_bins_x = int(np.ceil(abs(signed_x_errors.max() - signed_x_errors.min())/bin_range_horz))
     number_of_bins_y = int(np.ceil(abs(signed_y_errors.max() - signed_y_errors.min()) / bin_range_horz))
-    number_of_bins_z = int(np.ceil(abs(signed_z_errors.max() - signed_z_errors.min())/bin_range_vert))
+    try:
+        number_of_bins_z = int(np.ceil(abs(signed_z_errors.max() - signed_z_errors.min())/bin_range_vert))
+    except ValueError:
+        number_of_bins_z = np.nan
     # Generate histogram
     if not for_objectwise:
         plot.make_distance_histogram(signed_x_errors, fig=593, plot_title='Signed X Errors', bin_width=bin_range_horz, bins=number_of_bins_x)
         plot.make_distance_histogram(signed_y_errors, fig=594, plot_title='Signed Y Errors', bin_width=bin_range_horz, bins=number_of_bins_y)
-        plot.make_distance_histogram(signed_z_errors, fig=595, plot_title='Signed Z Errors', bin_width=bin_range_vert, bins=number_of_bins_z)
+        try:
+            plot.make_distance_histogram(signed_z_errors, fig=595, plot_title='Signed Z Errors', bin_width=bin_range_vert, bins=number_of_bins_z)
+        except Exception:
+            print("Couldn't make z error plot. Something went wrong...")
 
     # Generate relative horizontal accuracy plots
     PLOTS_ENABLE = False  # Turn off this feature unless otherwise because it takes a lot of time
