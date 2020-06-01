@@ -97,7 +97,7 @@ def run_threshold_geometry_metrics(refDSM, refDTM, refMask, testDSM, testDTM, te
     if PLOTS_ENABLE:
         print('2D analysis plots...')
         plot.make(tp_2D_array, 'True Positive Regions',  283, saveName=PLOTS_SAVE_PREFIX+"truePositive")
-        plot.make(fn_2D_array, 'False Negative Regions', 281, saveName=PLOTS_SAVE_PREFIX+"falseNegetive")
+        plot.make(fn_2D_array, 'False Negative Regions', 281, saveName=PLOTS_SAVE_PREFIX+"falseNegative")
         plot.make(fp_2D_array, 'False Positive Regions', 282, saveName=PLOTS_SAVE_PREFIX+"falsePositive")
         plot.make_stoplight_plot(fp_image=fp_2D_array, fn_image=fn_2D_array, ref=ref_footprint, saveName=PLOTS_SAVE_PREFIX+"stoplight")
 
