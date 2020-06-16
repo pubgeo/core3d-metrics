@@ -1,5 +1,5 @@
 ## core3d-metrics
- JHU/APL is supporting the IARPA CORE3D program by providing independent test and evaluation of the performer team solutions for building 3D models based on satellite images and other sources. This is a repository for the metrics being developed to support the program. Performer teams are working with JHU/APL to improve the metrics software and contribute additional metrics that may be used for the program.
+ JHU/APL is supporting the IARPA CORE3D program by providing independent test and evaluation of the performer team solutions for building 3D models based on satellite images and other sources. Metric evaluation code is maintained here for transparency and to enable collaboration for improvements with performer teams.
  
  Preliminary metrics are described in the following paper:
  
