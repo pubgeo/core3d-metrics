@@ -98,7 +98,7 @@ def multiprocessing_fun(ref_ndx, loop_region, refMask, test_ndx, ref_ndx_orig,
     if this_metric['threshold_geometry']['volume']['test_volume'] < min_volume or loop_region == 1:
         min_volume = this_metric['threshold_geometry']['volume']['test_volume']
 
-    return this_metric, result_geo, result_acc, unitArea
+    return this_metric, result_geo, result_acc, unitArea, ref_regions
 
 
 def run_objectwise_metrics(refDSM, refDTM, refMask, testDSM, testDTM, testMask, tform, ignoreMask, merge_radius=2,
@@ -141,11 +141,8 @@ def run_objectwise_metrics(refDSM, refDTM, refMask, testDSM, testDTM, testMask, 
             self.MIN_AREA_FILTER = 0
             self.UNCERTAIN_VALUE = 65
     params = instance_parameters()
-    metrics_container_no_merge, metrics_container_merge_performer, metrics_container_merge_gt = \
-        eval_instance_metrics(ref_ndx, params, test_ndx)
+    metrics_container_no_merge = eval_instance_metrics(ref_ndx, params, test_ndx)
     no_merge_f1 = metrics_container_no_merge.f1_score
-    merge_fp_f1 = metrics_container_merge_performer.f1_score
-    merge_fn_f1 = metrics_container_merge_gt.f1_score
     num_buildings_performer = np.unique(test_ndx).__len__()-1
     num_buildings_truth = np.unique(ref_ndx).__len__()-1
 
@@ -171,63 +168,33 @@ def run_objectwise_metrics(refDSM, refDTM, refMask, testDSM, testDTM, testMask, 
     min_volume = 0
 
     # TODO: Begin multiprocessing fun here
-    for loop_region in range(1, num_ref_regions+1):
+    # Create argument list
+    arguments = []
+    for loop_region in range(1, num_ref_regions + 1):
+        arguments.append([ref_ndx, loop_region, refMask, test_ndx, ref_ndx_orig,
+                            ref_use_counter, testMask, test_use_counter, refDSM,
+                            refDTM, testDSM, testDTM, tform,
+                            ignoreMask, plot, verbose, max_area, min_area,
+                            max_volume, min_volume])
 
-        # Reference region under evaluation
-        ref_objs = (ref_ndx == loop_region) & refMask
+    use_multiprocessing = True
+    if use_multiprocessing:
+        with multiprocessing.Pool() as pool:
+            result_map = pool.starmap(multiprocessing_fun, arguments)
+            pool.close()
+            pool.join()
+    else:
+        # TODO: Do it without multiprocessing
+        print("Temp")
 
-        # Find test regions overlapping with ref
-        test_regions = np.unique(test_ndx[ref_ndx == loop_region])
-
-        # Find test regions overlapping with ref
-        ref_regions = np.unique(ref_ndx_orig[ref_ndx == loop_region])
-
-        # Remove background region, '0'
-        if np.any(test_regions == 0):
-            test_regions = test_regions.tolist()
-            test_regions.remove(0)
-            test_regions = np.array(test_regions)
-
-        if np.any(ref_regions == 0):
-            ref_regions = ref_regions.tolist()
-            ref_regions.remove(0)
-            ref_regions = np.array(ref_regions)
-
-        if len(test_regions) == 0:
-            continue
-
-        for refRegion in ref_regions:
-            # Increment counter for ref region used
-            ref_use_counter[refRegion - 1] = ref_use_counter[refRegion - 1] + 1
-
-        # Make mask of overlapping test regions
-        test_objs = np.zeros_like(testMask)
-        for test_region in test_regions:
-            test_objs = test_objs | (test_ndx == test_region)
-            # Increment counter for test region used
-            test_use_counter[test_region-1] = test_use_counter[test_region-1] + 1
-
-        # TODO:  Not practical as implemented to enable plots. plots is forced to false.
-        [result_geo, result_acc, unitArea] = eval_metrics(refDSM, refDTM, ref_objs, testDSM, testDTM, test_objs, tform,
-                                                ignoreMask, plot=plot, verbose=verbose)
-
-        this_metric = dict()
-        this_metric['ref_objects'] = ref_regions.tolist()
-        this_metric['test_objects'] = test_regions.tolist()
-        this_metric['threshold_geometry'] = result_geo
-        this_metric['relative_accuracy'] = result_acc
-
-        # Calculate min and max area/volume
-        if this_metric['threshold_geometry']['area']['test_area'] > max_area or loop_region == 1:
-            max_area = this_metric['threshold_geometry']['area']['test_area']
-        if this_metric['threshold_geometry']['area']['test_area'] < min_area or loop_region == 1:
-            min_area = this_metric['threshold_geometry']['area']['test_area']
-        if this_metric['threshold_geometry']['volume']['test_volume'] > max_volume or loop_region == 1:
-            max_volume = this_metric['threshold_geometry']['volume']['test_volume']
-        if this_metric['threshold_geometry']['volume']['test_volume'] < min_volume or loop_region == 1:
-            min_volume = this_metric['threshold_geometry']['volume']['test_volume']
-
+    for feature_dict in (r for r in result_map if r is not None):
         # TODO: End multiprocessing here and conglomerate results
+        this_metric = feature_dict[0]
+        result_geo = feature_dict[1]
+        result_acc = feature_dict[2]
+        unitArea = feature_dict[3]
+        ref_regions = feature_dict[4]
+
         metric_list.append(this_metric)
 
         # Add scores to images
@@ -305,10 +272,6 @@ def run_objectwise_metrics(refDSM, refDTM, refMask, testDSM, testDTM, testMask, 
         # Save instance level stoplight charts
         plot.make_instance_stoplight_charts(metrics_container_no_merge.stoplight_chart,
                                             saveName=PLOTS_SAVE_PREFIX+"instanceStoplightNoMerge")
-        plot.make_instance_stoplight_charts(metrics_container_merge_performer.stoplight_chart,
-                                            saveName=PLOTS_SAVE_PREFIX + "instanceStoplightMergePerformer")
-        plot.make_instance_stoplight_charts(metrics_container_merge_gt.stoplight_chart,
-                                            saveName=PLOTS_SAVE_PREFIX + "instanceStoplightMergeGT")
 
         # IOU Histograms
         plot.make_iou_histogram(iou_2d_area_bins, 'Area (m^2)',
@@ -425,13 +388,13 @@ def run_objectwise_metrics(refDSM, refDTM, refMask, testDSM, testDTM, testMask, 
         'summary': summary,
         'objects': metric_list,
         'instance_f1': no_merge_f1,
-        'instance_f1_merge_fp': merge_fp_f1,
-        'instance_f1_merge_fn': merge_fn_f1,
+        'instance_f1_merge_fp': None,
+        'instance_f1_merge_fn': None,
         'num_buildings_gt': num_buildings_truth,
         'num_buildings_perf': num_buildings_performer,
         'metrics_container_no_merge': metrics_container_no_merge,
-        'metrics_container_merge_fp': metrics_container_merge_performer,
-        'metrics_container_merge_fn': metrics_container_merge_gt
+        'metrics_container_merge_fp': np.nan,
+        'metrics_container_merge_fn': None
     }
 
     return results, test_ndx, ref_ndx

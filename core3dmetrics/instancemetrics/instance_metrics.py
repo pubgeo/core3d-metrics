@@ -223,79 +223,8 @@ def eval_instance_metrics(gt_indx_raster, params, perf_indx_raster):
                                                             performer_buildings, params.IOU_THRESHOLD,
                                                             metrics_container_no_merge)
     metrics_container_no_merge.show_metrics()
-    # Save matches for merging
-    no_merge_gt_buildings_match = []
-    no_merge_gt_buildings_fp_overlap_with = []
-    no_merge_gt_buildings_iou_score = []
-    no_merge_gt_buildings_is_uncertain = []
-    for _, current_gt_building in gt_buildings.items():
-        no_merge_gt_buildings_match.append(current_gt_building.match)
-        no_merge_gt_buildings_fp_overlap_with.append(current_gt_building.fp_overlap_with)
-        no_merge_gt_buildings_iou_score.append(current_gt_building.iou_score)
-        no_merge_gt_buildings_is_uncertain.append(current_gt_building.is_uncertain)
-    no_merge_performer_buildings_match = []
-    no_merge_performer_buildings_fp_overlap_with = []
-    no_merge_performer_buildings_iou_score = []
-    no_merge_performer_buildings_is_uncertain = []
-    for _, current_perf_building in performer_buildings.items():
-        no_merge_performer_buildings_match.append(current_perf_building.match)
-        no_merge_performer_buildings_fp_overlap_with.append(current_perf_building.fp_overlap_with)
-        no_merge_performer_buildings_iou_score.append(current_perf_building.iou_score)
-        no_merge_performer_buildings_is_uncertain.append(current_perf_building.is_uncertain)
 
-    # Merge performer buildings
-    merge_building_flag = False
-    if merge_building_flag is True:
-        print("Merging FP buildings to account for closely spaced buildings...")
-        merged_performer_buildings = merge_buildings(edge_x, edge_y, gt_buildings, performer_buildings)
-        # Create new performer_index raster
-        canvas = create_raster_from_building_objects(merged_performer_buildings, perf_indx_raster.shape[0],
-                                                     perf_indx_raster.shape[1])
-        # Reset matched flags in gt_buildings
-        for _, current_gt_building in gt_buildings.items():
-            current_gt_building.match = False
-            current_gt_building.fp_overlap_with = []
-            current_gt_building.iou_score = None
-            current_gt_building.is_uncertain = False
-        # Re-run metrics on merged performer buildings
-        metrics_container_merge_performer = MetricsContainer()
-        metrics_container_merge_performer.name = "Merge FP Performers"
-        metrics_container_merge_performer = calculate_metrics_iterator(gt_buildings, gt_indx_raster, ignored_gt, canvas,
-                                                                merged_performer_buildings, params.IOU_THRESHOLD,
-                                                                metrics_container_merge_performer)
-        metrics_container_merge_performer.show_metrics()
-        # Merge gt buildings
-        # Reset back to no merge
-        for i, current_gt_building in gt_buildings.items():
-            current_gt_building.match = no_merge_gt_buildings_match[i-1]
-            current_gt_building.fp_overlap_with = no_merge_gt_buildings_fp_overlap_with[i-1]
-            current_gt_building.iou_score = no_merge_gt_buildings_iou_score[i-1]
-            current_gt_building.is_uncertain = no_merge_gt_buildings_is_uncertain[i-1]
-        print("Merging GT buildings to account for closely spaced buildings...")
-        merged_gt_buildings = merge_buildings(edge_x, edge_y, performer_buildings, gt_buildings)
-        canvas = create_raster_from_building_objects(merged_gt_buildings, gt_indx_raster.shape[0], gt_indx_raster.shape[1])
-        for _, current_perf_building in performer_buildings.items():
-            current_perf_building.match = False
-            current_perf_building.fp_overlap_with = []
-            current_perf_building.iou_score = None
-            current_perf_building.is_uncertain = False
-        # Reset matched flags in gt_buildings
-        for _, current_gt_building in gt_buildings.items():
-            current_gt_building.match = False
-            current_gt_building.fp_overlap_with = []
-            current_gt_building.iou_score = None
-            current_gt_building.is_uncertain = False
-        metrics_container_merge_gt = MetricsContainer()
-        metrics_container_merge_gt.name = "Merge GTs"
-        metrics_container_merge_gt = calculate_metrics_iterator(merged_gt_buildings, gt_indx_raster, ignored_gt, canvas,
-                                                                performer_buildings, params.IOU_THRESHOLD,
-                                                                metrics_container_merge_gt)
-    else:
-        metrics_container_merge_gt = metrics_container_no_merge
-        metrics_container_merge_performer = metrics_container_no_merge
-    metrics_container_merge_gt.show_metrics()
     elapsed_time = time.time() - start_time
     print("Elapsed time: " + repr(elapsed_time))
-    return metrics_container_no_merge, metrics_container_merge_performer, metrics_container_merge_gt
-    print("Done")
+    return metrics_container_no_merge
 
