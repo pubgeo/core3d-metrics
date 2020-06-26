@@ -9,6 +9,7 @@ import gdalconst
 import numpy as np
 import argparse
 import json
+from datetime import datetime
 from pathlib import Path
 try:
     import core3dmetrics.geometrics as geo
@@ -493,6 +494,7 @@ def main(args=None):
 
     args, unknown = parser.parse_known_args(args)
 
+    start_time = datetime.now()
     print('RUN_GEOMETRICS input arguments:')
     print(args)
 
@@ -513,6 +515,8 @@ def main(args=None):
 
     # run process
     run_geometrics(config_file=args.config, **kwargs)
+    elapsed_time = datetime.now() - start_time
+    print("Elapsed time: " + str(elapsed_time))
 
 
 if __name__ == "__main__":
