@@ -53,7 +53,6 @@
             "DSMFilename",
             "DTMFilename",
             "CLSFilename",
-            "NDXFilename",
             "CLSMatchValue"
          ],
          "optional": [
@@ -68,9 +67,6 @@
                "type": "string"
             },
             "CLSFilename": {
-               "type": "string"
-            },
-            "NDXFilename": {
                "type": "string"
             },
             "MTLFilename": {
@@ -172,17 +168,21 @@
          ],
         "optional": [
             "AlignModel",
-            "SaveAligned"
+            "SaveAligned",
+            "UseMultiprocessing"
          ],
          "additionalProperties": false,
          "properties": {
             "QuantizeHeight": {
               "type": "boolean"
             },
-           "AlignModel": {
+            "AlignModel": {
               "type": "boolean"
             },
             "SaveAligned": {
+              "type": "boolean"
+            },
+            "UseMultiprocessing": {
               "type": "boolean"
             },
             "TerrainZErrorThreshold": {
