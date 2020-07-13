@@ -45,7 +45,6 @@ def run_geometrics(config_file, ref_path=None, test_path=None, output_path=None,
     ref_dsm_filename = config['INPUT.REF']['DSMFilename']
     ref_dtm_filename = config['INPUT.REF']['DTMFilename']
     ref_cls_filename = config['INPUT.REF']['CLSFilename']
-    ref_ndx_filename = config['INPUT.REF']['NDXFilename']
     ref_mtl_filename = config['INPUT.REF'].get('MTLFilename', None)
 
     # Get material label names and list of material labels to ignore in evaluation.
@@ -71,6 +70,9 @@ def run_geometrics(config_file, ref_path=None, test_path=None, output_path=None,
     if align:
         align = config['OPTIONS']['AlignModel']
     save_aligned = config['OPTIONS']['SaveAligned'] | save_aligned
+
+    # Determine multiprocessing usage
+    use_multiprocessing = config['OPTIONS']['UseMultiprocessing']
 
     # Configure plotting
     basename = os.path.basename(test_dsm_filename)
@@ -107,7 +109,10 @@ def run_geometrics(config_file, ref_path=None, test_path=None, output_path=None,
     ref_cls, tform = geo.imageLoad(ref_cls_filename)
     ref_dsm = geo.imageWarp(ref_dsm_filename, ref_cls_filename, noDataValue=no_data_value)
     ref_dtm = geo.imageWarp(ref_dtm_filename, ref_cls_filename, noDataValue=no_data_value)
-    ref_ndx = geo.imageWarp(ref_ndx_filename, ref_cls_filename, interp_method=gdalconst.GRA_NearestNeighbour).astype(np.uint16)
+
+    # Validate shape of reference files
+    if ref_cls.shape != ref_dsm.shape or ref_cls.shape != ref_dtm.shape:
+        print("Need to rescale")
 
     if ref_mtl_filename:
         ref_mtl = geo.imageWarp(ref_mtl_filename, ref_cls_filename, interp_method=gdalconst.GRA_NearestNeighbour).astype(np.uint8)
@@ -306,7 +311,8 @@ def run_geometrics(config_file, ref_path=None, test_path=None, output_path=None,
             merge_radius = config['OBJECTWISE']['MergeRadius']
             [result, test_ndx, ref_ndx] = geo.run_objectwise_metrics(ref_dsm, ref_dtm, ref_mask, test_dsm, test_dtm,
                                                                      test_mask, tform, ignore_mask, merge_radius,
-                                                                     plot=plot, geotiff_filename=ref_dsm_filename)
+                                                                     plot=plot, geotiff_filename=ref_dsm_filename,
+                                                                     use_multiprocessing=use_multiprocessing)
 
             # Get UTM coordinates from pixel coordinates in building centroids
             print("Creating KML and CSVs...")

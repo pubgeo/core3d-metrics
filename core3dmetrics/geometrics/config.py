@@ -124,6 +124,11 @@ def parse_config(configfile, refpath=None, testpath=None):
             config[s][i] = parser.getboolean(s, i)
         else:
             config[s][i] = True
+        s = 'OPTIONS'; i = 'UseMultiprocessing'
+        if i in config[s]:  # Optional Field
+            config[s][i] = parser.getboolean(s, i)
+        else:
+            config[s][i] = False
         s = 'OPTIONS'; i = 'SaveAligned'
         if i in config[s]:  # Optional Field
              config[s][i] = parser.getboolean(s, i)
@@ -138,7 +143,6 @@ def parse_config(configfile, refpath=None, testpath=None):
     else:
         raise IOError('Unrecognized configuration file')
 
-
     # locate files for each "xxxFilename" configuration parameter
     # this makes use of "refpath" and "testpath" arguments for relative filenames
     # we do this before validation to ensure required files are located
@@ -147,7 +151,6 @@ def parse_config(configfile, refpath=None, testpath=None):
         path = item[1]
         print('\nPROCESSING "{}" FILES'.format(sec))
         config[sec] = findfiles(config[sec], path)
-
 
     # validate final configuration against schema
     try:
@@ -161,8 +164,7 @@ def parse_config(configfile, refpath=None, testpath=None):
 
         raise jsonschema.exceptions.ValidationError('validation error')
 
-  
-    # for easier explotation, ensure some configuration options are tuple/list
+    # for easier exploitation, ensure some configuration options are tuple/list
     opts = (('INPUT.TEST', 'CLSMatchValue'), ('INPUT.REF', 'CLSMatchValue'),
             ('MATERIALS.REF', 'MaterialIndicesToIgnore'))
 

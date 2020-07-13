@@ -102,7 +102,7 @@ def multiprocessing_fun(ref_ndx, loop_region, refMask, test_ndx, ref_ndx_orig,
 
 
 def run_objectwise_metrics(refDSM, refDTM, refMask, testDSM, testDTM, testMask, tform, ignoreMask, merge_radius=2,
-                           plot=None, verbose=True, geotiff_filename=None):
+                           plot=None, verbose=True, geotiff_filename=None, use_multiprocessing=False):
 
     # parse plot input
     if plot is None:
@@ -177,7 +177,6 @@ def run_objectwise_metrics(refDSM, refDTM, refMask, testDSM, testDTM, testMask, 
                             ignoreMask, plot, verbose, max_area, min_area,
                             max_volume, min_volume])
 
-    use_multiprocessing = True
     if use_multiprocessing:
         with multiprocessing.Pool() as pool:
             result_map = pool.starmap(multiprocessing_fun, arguments)
