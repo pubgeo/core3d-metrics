@@ -167,7 +167,6 @@ def run_objectwise_metrics(refDSM, refDTM, refMask, testDSM, testDTM, testMask, 
     max_volume = 0
     min_volume = 0
 
-    # TODO: Begin multiprocessing fun here
     # Create argument list
     arguments = []
     for loop_region in range(1, num_ref_regions + 1):
@@ -182,31 +181,57 @@ def run_objectwise_metrics(refDSM, refDTM, refMask, testDSM, testDTM, testMask, 
             result_map = pool.starmap(multiprocessing_fun, arguments)
             pool.close()
             pool.join()
+
+        for feature_dict in (r for r in result_map if r is not None):
+            this_metric = feature_dict[0]
+            result_geo = feature_dict[1]
+            result_acc = feature_dict[2]
+            unitArea = feature_dict[3]
+            ref_regions = feature_dict[4]
+
+            metric_list.append(this_metric)
+
+            # Add scores to images
+            for i in ref_regions:
+                ind = ref_ndx_orig == i
+                image_2d_completeness[ind] = result_geo['2D']['completeness']
+                image_2d_correctness[ind] = result_geo['2D']['correctness']
+                image_2d_jaccard_index[ind] = result_geo['2D']['jaccardIndex']
+                image_3d_completeness[ind] = result_geo['3D']['completeness']
+                image_3d_correctness[ind] = result_geo['3D']['correctness']
+                image_3d_jaccard_index[ind] = result_geo['3D']['jaccardIndex']
+                image_hrmse[ind] = result_acc['hrmse']
+                image_zrmse[ind] = result_acc['zrmse']
+
     else:
-        # TODO: Do it without multiprocessing
-        print("Temp")
+        for argument in arguments:
+            result = multiprocessing_fun(argument[0], argument[1], argument[2], argument[3], argument[4], argument[5],
+                                         argument[6], argument[7], argument[8], argument[9], argument[10], argument[11],
+                                         argument[12], argument[13], argument[14], argument[15], argument[16],
+                                         argument[17], argument[18], argument[19])
 
-    for feature_dict in (r for r in result_map if r is not None):
-        # TODO: End multiprocessing here and conglomerate results
-        this_metric = feature_dict[0]
-        result_geo = feature_dict[1]
-        result_acc = feature_dict[2]
-        unitArea = feature_dict[3]
-        ref_regions = feature_dict[4]
+            if result is None:
+                continue
+            else:
+                this_metric = result[0]
+                result_geo = result[1]
+                result_acc = result[2]
+                unitArea = result[3]
+                ref_regions = result[4]
 
-        metric_list.append(this_metric)
+            metric_list.append(this_metric)
 
-        # Add scores to images
-        for i in ref_regions:
-            ind = ref_ndx_orig == i
-            image_2d_completeness[ind] = result_geo['2D']['completeness']
-            image_2d_correctness[ind] = result_geo['2D']['correctness']
-            image_2d_jaccard_index[ind] = result_geo['2D']['jaccardIndex']
-            image_3d_completeness[ind] = result_geo['3D']['completeness']
-            image_3d_correctness[ind] = result_geo['3D']['correctness']
-            image_3d_jaccard_index[ind] = result_geo['3D']['jaccardIndex']
-            image_hrmse[ind] = result_acc['hrmse']
-            image_zrmse[ind] = result_acc['zrmse']
+            # Add scores to images
+            for i in ref_regions:
+                ind = ref_ndx_orig == i
+                image_2d_completeness[ind] = result_geo['2D']['completeness']
+                image_2d_correctness[ind] = result_geo['2D']['correctness']
+                image_2d_jaccard_index[ind] = result_geo['2D']['jaccardIndex']
+                image_3d_completeness[ind] = result_geo['3D']['completeness']
+                image_3d_correctness[ind] = result_geo['3D']['correctness']
+                image_3d_jaccard_index[ind] = result_geo['3D']['jaccardIndex']
+                image_hrmse[ind] = result_acc['hrmse']
+                image_zrmse[ind] = result_acc['zrmse']
 
     # Sort metrics by area
     # Calculate bins for area and volume
