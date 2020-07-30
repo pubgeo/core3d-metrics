@@ -56,7 +56,8 @@
             "CLSMatchValue"
          ],
          "optional": [
-            "MTLFilename"
+            "MTLFilename",
+            "NDXFilename"
          ],
          "additionalProperties": false,
          "properties": {
@@ -73,13 +74,22 @@
                "oneOf": [
                   {
                      "type": "string"
-                  }, 
+                  },
                   {
                      "type": "null"
                   }
                ]
             },
-
+            "NDXFilename": {
+               "oneOf": [
+                  {
+                     "type": "string"
+                  },
+                  {
+                     "type": "null"
+                  }
+               ]
+            },
            "CLSMatchValue": {
               "$ref": "#/definitions/CLSMatchValueArrayOf"
             }
