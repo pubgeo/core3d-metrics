@@ -2,6 +2,8 @@ import json
 import jsonschema
 import numpy as np
 import csv
+import glob
+import os
 from pathlib import Path
 from MetricContainer import Result
 try:
@@ -36,18 +38,33 @@ def summarize_metrics(root_dir, teams, aois, ref_path=None, test_path=None):
     # Parse results
     for current_team in teams:
         for current_aoi in aois:
-            metrics_json_filepath = Path(root_dir, current_team, current_aoi, "%s.config_metrics.json" % current_aoi)
+            metrics_json_filepath = None
+            current_dir =  Path(root_dir, current_team, current_aoi)
+            for file in glob.glob(os.path.join(current_dir, "*.config_metrics.json")):
+                results_path = file
+                metrics_json_filepath = Path(results_path)
+            # metrics_json_filepath = Path(root_dir, current_team, current_aoi, "%s.config_metrics.json" % current_aoi)
             if metrics_json_filepath.is_file():
                 with open(str(metrics_json_filepath.absolute())) as json_file:
                     json_data = json.load(json_file)
                 # Check offset file
-                offset_file_path = Path(root_dir, current_team, "%s.offset.txt" % current_aoi)
+                current_dir = Path(root_dir, current_team, current_aoi)
+                offset_file_path = None
+                for file in glob.glob(os.path.join(current_dir, "*offsets.txt")):
+                    offset_file_path = file
+                    offset_file_path = Path(offset_file_path)
+                # offset_file_path = Path(root_dir, current_team, "%s.offset.txt" % current_aoi)
                 if offset_file_path.is_file():
                     with open(str(offset_file_path.absolute())) as offset_file:
                         if offset_file_path.suffix is ".json":
                             offset_data = json.load(offset_file)
                         else:
-                            offset_data = offset_file.readline()
+                            offset_data = {}
+                            for last_line in offset_file:
+                                try:
+                                    offset_data["offset"] = [float(idx) for idx in last_line.split()]
+                                except ValueError:
+                                    continue
                         n = {}
                         n["threshold_geometry"] = json_data["threshold_geometry"]
                         n["relative_accuracy"] = json_data["relative_accuracy"]
@@ -105,7 +122,12 @@ def summarize_metrics(root_dir, teams, aois, ref_path=None, test_path=None):
                 all_results[current_team] = {current_aoi: container}
 
             # Try to find config file
-            config_path = Path(root_dir, current_team, current_aoi, current_aoi + '.config')
+            current_dir = Path(root_dir, current_team, current_aoi)
+            config_path = None
+            for file in glob.glob(os.path.join(current_dir,"*.config")):
+                config_path = file
+                config_path = Path(config_path)
+            # config_path = Path(root_dir, current_team, current_aoi, current_aoi + '.config')
             if config_path.is_file():
                 config = geo.parse_config(str(config_path.absolute()),
                                           refpath=(ref_path or str(config_path.parent)),
