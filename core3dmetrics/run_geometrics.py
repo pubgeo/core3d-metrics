@@ -39,6 +39,7 @@ def run_geometrics(config_file, ref_path=None, test_path=None, output_path=None,
     test_dsm_filename = config['INPUT.TEST']['DSMFilename']
     test_dtm_filename = config['INPUT.TEST'].get('DTMFilename', None)
     test_cls_filename = config['INPUT.TEST']['CLSFilename']
+    test_conf_filename = config['INPUT.TEST'].get('CONFFilename', None)
     test_mtl_filename = config['INPUT.TEST'].get('MTLFilename', None)
 
     # Get reference model information from configuration file.
@@ -100,6 +101,7 @@ def run_geometrics(config_file, ref_path=None, test_path=None, output_path=None,
         except:
             align3d_path = None
         xyz_offset = geo.align3d(ref_dsm_filename, test_dsm_filename_copy, exec_path=align3d_path)
+        #xyz_offset = geo.align3d_python(ref_dsm_filename, test_dsm_filename_copy)
 
     # Explicitly assign a no data value to warped images to track filled pixels
     no_data_value = -9999
@@ -136,6 +138,15 @@ def run_geometrics(config_file, ref_path=None, test_path=None, output_path=None,
         print('NO TEST DTM: defaults to reference DTM')
         test_dtm = ref_dtm
 
+    if test_conf_filename:
+        test_conf = geo.imageWarp(test_conf_filename,  ref_cls_filename, xyz_offset, noDataValue=no_data_value)
+        if save_aligned:
+            geo.arrayToGeotiff(test_conf, os.path.join(output_path, basename + '_test_conf_reg_out'), ref_cls_filename,
+                               no_data_value)
+    else:
+        test_conf = None
+        print("NO TEST CONF")
+
     if save_aligned:
         geo.arrayToGeotiff(test_cls, os.path.join(output_path, basename + '_test_cls_reg_out'), ref_cls_filename,
                            no_data_value)
@@ -167,6 +178,15 @@ def run_geometrics(config_file, ref_path=None, test_path=None, output_path=None,
     test_dsm[test_valid_data] = test_dsm[test_valid_data] + xyz_offset[2]
     if test_dtm_filename:
         test_dtm[test_valid_data] = test_dtm[test_valid_data] + xyz_offset[2]
+
+    # Repeat for conf image
+    test_valid_data = (test_dsm != no_data_value)
+    if test_conf_filename:
+        test_valid_data &= (test_conf != no_data_value)
+
+    test_dsm[test_valid_data] = test_dsm[test_valid_data] + xyz_offset[2]
+    if test_conf_filename:
+        test_conf[test_valid_data] = test_conf[test_valid_data] + xyz_offset[2]
 
     # Create mask for ignoring points labeled NoData in reference files.
     ref_dsm_no_data_value = no_data_value
@@ -393,7 +413,7 @@ def run_geometrics(config_file, ref_path=None, test_path=None, output_path=None,
         # Evaluate threshold geometry metrics using refDTM as the testDTM to mitigate effects of terrain modeling
         # uncertainty
         result, _ = geo.run_threshold_geometry_metrics(ref_dsm, ref_dtm, ref_mask, test_dsm, ref_dtm, test_mask, tform,
-                                                    ignore_mask, plot=plot)
+                                                    ignore_mask, testCONF=test_conf, plot=plot)
         if ref_match_value == test_match_value:
             result['CLSValue'] = ref_match_value
         else:

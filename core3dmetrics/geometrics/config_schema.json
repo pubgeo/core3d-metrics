@@ -122,6 +122,16 @@
                   }
                ]
             },
+            "CONFFilename": {
+               "oneOf": [
+                  {
+                     "type": "string"
+                  },
+                  {
+                     "type": "null"
+                  }
+               ]
+            },
             "CLSFilename": {
                "type": "string"
             },

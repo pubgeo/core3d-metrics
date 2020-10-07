@@ -10,12 +10,13 @@ from .relative_accuracy_metrics import run_relative_accuracy_metrics
 from core3dmetrics.instancemetrics.instance_metrics import eval_instance_metrics
 
 
-def eval_metrics(refDSM, refDTM, refMask, testDSM, testDTM, testMask, tform, ignoreMask, plot=None, verbose=True):
+def eval_metrics(refDSM, refDTM, refMask, testDSM, testDTM, testMask, tform, ignoreMask, plot=None, testCONF=None,
+                 verbose=True):
 
     # Evaluate threshold geometry metrics using refDTM as the testDTM to mitigate effects of terrain modeling
     # uncertainty
     result_geo, unitArea = run_threshold_geometry_metrics(refDSM, refDTM, refMask, testDSM, refDTM, testMask, tform, ignoreMask,
-                                                plot=plot, for_objectwise=True, verbose=verbose)
+                                                plot=plot, for_objectwise=True, testCONF=testCONF, verbose=verbose)
 
     # Run the relative accuracy metrics and report results.
     result_acc = run_relative_accuracy_metrics(refDSM, testDSM, refMask, testMask, ignoreMask,

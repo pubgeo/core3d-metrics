@@ -3,13 +3,14 @@ import os
 import json
 import math
 from scipy.ndimage.measurements import label
+from scipy.stats import pearsonr
 
 from .metrics_util import calcMops
 from .metrics_util import getUnitArea
 
 
 def run_threshold_geometry_metrics(refDSM, refDTM, refMask, testDSM, testDTM, testMask,
-                                   tform, ignoreMask, plot=None, for_objectwise=False, verbose=True):
+                                   tform, ignoreMask, plot=None, for_objectwise=False, testCONF=None, verbose=True):
     # INPUT PARSING==========
 
     # parse plot input
@@ -153,6 +154,20 @@ def run_threshold_geometry_metrics(refDSM, refDTM, refMask, testDSM, testDTM, te
         print('3D TP+FP ({}+{}) equals test volume ({})'.format(
             tp_total_volume, fp_total_volume, test_total_volume))
 
+    # Confidence Metrics
+    if testCONF is not None:
+        # create mask including both reference and test building labels
+        w_ref = refMask > 0
+        w_test = testMask > 0
+        w = np.logical_and(w_ref, w_test)
+        # compute differences
+        abs_delta = np.abs(testDSM - refDSM)
+        abs_delta_minus_mask = abs_delta[w]
+        confidence_minus_mask = testCONF[w]
+        # compute pearson coefficient
+        p = pearsonr(abs_delta_minus_mask, confidence_minus_mask)
+    else:
+        p = [np.nan, np.nan]
 
     # CLEANUP==========
 
@@ -161,7 +176,8 @@ def run_threshold_geometry_metrics(refDSM, refDTM, refMask, testDSM, testDTM, te
         '2D': calcMops(tp_total_area, fn_total_area, fp_total_area),
         '3D': calcMops(tp_total_volume, fn_total_volume, fp_total_volume),
         'area': {'reference_area': np.int(ref_total_area), 'test_area': np.int(test_total_area)},
-        'volume': {'reference_volume': np.float(ref_total_volume), 'test_volume': np.float(test_total_volume)}
+        'volume': {'reference_volume': np.float(ref_total_volume), 'test_volume': np.float(test_total_volume)},
+        'pearson': {'pearson-r': np.float(p[0]), 'pearson-pvalue': np.float(p[1])}
     }
 
     # verbose reporting
