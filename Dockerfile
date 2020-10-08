@@ -11,9 +11,8 @@ RUN apt update && apt upgrade -y && \
 	python3-tk \
 	python3-scipy
 
-RUN pip3 install --upgrade pip
 RUN apt autoremove -y && rm -rf /var/lib/apt/lists/*
-RUN pip3 install "matplotlib==3.0.3" laspy setuptools "jsonschema==2.6.0" "numpy==1.16.2" opencv-python "Pillow" wheel simplekml
+RUN pip3 install "matplotlib==3.0.3" laspy setuptools "jsonschema==2.6.0" "numpy==1.16.2" opencv-python=="4.0.0.21" "Pillow" wheel simplekml
 WORKDIR /
 
 ARG DOCKER_DEPLOY=true
