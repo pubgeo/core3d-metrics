@@ -1,10 +1,15 @@
 import numpy as np
-from OrthoImage import OrthoImage
 from pathlib import Path
 import math
 import random
 import sys
 from tqdm import tqdm
+
+try:
+    from OrthoImage import OrthoImage
+except:
+    from utils.OrthoImage import OrthoImage
+
 
 MAX_FLOAT = sys.float_info.max
 
