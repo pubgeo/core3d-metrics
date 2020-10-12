@@ -269,18 +269,18 @@ if __name__ == '__main__':
 
     # Create camera based on coordinate system setup
     if x1 == x2 == y2 == y1 == 0.0:
-        if z_up: # Correct for ARA D4
+        if z_up:
             bpy.ops.object.camera_add(view_align=True, enter_editmode=False, location=(global_bbox_center[0], global_bbox_center[1], z_dim + z_dim/10),
                                       rotation=(0, 0, 0), layers=(
                     True, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False,
                     False, False, False, False))
-        else: #Correct for other ARAs
+        else:
             bpy.ops.object.camera_add(view_align=True, enter_editmode=False, location=(global_bbox_center[0], global_bbox_center[2], (-1 * global_bbox_center[1]) + max_dim + max_dim / 10),
                                       rotation=(0, 0, 0), layers=(
                     True, False, False, False, False, False, False, False, False, False, False, False, False, False, False,
                     False,False, False, False, False))
     else:
-        if z_up: # Correct for ARA D4
+        if z_up:
             bpy.ops.object.camera_add(view_align=True, enter_editmode=False, location=(x_center, y_center, z_dim + z_dim/10),
                                       rotation=(0, 0, 0), layers=(
                     True, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False,
@@ -378,8 +378,10 @@ if __name__ == '__main__':
     #Perspective RENDER Image
 
     imgname = 'persp_image_' + str(ResX) + '_' + str(ResY) + '_gsd'+ str(GSD)+ str_loc+ '_z_' + str(z_up) + '_N_' + str(N) + '_elev_' + str(elev_ang) + '_flen_' + str(f_length) + '_radius_' + str(radius) + '_'
-    file_dir = '\\'.join(path.split('\\')[0:-1])
-    savepath = file_dir + '\\' + imgname
+    # file_dir = '\\'.join(path.split('\\')[0:-1])
+    # savepath = file_dir + '\\' + imgname
+    file_dir = os.path.dirname(path)
+    savepath = file_dir + '/rendered_images/' + imgname
     rotate_and_render(savepath, 'render%d.png', int(N), 360.0, elev_ang, radius)
 
 
