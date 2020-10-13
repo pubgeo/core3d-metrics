@@ -95,7 +95,7 @@ def read_in_args(argv):
    y2 = 0.0
    z_up = True #default import without specifying +Z up
    try:
-      opts, args = getopt.getopt(argv,"hp:g:x:y:X:Y:z",["path=","gsd=", "x=", "y=", "X=", "Y=", "z="])
+      opts, args = getopt.getopt(argv,"hp:g:x:y:X:Y:z:",["path=","gsd=", "x=", "y=", "X=", "Y=", "z="])
    except getopt.GetoptError:
       print('test.py -- -p <filepath> -g <gsd> -x <x1> -y <y1> -X <x2> -Y <y2> -z <+Z up?>')
       print('Please add in a filepath directory (string), GSD value (float), coordinates startpoint(x,y) and endpoint (X,Y) (float), a boolean indicator if you want to load file with +Z up loaded')
@@ -133,6 +133,7 @@ if __name__ == '__main__':
     argv = argv[argv.index("--") + 1:]  # get all args after "--"
 
     path, GSD, x1, y1, x2, y2, z_up = read_in_args(argv)
+
 
 
     if y1 != 0.0 and y2 != 0.0:
