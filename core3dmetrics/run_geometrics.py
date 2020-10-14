@@ -3,6 +3,7 @@
 #
 
 import os
+import errno
 import sys
 import shutil
 import gdalconst
@@ -412,7 +413,7 @@ def run_geometrics(config_file, ref_path=None, test_path=None, output_path=None,
 
         # Evaluate threshold geometry metrics using refDTM as the testDTM to mitigate effects of terrain modeling
         # uncertainty
-        result, _ = geo.run_threshold_geometry_metrics(ref_dsm, ref_dtm, ref_mask, test_dsm, ref_dtm, test_mask, tform,
+        result, _, stoplight_fn, errhgt_fn = geo.run_threshold_geometry_metrics(ref_dsm, ref_dtm, ref_mask, test_dsm, ref_dtm, test_mask, tform,
                                                     ignore_mask, testCONF=test_conf, plot=plot)
         if ref_match_value == test_match_value:
             result['CLSValue'] = ref_match_value
@@ -479,6 +480,56 @@ def run_geometrics(config_file, ref_path=None, test_path=None, output_path=None,
     #  If displaying figures, wait for user before existing
     if PLOTS_SHOW:
             input("Press Enter to continue...")
+
+    # Write final metrics out
+    output_folder = os.path.join(output_path, "metrics_final")
+    try:
+        os.mkdir(output_folder)
+    except OSError as e:
+        if e.errno == errno.EEXIST:
+            pass
+        else:
+            print("Can't create directory, please check permissions...")
+            raise
+
+    # Save all of myrons outputs here
+    #TODO: “metrics.json”
+    metrics_formatted = {}
+    metrics_formatted["2D"] = {}
+    metrics_formatted["2D"]["Precision"] = metrics["threshold_geometry"][0]['2D']['precision']
+    metrics_formatted["2D"]["Recall"] = metrics["threshold_geometry"][0]['2D']['recall']
+    metrics_formatted["2D"]["IOU"] = metrics["threshold_geometry"][0]['2D']['jaccardIndex']
+    metrics_formatted["3D"] = {}
+    metrics_formatted["3D"]["Precision"] = metrics["threshold_geometry"][0]['3D']['precision']
+    metrics_formatted["3D"]["Recall"] = metrics["threshold_geometry"][0]['3D']['recall']
+    metrics_formatted["3D"]["IOU"] = metrics["threshold_geometry"][0]['3D']['jaccardIndex']
+    metrics_formatted["ZRMS"] = metrics['relative_accuracy'][0]['zrmse']
+    metrics_formatted["HRMS"] = metrics['relative_accuracy'][0]['hrmse']
+    metrics_formatted["Slope RMS"] = np.nan
+    metrics_formatted["DTM RMS"] = metrics['terrain_accuracy']['zrmse']
+    metrics_formatted["DTM Completeness"] = metrics['terrain_accuracy']['completeness']
+    metrics_formatted["Z IOU"] = np.nan
+    metrics_formatted["AGL IOU"] = np.nan
+    metrics_formatted["MODEL IOU"] = np.nan
+    metrics_formatted["X Offset"] = xyz_offset[0]
+    metrics_formatted["Y Offset"] = xyz_offset[1]
+    metrics_formatted["P Value"] = metrics['threshold_geometry'][0]['pearson']
+
+    fileout = os.path.join(output_folder, "metrics.json")
+    with open(fileout, 'w') as fid:
+        json.dump(metrics_formatted, fid, indent=2)
+    print(json.dumps(metrics_formatted, indent=2))
+
+    if PLOTS_ENABLE:
+        plot.make_final_metrics_images(stoplight_fn, errhgt_fn, test_conf_filename, output_folder)
+        print("hi")
+
+
+    #TODO: "inputs.png"
+
+    #TODO: “textured.png”
+
+    #TODO: “untextured.png”
 
 
 # command line function

@@ -50,6 +50,7 @@ def run_threshold_geometry_metrics(refDSM, refDTM, refMask, testDSM, testDTM, te
         print('TEST area (px), volume (m^3) =  [{},{}]'.format(test_total_area,test_total_volume))
 
     # plot
+    error_height_fn = None
     if PLOTS_ENABLE:
         print('Input plots...')
 
@@ -64,7 +65,7 @@ def run_threshold_geometry_metrics(refDSM, refDTM, refMask, testDSM, testDTM, te
         plot.make(errorMap, 'Height Error', 291, saveName=PLOTS_SAVE_PREFIX+"errHgt", colorbar=True)
         plot.make(errorMap, 'Height Error (clipped)', 292, saveName=PLOTS_SAVE_PREFIX+"errHgtClipped", colorbar=True,
                   vmin=-5, vmax=5)
-        plot.make_error_map(error_map=errorMap, ref=ref_footprint, saveName=PLOTS_SAVE_PREFIX+"errHgtImageOnly",
+        error_height_fn = plot.make_error_map(error_map=errorMap, ref=ref_footprint, saveName=PLOTS_SAVE_PREFIX+"errHgtImageOnly",
                             ignore=ignoreMask)
 
     # 2D ANALYSIS==========
@@ -95,12 +96,13 @@ def run_threshold_geometry_metrics(refDSM, refDTM, refMask, testDSM, testDTM, te
             tp_total_area, fp_total_area, test_total_area))
 
     # plot
+    stoplight_fn = None
     if PLOTS_ENABLE:
         print('2D analysis plots...')
         plot.make(tp_2D_array, 'True Positive Regions',  283, saveName=PLOTS_SAVE_PREFIX+"truePositive")
         plot.make(fn_2D_array, 'False Negative Regions', 281, saveName=PLOTS_SAVE_PREFIX+"falseNegative")
         plot.make(fp_2D_array, 'False Positive Regions', 282, saveName=PLOTS_SAVE_PREFIX+"falsePositive")
-        plot.make_stoplight_plot(fp_image=fp_2D_array, fn_image=fn_2D_array, ref=ref_footprint, saveName=PLOTS_SAVE_PREFIX+"stoplight")
+        stoplight_fn = plot.make_stoplight_plot(fp_image=fp_2D_array, fn_image=fn_2D_array, ref=ref_footprint, saveName=PLOTS_SAVE_PREFIX+"stoplight")
 
         layer = np.zeros_like(ref_footprint).astype(np.uint8) + 3  # Initialize as True Negative
         layer[tp_2D_array] = 1  # TP
@@ -186,4 +188,4 @@ def run_threshold_geometry_metrics(refDSM, refDTM, refMask, testDSM, testDTM, te
         print(json.dumps(metrics, indent=2))
 
     # return metric dictionary
-    return metrics, unitArea
+    return metrics, unitArea, stoplight_fn, error_height_fn

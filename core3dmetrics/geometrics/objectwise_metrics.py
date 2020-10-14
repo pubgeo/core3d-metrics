@@ -15,7 +15,7 @@ def eval_metrics(refDSM, refDTM, refMask, testDSM, testDTM, testMask, tform, ign
 
     # Evaluate threshold geometry metrics using refDTM as the testDTM to mitigate effects of terrain modeling
     # uncertainty
-    result_geo, unitArea = run_threshold_geometry_metrics(refDSM, refDTM, refMask, testDSM, refDTM, testMask, tform, ignoreMask,
+    result_geo, unitArea, _, _ = run_threshold_geometry_metrics(refDSM, refDTM, refMask, testDSM, refDTM, testMask, tform, ignoreMask,
                                                 plot=plot, for_objectwise=True, testCONF=testCONF, verbose=verbose)
 
     # Run the relative accuracy metrics and report results.

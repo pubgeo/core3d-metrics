@@ -191,6 +191,7 @@ class plot:
         fn = os.path.join(self.saveDir, saveName + self.saveExe)
 
         cv2.imwrite(fn, stoplight_chart[..., ::-1])
+        return fn
 
     def stretch_contrast(self, image):
         a = image.min()
@@ -252,6 +253,7 @@ class plot:
         fn = os.path.join(self.saveDir, saveName + self.saveExe)
 
         cv2.imwrite(fn, err_color)
+        return fn
 
     def make_iou_histogram(self, iou_list, sort_type='', title='', fig=None, width=4000, **kwargs):
         plt.figure(fig)
@@ -378,3 +380,51 @@ class plot:
             plt.close(plt.gcf())
 
         plt.set_cmap('jet')
+
+    def make_final_metrics_images(self, stoplight_fn, errhgt_fn, test_conf_filename, output_dir):
+        #TODO: “metrics.png”
+        # Top 3: 2D IOU, 3D IOU, CONF VIZ
+        # Bottom 3: CLS IOU, CLS+Z IOU, and CLS+Z+SLOPE IOU
+        from PIL import Image
+        from pathlib import Path
+
+        iou_2d_path = Path(stoplight_fn)
+        iou_2d_image = Image.open(str(iou_2d_path.absolute()))
+        iou_3d_path = Path(errhgt_fn)
+        iou_3d_image = Image.open(str(iou_3d_path.absolute()))
+        stoplight_shape = np.shape(iou_2d_image)
+        conf_viz_path = Path(str(Path(test_conf_filename).parent.absolute()),
+                             Path(test_conf_filename).stem + '_VIZ.tif')
+        if conf_viz_path.is_file():
+            conf_viz_image = Image.open(conf_viz_path)
+            conf_shape = np.shape(conf_viz_image)
+            conf_viz_image = conf_viz_image.resize((stoplight_shape[1], stoplight_shape[0]), resample=0)
+        else:
+            # If can't find viz image, use non viz
+            conf_viz_image = Image.open(test_conf_filename)
+            conf_shape = np.shape(conf_viz_image)
+            conf_viz_image = conf_viz_image.resize((stoplight_shape[1], stoplight_shape[0]), resample=0)
+
+        cls_z_iou = None
+        cls_iou_image = None
+        cls_z_slope = None
+
+        # Create image mosaic/stack
+        num_rows, num_cols, ch_num = np.shape(iou_2d_image)
+        separation_bar_vert = np.ones([num_rows, int(np.floor(num_cols * 0.02)), ch_num], dtype=np.uint8)
+        separation_bar_vert.fill(255)
+        # Stack images horizontally
+        image_stack_top = np.hstack((iou_2d_image, separation_bar_vert, iou_3d_image, separation_bar_vert,
+                                     conf_viz_image))
+        # TODO: Change bot stack to clz z images
+        image_stack_bot = np.hstack((iou_2d_image, separation_bar_vert, iou_3d_image, separation_bar_vert,
+                                     conf_viz_image))
+
+        num_rows, num_cols, ch_num = np.shape(image_stack_top)
+        separation_bar_horz = np.ones([int(np.floor(num_rows * 0.02)), num_cols, ch_num], dtype=np.uint8)
+        separation_bar_horz.fill(255)
+
+        # Stack images vertically
+        final_stack = np.vstack((image_stack_top, separation_bar_horz, image_stack_bot))
+        import cv2
+        cv2.imwrite(str(Path(output_dir, "metrics.png").absolute()), cv2.cvtColor(final_stack, cv2.COLOR_BGR2RGB))
