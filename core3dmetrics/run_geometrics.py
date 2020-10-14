@@ -524,7 +524,6 @@ def run_geometrics(config_file, ref_path=None, test_path=None, output_path=None,
         plot.make_final_metrics_images(stoplight_fn, errhgt_fn, test_conf_filename, output_folder)
         print("hi")
 
-
     #TODO: "inputs.png"
 
     #TODO: “textured.png”

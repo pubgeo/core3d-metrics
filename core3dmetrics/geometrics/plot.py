@@ -405,6 +405,13 @@ class plot:
             conf_shape = np.shape(conf_viz_image)
             conf_viz_image = conf_viz_image.resize((stoplight_shape[1], stoplight_shape[0]), resample=0)
 
+        # Recolor conf_viz_image
+        black_color = (0, 0, 0)
+        gray_color = (220, 220, 220)
+        conf_viz_image_array = np.array(conf_viz_image)
+        conf_viz_image_array[np.all(conf_viz_image_array == black_color, axis=-1)] = (gray_color)
+        conf_viz_image_recolor = Image.fromarray(np.uint8(conf_viz_image_array))
+
         cls_z_iou = None
         cls_iou_image = None
         cls_z_slope = None
@@ -415,10 +422,10 @@ class plot:
         separation_bar_vert.fill(255)
         # Stack images horizontally
         image_stack_top = np.hstack((iou_2d_image, separation_bar_vert, iou_3d_image, separation_bar_vert,
-                                     conf_viz_image))
+                                     conf_viz_image_recolor))
         # TODO: Change bot stack to clz z images
         image_stack_bot = np.hstack((iou_2d_image, separation_bar_vert, iou_3d_image, separation_bar_vert,
-                                     conf_viz_image))
+                                     conf_viz_image_recolor))
 
         num_rows, num_cols, ch_num = np.shape(image_stack_top)
         separation_bar_horz = np.ones([int(np.floor(num_rows * 0.02)), num_cols, ch_num], dtype=np.uint8)
