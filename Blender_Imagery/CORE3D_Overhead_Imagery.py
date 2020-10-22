@@ -95,7 +95,7 @@ def read_in_args(argv):
    y2 = 0.0
    z_up = True #default import without specifying +Z up
    try:
-      opts, args = getopt.getopt(argv,"hp:g:x:y:X:Y:z",["path=","gsd=", "x=", "y=", "X=", "Y=", "z="])
+      opts, args = getopt.getopt(argv,"hp:g:x:y:X:Y:z:",["path=","gsd=", "x=", "y=", "X=", "Y=", "z="])
    except getopt.GetoptError:
       print('test.py -- -p <filepath> -g <gsd> -x <x1> -y <y1> -X <x2> -Y <y2> -z <+Z up?>')
       print('Please add in a filepath directory (string), GSD value (float), coordinates startpoint(x,y) and endpoint (X,Y) (float), a boolean indicator if you want to load file with +Z up loaded')
@@ -133,6 +133,9 @@ if __name__ == '__main__':
     argv = argv[argv.index("--") + 1:]  # get all args after "--"
 
     path, GSD, x1, y1, x2, y2, z_up = read_in_args(argv)
+
+
+
     if y1 != 0.0 and y2 != 0.0:
         y1 = -y1 #Ensure y inputs can be entered +
         y2 = -y2
@@ -212,26 +215,40 @@ if __name__ == '__main__':
     # Create camera based on coordinate system setup
     if x1 == x2 == y2 == y1 == 0.0:
         if z_up:
-            bpy.ops.object.camera_add(view_align=True, enter_editmode=False, location=(global_bbox_center[0], global_bbox_center[1], z_dim + z_dim/10),
-                                      rotation=(0, 0, 0), layers=(
-                    True, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False,
-                    False, False, False, False))
+            xloc = global_bbox_center[0]
+            yloc = global_bbox_center[1]
+            zloc = z_dim + z_dim/10
+            xr = 0
+            yr = 0
+            zr = 0
         else:
-            bpy.ops.object.camera_add(view_align=True, enter_editmode=False, location=(global_bbox_center[0], global_bbox_center[2], (-1 * global_bbox_center[1]) + max_dim + max_dim / 10),
-                                      rotation=(0, 0, 0), layers=(
-                    True, False, False, False, False, False, False, False, False, False, False, False, False, False, False,
-                    False,False, False, False, False))
+            xloc = global_bbox_center[0]
+            yloc = global_bbox_center[2]
+            zloc = (-1 * global_bbox_center[1]) + (max_dim + max_dim / 10)
+            xr = 0
+            yr = 0
+            zr = 0
     else:
         if z_up:
-            bpy.ops.object.camera_add(view_align=True, enter_editmode=False, location=(x_center, y_center, z_dim + z_dim/10),
-                                      rotation=(0, 0, 0), layers=(
-                    True, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False,
-                    False, False, False, False))
+            xloc = x_center
+            yloc = y_center
+            zloc = z_dim + z_dim/10
+            xr = 0
+            yr = 0
+            zr = 0
         else:
-            bpy.ops.object.camera_add(view_align=True, enter_editmode=False, location=(x_center, y_center, (-1 * global_bbox_center[1]) + max_dim + max_dim / 10),
-                                      rotation=(0, 0, 0), layers=(
-                    True, False, False, False, False, False, False, False, False, False, False, False, False, False, False,
-                    False,False, False, False, False))
+            xloc = x_center
+            yloc = y_center
+            zloc = (-1 * global_bbox_center[1]) + (max_dim + max_dim / 10)
+            xr = 0
+            yr = 0
+            zr = 0
+    #Add camera
+    bpy.ops.object.camera_add(view_align=True, enter_editmode=False, location=(xloc, yloc, zloc),
+                              rotation=(xr, yr, zr), layers=(
+            True, False, False, False, False, False, False, False, False, False, False, False, False, False, False,
+            False,
+            False, False, False, False))
 
 
     ############################################
@@ -287,9 +304,9 @@ if __name__ == '__main__':
     diffuse_to_emissive()
 
     # Orthographic RENDER image
-    imgname = 'overhead_image_' + str(ResX) + '_' + str(ResY) + '_gsd'+ str(GSD)+ str_loc+ '_z_' + str(z_up) + '.png'
-    file_dir = '\\'.join(path.split('\\')[0:-1])
-    savepath = file_dir + '\\' + imgname
+    imgname = 'ortho_image_' + str(ResX) + '_' + str(ResY) + '_gsd_'+ str(GSD)+ str_loc+ '_z_' + str(z_up) + '.png'
+    file_dir = os.path.dirname(path)
+    savepath = file_dir + '/rendered_images/' + imgname
     bpy.context.scene.render.filepath = savepath
     bpy.ops.render.render(write_still=True)
 
