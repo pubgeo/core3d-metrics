@@ -527,7 +527,6 @@ def run_geometrics(config_file, ref_path=None, test_path=None, output_path=None,
     #TODO: "inputs.png"
         plot.make_final_input_images_grayscale([ref_cls_filename, ref_dsm_filename, ref_dtm_filename, test_cls_filename,
                                                 test_dsm_filename, test_dtm_filename], output_folder)
-        print("hi")
     #TODO: “textured.png”
 
     #TODO: “untextured.png”
