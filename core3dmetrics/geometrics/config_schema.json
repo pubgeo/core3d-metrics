@@ -284,6 +284,40 @@
                "type": "string"
             }
          }
+      },
+      "BLENDER.TEST": {
+         "type": "object",
+         "additionalProperties": false,
+         "properties": {
+            "OBJDirectoryPath": {
+               "type": "string"
+            },
+            "GSD": {
+               "type": "number"
+            },
+            "bbox": {
+               "type": "array",
+               "items": {
+                 "type": "number"
+               }
+            },
+            "+Z": {
+               "type": "boolean"
+            },
+            "OrbitalLocations": {
+               "type": "integer",
+               "minimum": 0
+            },
+            "ElevationAngle": {
+               "type": "number"
+            },
+            "FocalLength": {
+               "type": "number"
+            },
+            "RadialDistance": {
+               "type": "number"
+            }
+         }
       }
    }
 }

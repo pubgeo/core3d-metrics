@@ -12,7 +12,7 @@ RUN apt update && apt upgrade -y && \
 	python3-scipy
 
 RUN apt autoremove -y && rm -rf /var/lib/apt/lists/*
-RUN pip3 install "matplotlib==3.0.3" laspy setuptools "jsonschema==2.6.0" "numpy==1.16.2" opencv-python=="4.0.0.21" "Pillow" wheel simplekml tqdm
+RUN pip3 install "matplotlib==3.0.3" laspy setuptools "jsonschema==2.6.0" "numpy==1.16.2" "opencv-python==4.0.0.21" "Pillow" wheel simplekml tqdm mathutils bpy-cuda bpy_post_install mathutils
 WORKDIR /
 
 ARG DOCKER_DEPLOY=true
