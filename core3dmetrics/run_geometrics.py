@@ -528,7 +528,15 @@ def run_geometrics(config_file, ref_path=None, test_path=None, output_path=None,
         plot.make_final_input_images_grayscale([ref_cls_filename, ref_dsm_filename, ref_dtm_filename, test_cls_filename,
                                                 test_dsm_filename, test_dtm_filename], output_folder)
     #TODO: “textured.png”
-
+    from CORE3D_Perspective_Imagery import generate_blender_images
+    objpath = config['BLENDER.TEST']['OBJDirectoryPath']
+    gsd = config['BLENDER.TEST']['GSD']
+    Zup = config['BLENDER.TEST']['Z+']
+    N = config['BLENDER.TEST']['OrbitalLocations']
+    e = config['BLENDER.TEST']['ElevationAngle']
+    f = config['BLENDER.TEST']['FocalLength']
+    r = config['BLENDER.TEST']['RadialDistance']
+    generate_blender_images(objpath, gsd, Zup, N, e, f, r)
     #TODO: “untextured.png”
 
 

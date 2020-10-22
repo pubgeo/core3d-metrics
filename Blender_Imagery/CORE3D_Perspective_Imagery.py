@@ -175,6 +175,171 @@ def read_in_args(argumentlist):
    return str(path), float(gsd), float(x1), float(y1), float(x2), float(y2), bool(z_up), int(N), float(elev_ang), float(f_length), float(radius), float(test)
 
 
+def generate_blender_images(path, gsd=1.0, z_up=True, N=0, elev_ang=60.0, f_length=30.0, radius=8000.0):
+    global cam
+    # delete all objects in scene
+    bpy.ops.object.select_all(action='SELECT')
+    bpy.ops.object.delete(use_global=False)
+    # Create file_list to be aware of all potential models in path directory
+    file_list = []
+    check = os.path.isdir(path)
+    for root, dirs, files in os.walk(path):
+        for file in files:
+            file_path = os.path.join(root, file)
+            if file.endswith(".obj"):  # OBJ model
+                file_list.append(file_path)
+
+            elif file.endswith(".glb"):  # glTF 2.0 model (2.0 only supported by Blender)
+                file_list.append(file_path)
+
+            elif file.endswith(".dae"):  # Collada tile
+                file_list.append(file_path)
+    num_models = len(file_list)
+    print("Number of models found: " + str(num_models))
+    for file_path in file_list:  # [:40]:
+        # load models of interest
+        if file_path.find('.obj') > 0:
+            print('loading OBJ model...')
+            if z_up:
+                bpy.ops.import_scene.obj(filepath=file_path, axis_forward='Y', axis_up='Z')
+            else:
+                bpy.ops.import_scene.obj(filepath=file_path)
+        elif file_path.find('.glb') > 0:
+            # only supports glTF 2.0
+            print('loading glTF 2.0 model...')
+            bpy.ops.import_scene.gltf(filepath=file_path)
+        elif file_path.find('.dae') > 0:
+            print('loading Collada model...')
+            bpy.ops.wm.collada_import(filepath=file_path)
+            # if heavy importing needed- option below to save .blend file after each tile is loaded
+            bpy.ops.wm.save_as_mainfile(filepath=path + "all_collada_tiles.blend")
+    # define the model as the currently selected object (last loaded part)
+    model = bpy.context.selected_objects[0]
+    # define image size and factor for scaling focal length to match
+    pixels = int(max(model.dimensions) / gsd)
+    print('pixels')
+    print(pixels)
+    half_width_meters = (pixels / 2) * gsd * 1.1
+    lens_factor = radius / half_width_meters
+    # force object rotation to zero
+    model.rotation_euler[0] = 0
+    model.rotation_euler[1] = 0
+    model.rotation_euler[2] = 0
+    # Get coordinates of the center of the object bounding box
+    # Code snippet below for bounding box center coordinates pulled from:
+    # https://blender.stackexchange.com/questions/62040/get-center-of-geometry-of-an-object?noredirect=1&lq=1
+    local_bbox_center = 0.125 * sum((Vector(b) for b in model.bound_box), Vector())
+    global_bbox_center = model.matrix_world @ local_bbox_center
+    print('Bounding box: ', global_bbox_center)
+    # determine the global bounding box centroid that includes all models if multiple were loaded
+    global_bbox_center_allmod = Vector((0.0, 0.0, 0.0))
+    print(bpy.context.scene.objects)
+    if num_models > 1:
+        for obj in bpy.context.scene.objects:
+            if obj.type == 'MESH':
+                print('new object')
+                print(obj.name)
+                local_center = 0.125 * sum((Vector(b) for b in obj.bound_box), Vector())
+                global_center = model.matrix_world @ local_bbox_center
+                print(global_center)
+                print(obj.dimensions)
+                global_bbox_center_allmod[0] += global_center[0]
+                global_bbox_center_allmod[1] += global_center[1]
+                global_bbox_center_allmod[2] += global_center[2]
+        global_bbox_center_allmod = global_bbox_center_allmod / num_models;
+        print('Bounding box for all models: ', global_bbox_center_allmod)
+    # if multiple models are loaded in, adjust the coordinates
+    if num_models > 1:
+        center_x = global_bbox_center_allmod[0]  # center coordinates that is the centroid of all model centers
+        center_y = global_bbox_center_allmod[1]
+        center_z = global_bbox_center_allmod[2]
+    else:
+        center_x = global_bbox_center[0]  # center coordinates for first object selected
+        center_y = global_bbox_center[1]
+        center_z = global_bbox_center[2]
+    # Create camera based on coordinate system setup
+    if z_up:
+        print('option 1 - z is up')
+        camx = center_x
+        camy = center_y
+    else:
+        print('option 2 - z is down')
+        camx = center_x
+        camy = center_z
+    # add a camera just above the scene and rotate_and_render() changes the location
+    bpy.ops.object.camera_add(align='VIEW', location=(camx, camy, 0))
+    cam = bpy.context.selected_objects[0]
+    print('CAMX = ', camx)
+    print('CAMY = ', camy)
+    # Change focal length of camera
+    cam.data.type = 'PERSP'
+    cam.data.lens_unit = 'MILLIMETERS'
+    cam.data.lens = 1  # f_length
+    cam.data.sensor_width = 2  # * bpy.context.object.data.lens
+    cam.data.sensor_height = 2  # * bpy.context.object.data.lens
+    cam.data.lens *= lens_factor
+    cam.data.clip_end = radius * 100
+    cam.data.clip_start = radius / 100
+    # print('sensor width = ', cam.data.sensor_width)
+    # print('sensor height = ', cam.data.sensor_height)
+    # print('focal length = ', cam.data.lens)
+    # print('range = ', radius)
+    # define scene for rendering
+    scene = bpy.context.scene
+    scene.camera = cam
+    scene.render.resolution_x = pixels
+    scene.render.resolution_y = pixels
+    scene.render.resolution_percentage = 100
+    print('Resolution of image: (Y,X): ', pixels, pixels)
+    # set cycles rendering options
+    scene.render.engine = 'CYCLES'
+    scene.cycles.samples = 8
+    render_on_gpu()
+    # set blender background color
+    world = bpy.data.worlds['World']
+    world.use_nodes = True
+    bg = world.node_tree.nodes['Background']
+    bg.inputs[0].default_value[:3] = (float(220) / 255, float(220) / 255, float(220) / 255)
+    bg.inputs[1].default_value = 1.0
+    # add locked track to camera (use empty)
+    # see example of how-to here: https://www.youtube.com/watch?v=ageV_llb0Hk
+    # add empty object to use for tracking and center at center of scene with zero z
+    if z_up:
+        # Create an empty at combined.obj location
+        bpy.ops.object.add(type='EMPTY')
+        empty = bpy.context.selected_objects[0]
+        empty.location[0] = center_x
+        empty.location[1] = center_y  # global_bbox_center[2]
+        empty.location[2] = 0  # (-1 * global_bbox_center[1])
+    else:
+        # Create an empty at combined.obj location
+        bpy.ops.object.add(type='EMPTY')
+        empty = bpy.context.selected_objects[0]
+        empty.location[0] = center_x
+        empty.location[1] = center_z  # global_bbox_center[2]
+        empty.location[2] = 0  # (-1 * global_bbox_center[1])
+    bpy.data.objects['Camera'].select_set(True)
+    bpy.context.view_layer.objects.active = bpy.data.objects['Camera']
+    bpy.ops.object.constraint_add(type='TRACK_TO')
+    bpy.context.object.constraints["Track To"].target = empty
+    bpy.context.object.constraints["Track To"].track_axis = 'TRACK_NEGATIVE_Z'
+    bpy.context.object.constraints["Track To"].up_axis = 'UP_Y'
+    # Run emissive code to render
+    diffuse_to_emissive()
+    # Write the images
+    imgname = 'persp_image_' + str(pixels) + '_' + str(pixels) + '_gsd' + str(gsd) + '_z_' + str(z_up) + '_N_' + str(
+        N) + '_elev_' + str(elev_ang) + '_flen_' + str(f_length) + '_radius_' + str(radius) + '_'
+    # file_dir = '\\'.join(path.split('\\')[0:-1])
+    # file_dir = '\\'.join(path.split('\\')[0:-1])
+    # savepath = file_dir + '\\' + 'image_'
+    file_dir = os.path.dirname(path)
+    savepath = file_dir + '/rendered_images/' + imgname
+    print(savepath)
+    rotate_and_render(cam, empty, savepath, 'render%d.png', int(N), 360.0, elev_ang, radius)
+    # Note: There is an exception upon termination in engine.free() call in cycles\__init__.py
+    # This is a known issue: https://developer.blender.org/T52203
+
+
 if __name__ == '__main__':
 
     #argv = sys.argv[1:]
@@ -196,188 +361,6 @@ if __name__ == '__main__':
         y2 = -y2
     print(gsd, x1, y1, x2, y2, z_up, N, elev_ang, f_length, radius, test)
     print(path)
-
-    # delete all objects in scene
-    bpy.ops.object.select_all(action='SELECT')
-    bpy.ops.object.delete(use_global=False)
-
-    #Create file_list to be aware of all potential models in path directory
-    file_list = []
-    check = os.path.isdir(path)
-
-    for root, dirs, files in os.walk(path):
-        for file in files:
-            file_path = os.path.join(root, file)
-            if file.endswith(".obj"): #OBJ model
-                file_list.append(file_path)
-
-            elif file.endswith(".glb"): #glTF 2.0 model (2.0 only supported by Blender)
-                file_list.append(file_path)
-
-            elif file.endswith(".dae"): #Collada tile
-                file_list.append(file_path)
-
-    num_models = len(file_list)
-    print("Number of models found: "+ str(num_models))
-
-    for file_path in file_list: #[:40]:
-        # load models of interest
-        if file_path.find('.obj') > 0:
-            print('loading OBJ model...')
-            if z_up:
-                bpy.ops.import_scene.obj(filepath=file_path, axis_forward='Y', axis_up='Z')
-            else:
-                bpy.ops.import_scene.obj(filepath=file_path)
-        elif file_path.find('.glb') > 0:
-            # only supports glTF 2.0
-            print('loading glTF 2.0 model...')
-            bpy.ops.import_scene.gltf(filepath=file_path)
-        elif file_path.find('.dae') > 0:
-            print('loading Collada model...')
-            bpy.ops.wm.collada_import(filepath=file_path)
-            # if heavy importing needed- option below to save .blend file after each tile is loaded
-            bpy.ops.wm.save_as_mainfile(filepath= path + "all_collada_tiles.blend")
-
-    # define the model as the currently selected object (last loaded part)
-    model = bpy.context.selected_objects[0]
-
-    # define image size and factor for scaling focal length to match
-    pixels = int(max(model.dimensions) / gsd)
-    print('pixels')
-    print(pixels)
-    half_width_meters = (pixels / 2) * gsd * 1.1
-    lens_factor = radius / half_width_meters
-
-    # force object rotation to zero
-    model.rotation_euler[0] = 0
-    model.rotation_euler[1] = 0
-    model.rotation_euler[2] = 0
-
-    # Get coordinates of the center of the object bounding box
-    # Code snippet below for bounding box center coordinates pulled from:
-    # https://blender.stackexchange.com/questions/62040/get-center-of-geometry-of-an-object?noredirect=1&lq=1
-    local_bbox_center = 0.125 * sum((Vector(b) for b in model.bound_box), Vector())
-    global_bbox_center = model.matrix_world @ local_bbox_center
-    print('Bounding box: ', global_bbox_center)
-
-    #determine the global bounding box centroid that includes all models if multiple were loaded
-    global_bbox_center_allmod = Vector((0.0,0.0,0.0))
-    print(bpy.context.scene.objects)
-    if num_models > 1:
-        for obj in bpy.context.scene.objects:
-            if obj.type == 'MESH':
-                print('new object')
-                print(obj.name)
-                local_center = 0.125 * sum((Vector(b) for b in obj.bound_box), Vector())
-                global_center = model.matrix_world @ local_bbox_center
-                print(global_center)
-                print(obj.dimensions)
-                global_bbox_center_allmod[0] += global_center[0]
-                global_bbox_center_allmod[1] += global_center[1]
-                global_bbox_center_allmod[2] += global_center[2]
-        global_bbox_center_allmod = global_bbox_center_allmod/num_models;
-        print('Bounding box for all models: ', global_bbox_center_allmod)
-
-    #if multiple models are loaded in, adjust the coordinates
-    if num_models > 1:
-        center_x = global_bbox_center_allmod[0] #center coordinates that is the centroid of all model centers
-        center_y = global_bbox_center_allmod[1]
-        center_z = global_bbox_center_allmod[2]
-    else:
-        center_x = global_bbox_center[0] #center coordinates for first object selected
-        center_y = global_bbox_center[1]
-        center_z = global_bbox_center[2]
-
-
-    # Create camera based on coordinate system setup
-    if z_up:
-        print('option 1 - z is up')
-        camx = center_x
-        camy = center_y
-    else:
-        print('option 2 - z is down')
-        camx = center_x
-        camy = center_z
-
-    # add a camera just above the scene and rotate_and_render() changes the location
-    bpy.ops.object.camera_add(align='VIEW', location=(camx, camy, 0))
-    cam = bpy.context.selected_objects[0]
-    print('CAMX = ', camx)
-    print('CAMY = ', camy)
-
-    #Change focal length of camera
-    cam.data.type = 'PERSP'
-    cam.data.lens_unit = 'MILLIMETERS'
-    cam.data.lens = 1 #f_length
-    cam.data.sensor_width = 2# * bpy.context.object.data.lens
-    cam.data.sensor_height = 2# * bpy.context.object.data.lens
-    cam.data.lens *= lens_factor
-    cam.data.clip_end = radius*100
-    cam.data.clip_start = radius/100
-    # print('sensor width = ', cam.data.sensor_width)
-    # print('sensor height = ', cam.data.sensor_height)
-    # print('focal length = ', cam.data.lens)
-    # print('range = ', radius)
-
-    # define scene for rendering
-    scene = bpy.context.scene
-    scene.camera = cam
-    scene.render.resolution_x = pixels
-    scene.render.resolution_y = pixels
-    scene.render.resolution_percentage = 100
-    print('Resolution of image: (Y,X): ', pixels, pixels)
-
-    # set cycles rendering options
-    scene.render.engine = 'CYCLES'
-    scene.cycles.samples = 8
-    render_on_gpu()
-
-    # set blender background color
-    world = bpy.data.worlds['World']
-    world.use_nodes = True
-    bg = world.node_tree.nodes['Background']
-    bg.inputs[0].default_value[:3] = (float(220)/255, float(220)/255, float(220)/255)
-    bg.inputs[1].default_value = 1.0
-
-    # add locked track to camera (use empty)
-    # see example of how-to here: https://www.youtube.com/watch?v=ageV_llb0Hk
-    # add empty object to use for tracking and center at center of scene with zero z
-    if z_up:
-        #Create an empty at combined.obj location
-        bpy.ops.object.add(type='EMPTY')
-        empty = bpy.context.selected_objects[0]
-        empty.location[0] = center_x
-        empty.location[1] = center_y #global_bbox_center[2]
-        empty.location[2] = 0 #(-1 * global_bbox_center[1])
-    else:
-        #Create an empty at combined.obj location
-        bpy.ops.object.add(type='EMPTY')
-        empty = bpy.context.selected_objects[0]
-        empty.location[0] = center_x
-        empty.location[1] = center_z #global_bbox_center[2]
-        empty.location[2] = 0 #(-1 * global_bbox_center[1])
-    bpy.data.objects['Camera'].select_set(True)
-    bpy.context.view_layer.objects.active = bpy.data.objects['Camera']
-    bpy.ops.object.constraint_add(type='TRACK_TO')
-    bpy.context.object.constraints["Track To"].target = empty
-    bpy.context.object.constraints["Track To"].track_axis = 'TRACK_NEGATIVE_Z'
-    bpy.context.object.constraints["Track To"].up_axis = 'UP_Y'
-
-    # Run emissive code to render
-    diffuse_to_emissive()
-
-    # Write the images
-    imgname = 'persp_image_' + str(pixels) + '_' + str(pixels) + '_gsd'+ str(gsd)+'_z_' + str(z_up) + '_N_' + str(N) + '_elev_' + str(elev_ang) + '_flen_' + str(f_length) + '_radius_' + str(radius) + '_'
-    # file_dir = '\\'.join(path.split('\\')[0:-1])
-    # file_dir = '\\'.join(path.split('\\')[0:-1])
-    # savepath = file_dir + '\\' + 'image_'
-    file_dir = os.path.dirname(path)
-    savepath = file_dir + '/rendered_images/' + imgname
-    print(savepath)
-
-    rotate_and_render(cam, empty, savepath, 'render%d.png', int(N), 360.0, elev_ang, radius)
-
-    # Note: There is an exception upon termination in engine.free() call in cycles\__init__.py
-    # This is a known issue: https://developer.blender.org/T52203
+    generate_blender_images(path, gsd, z_up, N, elev_ang, f_length, radius)
 
 
