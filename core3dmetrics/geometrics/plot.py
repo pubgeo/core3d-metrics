@@ -435,3 +435,58 @@ class plot:
         final_stack = np.vstack((image_stack_top, separation_bar_horz, image_stack_bot))
         import cv2
         cv2.imwrite(str(Path(output_dir, "metrics.png").absolute()), cv2.cvtColor(final_stack, cv2.COLOR_BGR2RGB))
+
+    def make_final_input_images_grayscale(self, plot_fn: list, output_dir):
+
+        plot_1 = plot_fn[0]
+        plot_2 = plot_fn[1]
+        plot_3 = plot_fn[2]
+        plot_4 = plot_fn[3]
+        plot_5 = plot_fn[4]
+        plot_6 = plot_fn[5]
+
+        from PIL import Image
+        from pathlib import Path
+
+        plot_1_path = Path(plot_1)
+        plot_1_image = Image.open(str(plot_1_path.absolute()))
+        plot_2_path = Path(plot_2)
+        plot_2_image = Image.open(str(plot_2_path.absolute()))
+        plot_3_path = Path(plot_3)
+        plot_3_image = Image.open(str(plot_3_path.absolute()))
+        plot_4_path = Path(plot_4)
+        plot_4_image = Image.open(str(plot_4_path.absolute()))
+        plot_5_path = Path(plot_5)
+        plot_5_image = Image.open(str(plot_5_path.absolute()))
+        plot_6_path = Path(plot_6)
+        plot_6_image = Image.open(str(plot_6_path.absolute()))
+
+        # Create image mosaic/stack
+        try:
+            num_rows, num_cols, ch_num = np.shape(plot_1_image)
+        except ValueError:
+            num_rows, num_cols = np.shape(plot_1_image)
+
+        # Resize test images to same size as ref images
+        plot_4_image = plot_4_image.resize((num_cols, num_rows), resample=0)
+        plot_5_image = plot_5_image.resize((num_cols, num_rows), resample=0)
+        plot_6_image = plot_6_image.resize((num_cols, num_rows), resample=0)
+
+
+        separation_bar_vert = np.ones([num_rows, int(np.floor(num_cols * 0.02))], dtype=np.uint8)
+        separation_bar_vert.fill(255)
+        # Stack images horizontally
+        image_stack_top = np.hstack((plot_1_image, separation_bar_vert, plot_2_image, separation_bar_vert,
+                                     plot_3_image))
+        # TODO: Change bot stack to clz z images
+        image_stack_bot = np.hstack((plot_4_image, separation_bar_vert, plot_5_image, separation_bar_vert,
+                                     plot_6_image))
+
+        num_rows, num_cols = np.shape(image_stack_top)
+        separation_bar_horz = np.ones([int(np.floor(num_rows * 0.02)), num_cols], dtype=np.uint8)
+        separation_bar_horz.fill(255)
+
+        # Stack images vertically
+        final_stack = np.vstack((image_stack_top, separation_bar_horz, image_stack_bot))
+        import cv2
+        cv2.imwrite(str(Path(output_dir, "input.png").absolute()), cv2.cvtColor(final_stack, cv2.COLOR_BGR2RGB))
