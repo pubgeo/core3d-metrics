@@ -194,11 +194,20 @@ def parse_config(configfile, refpath=None, testpath=None):
     # locate files for each "xxxFilename" configuration parameter
     # this makes use of "refpath" and "testpath" arguments for relative filenames
     # we do this before validation to ensure required files are located
-    for item in [('INPUT.REF', refpath), ('INPUT.TEST', testpath)]:
+    for item in [('INPUT.REF', refpath), ('INPUT.TEST', testpath), ('BLENDER.TEST', refpath)]:
         sec = item[0]
         path = item[1]
         print('\nPROCESSING "{}" FILES'.format(sec))
         config[sec] = findfiles(config[sec], path)
+
+    # try:
+    #     for item in [('BLENDER.TEST', refpath)]:
+    #         sec = item[0]
+    #         path = item[1]
+    #         print('\nPROCESSING "{}" FILES'.format(sec))
+    #         config[sec] = findfiles(config[sec], path)
+    # except:
+    #     pass
 
     # validate final configuration against schema
     try:

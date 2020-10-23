@@ -289,7 +289,7 @@
          "type": "object",
          "additionalProperties": false,
          "properties": {
-            "OBJDirectoryPath": {
+            "OBJDirectoryFilename": {
                "type": "string"
             },
             "GSD": {

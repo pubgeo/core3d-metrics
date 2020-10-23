@@ -25,6 +25,7 @@ from math import radians
 from mathutils import Vector
 import sys, getopt
 from math import radians, degrees
+from pathlib import Path
 
 
 def render_on_gpu():
@@ -175,7 +176,7 @@ def read_in_args(argumentlist):
    return str(path), float(gsd), float(x1), float(y1), float(x2), float(y2), bool(z_up), int(N), float(elev_ang), float(f_length), float(radius), float(test)
 
 
-def generate_blender_images(path, gsd=1.0, z_up=True, N=0, elev_ang=60.0, f_length=30.0, radius=8000.0):
+def generate_blender_images(path, gsd=1.0, z_up=True, N=0, elev_ang=60.0, f_length=30.0, radius=8000.0, savepath=''):
     global cam
     # delete all objects in scene
     bpy.ops.object.select_all(action='SELECT')
@@ -329,13 +330,10 @@ def generate_blender_images(path, gsd=1.0, z_up=True, N=0, elev_ang=60.0, f_leng
     # Write the images
     imgname = 'persp_image_' + str(pixels) + '_' + str(pixels) + '_gsd' + str(gsd) + '_z_' + str(z_up) + '_N_' + str(
         N) + '_elev_' + str(elev_ang) + '_flen_' + str(f_length) + '_radius_' + str(radius) + '_'
-    # file_dir = '\\'.join(path.split('\\')[0:-1])
-    # file_dir = '\\'.join(path.split('\\')[0:-1])
-    # savepath = file_dir + '\\' + 'image_'
-    file_dir = os.path.dirname(path)
-    savepath = file_dir + '/rendered_images/' + imgname
+    savepath = str(Path(savepath, imgname).absolute())
     print(savepath)
     rotate_and_render(cam, empty, savepath, 'render%d.png', int(N), 360.0, elev_ang, radius)
+    return savepath
     # Note: There is an exception upon termination in engine.free() call in cycles\__init__.py
     # This is a known issue: https://developer.blender.org/T52203
 
@@ -361,6 +359,8 @@ if __name__ == '__main__':
         y2 = -y2
     print(gsd, x1, y1, x2, y2, z_up, N, elev_ang, f_length, radius, test)
     print(path)
-    generate_blender_images(path, gsd, z_up, N, elev_ang, f_length, radius)
+    file_dir = os.path.dirname(path)
+    savepath = str(Path(file_dir, 'rendered_images').absolute())
+    generate_blender_images(path, gsd, z_up, N, elev_ang, f_length, radius, savepath)
 
 
