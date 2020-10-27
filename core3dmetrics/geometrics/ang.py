@@ -215,38 +215,47 @@ def computeIOUs(refDSM, refDTM, refCLS, testDSM, testNDSM, testCLS, stableAngleM
 				if abs((refDSM[y,x]-refDTM[y,x])-testNDSM[y,x])<1: correctAGL[y,x]=1
 			else:
 				if refCLS[y,x]!=65 and testCLS[y,x]==6: FPC=FPC+1#label FP occurred
-				
-	saveTiffSimple(os.path.join(outputPath,'delCCorrectMask.tif'), correctLabel, gdal.GDT_Float32)
-	saveTiffSimple(os.path.join(outputPath,'delZCorrectMask.tif'), correctHeight, gdal.GDT_Float32)
-	saveTiffSimple(os.path.join(outputPath,'delAGLCorrectMask.tif'), correctAGL, gdal.GDT_Float32)
-	saveTiffSimple(os.path.join(outputPath,'delANGCorrectMask.tif'), correctAngle, gdal.GDT_Float32)
-	TPC=np.sum(correctLabel)
-	TPZ=np.sum(correctHeight)
-	TPAGL=np.sum(correctAGL)
-	TPANG=np.sum(correctAngle)
-	TPZTot=np.sum(np.multiply(correctLabel, correctHeight))
-	TPAGLTot=np.sum(np.multiply(np.multiply(correctLabel, correctHeight), correctAGL))
-	TPMTot=np.sum(np.multiply(np.multiply(np.multiply(correctLabel, correctHeight), correctAGL), correctAngle))
-	IOUC=TPC/(TPC+FPC+FNC)
-	IOUZ=TPZTot/(TPC+FPC+FNC)
-	IOUAGL=TPAGLTot/(TPC+FPC+FNC)
-	IOUM=TPMTot/(TPC+FPC+FNC)
+
+	saveTiffSimple(os.path.join(outputPath, 'delCCorrectMask.tif'), correctLabel, gdal.GDT_Float32)
+	saveTiffSimple(os.path.join(outputPath, 'delZCorrectMask.tif'), correctHeight, gdal.GDT_Float32)
+	saveTiffSimple(os.path.join(outputPath, 'delAGLCorrectMask.tif'), correctAGL, gdal.GDT_Float32)
+	saveTiffSimple(os.path.join(outputPath, 'delANGCorrectMask.tif'), correctAngle, gdal.GDT_Float32)
+	TPC = np.sum(correctLabel)
+	TPZ = np.sum(correctHeight)
+	TPAGL = np.sum(correctAGL)
+	TPANG = np.sum(correctAngle)
+	TPZTot = np.sum(np.multiply(correctLabel, correctHeight))
+	#	TPAGLTot=np.sum(np.multiply(np.multiply(correctLabel, correctHeight), correctAGL))
+	#	TPMTot=np.sum(np.multiply(np.multiply(np.multiply(correctLabel, correctHeight), correctAGL), correctAngle))
+	TPAGLTot = np.sum(np.multiply(correctLabel, correctAGL))
+	TPMZTot = np.sum(np.multiply(np.multiply(correctLabel, correctHeight), correctAngle))
+	TPMAGLTot = np.sum(np.multiply(np.multiply(correctLabel, correctAGL), correctAngle))
+
+	IOUC = TPC / (TPC + FPC + FNC)
+	IOUZ = TPZTot / (TPC + FPC + FNC)
+	IOUAGL = TPAGLTot / (TPC + FPC + FNC)
+	#	IOUM=TPMTot/(TPC+FPC+FNC)
+	IOUMZ = TPMZTot / (TPC + FPC + FNC)
+	IOUMAGL = TPMAGLTot / (TPC + FPC + FNC)
 	print("TPC", TPC)
 	print("TPZ", TPZ)
 	print("TPAGL", TPAGL)
 	print("TPA", TPANG)
 	print("TPZTot", TPZTot)
 	print("TPAGLTot", TPAGLTot)
-	print("TPMTot", TPMTot)
+	#	print("TPMTot", TPMTot)
+	print("TPMTot", TPMZTot)
+	print("TPMTot", TPMAGLTot)
 	print("FPC", FPC)
 	print("FNC", FNC)
-	print("IOUC", IOUC)#label only
-	print("IOUZ", IOUZ)#label and z-error
-	print("IOUAGL", IOUAGL)#label and z-error and AGL-error
-	print("IOUM", IOUM)#label and z-error and AGL-error and angle-error
-	
+	print("IOUC", IOUC)  # label only
+	print("IOUZ", IOUZ)  # label and z-error
+	print("IOUAGL", IOUAGL)  # label and z-error and AGL-error
+	#	print("IOUM", IOUM)#label and z-error and AGL-error and angle-error
+	print("IOUMZ", IOUMZ)  # label and z-error and angle-error
+	print("IOUMAGL", IOUMAGL)  # label and AGL-error and angle-error
 	end = time.time()
-	print("time =", "{:.3f}".format(end - start),"sec")
+	print("time =", "{:.3f}".format(end - start), "sec")
 
 
 def calculate_metrics(refDSMPath, refDTMPath, refCLSPath, testDSMPath, testDTMPath, testCLSPath, kernel_radius=3,

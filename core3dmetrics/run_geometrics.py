@@ -497,6 +497,8 @@ def run_geometrics(config_file, ref_path=None, test_path=None, output_path=None,
     from ang import calculate_metrics as calculate_roof_metrics
     calculate_roof_metrics(ref_dsm_filename, ref_dtm_filename, ref_cls_filename, test_dsm_filename, test_dtm_filename,
                            test_cls_filename, kernel_radius=3, output_path=output_path)
+    files = [str(Path(output_path, filename).absolute()) for filename in os.listdir(output_path) if
+             filename.startswith("del")]
 
     # Save all of myrons outputs here
     #TODO: “metrics.json”
