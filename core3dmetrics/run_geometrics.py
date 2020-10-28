@@ -495,7 +495,7 @@ def run_geometrics(config_file, ref_path=None, test_path=None, output_path=None,
     # Run Roof slope metrics
     # Roof Slope Metrics
     from ang import calculate_metrics as calculate_roof_metrics
-    calculate_roof_metrics(ref_dsm_filename, ref_dtm_filename, ref_cls_filename, test_dsm_filename, test_dtm_filename,
+    IOUC, IOUZ, IOUAGL, IOUMZ, orderRMS = calculate_roof_metrics(ref_dsm_filename, ref_dtm_filename, ref_cls_filename, test_dsm_filename, test_dtm_filename,
                            test_cls_filename, kernel_radius=3, output_path=output_path)
     files = [str(Path(output_path, filename).absolute()) for filename in os.listdir(output_path) if
              filename.startswith("del")]
@@ -513,12 +513,13 @@ def run_geometrics(config_file, ref_path=None, test_path=None, output_path=None,
     metrics_formatted["3D"]["IOU"] = metrics["threshold_geometry"][0]['3D']['jaccardIndex']
     metrics_formatted["ZRMS"] = metrics['relative_accuracy'][0]['zrmse']
     metrics_formatted["HRMS"] = metrics['relative_accuracy'][0]['hrmse']
-    metrics_formatted["Slope RMS"] = np.nan
+    metrics_formatted["Slope RMS"] = orderRMS
+    metrics_formatted["2D_IOU_Shea"] = IOUC
     metrics_formatted["DTM RMS"] = metrics['terrain_accuracy']['zrmse']
     metrics_formatted["DTM Completeness"] = metrics['terrain_accuracy']['completeness']
-    metrics_formatted["Z IOU"] = np.nan
-    metrics_formatted["AGL IOU"] = np.nan
-    metrics_formatted["MODEL IOU"] = np.nan
+    metrics_formatted["Z IOU"] = IOUZ
+    metrics_formatted["AGL IOU"] = IOUAGL
+    metrics_formatted["MODEL IOU"] = IOUMZ
     metrics_formatted["X Offset"] = xyz_offset[0]
     metrics_formatted["Y Offset"] = xyz_offset[1]
     metrics_formatted["P Value"] = metrics['threshold_geometry'][0]['pearson']

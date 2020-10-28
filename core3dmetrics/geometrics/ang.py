@@ -256,6 +256,7 @@ def computeIOUs(refDSM, refDTM, refCLS, testDSM, testNDSM, testCLS, stableAngleM
 	print("IOUMAGL", IOUMAGL)  # label and AGL-error and angle-error
 	end = time.time()
 	print("time =", "{:.3f}".format(end - start), "sec")
+	return IOUC, IOUZ, IOUAGL, IOUMZ
 
 
 def calculate_metrics(refDSMPath, refDTMPath, refCLSPath, testDSMPath, testDTMPath, testCLSPath, kernel_radius=3,
@@ -281,8 +282,8 @@ def calculate_metrics(refDSMPath, refDTMPath, refCLSPath, testDSMPath, testDTMPa
 																		 testDSM, testCLS, -10000, output_path)
 
 	#compute IOUs
-	computeIOUs(refDSM, refDTM, refCLS, testDSM, testNDSM, testCLS, stableAngleMask, angleError, output_path)
-
+	IOUC, IOUZ, IOUAGL, IOUMZ = computeIOUs(refDSM, refDTM, refCLS, testDSM, testNDSM, testCLS, stableAngleMask, angleError, output_path)
+	return IOUC, IOUZ, IOUAGL, IOUMZ, orderRMS
 
 if __name__ == "__main__":
 	print("starting")
