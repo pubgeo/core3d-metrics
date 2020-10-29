@@ -483,15 +483,21 @@ class plot:
         except ValueError:
             num_rows, num_cols = np.shape(plot_2_image)
 
-        # Resize test images to same size as ref images
-        plot_1_image = plot_1_image.resize((num_cols, num_rows), resample=0)
-        plot_3_image = plot_3_image.resize((num_cols, num_rows), resample=0)
-        plot_4_image = plot_4_image.resize((num_cols, num_rows), resample=0)
-        plot_5_image = plot_5_image.resize((num_cols, num_rows), resample=0)
-        plot_6_image = plot_6_image.resize((num_cols, num_rows), resample=0)
-
         # Autocontrast
+        def normalize_image(image):
+            array = np.array(image)
+            data = array / array.max()
+            data = 255 * data
+            img = data.astype(np.uint8)
+            img_pil = Image.fromarray(img)
+            return img_pil
+
         from PIL import ImageOps
+        plot_2_image = normalize_image(plot_2_image)
+        plot_3_image = normalize_image(plot_3_image)
+        plot_5_image = normalize_image(plot_5_image)
+        plot_6_image = normalize_image(plot_6_image)
+
         plot_1_image = ImageOps.autocontrast(plot_1_image.convert("L"))
         plot_2_image = ImageOps.autocontrast(plot_2_image.convert("L"))
         plot_3_image = ImageOps.autocontrast(plot_3_image.convert("L"))
@@ -499,6 +505,14 @@ class plot:
         plot_5_image = ImageOps.autocontrast(plot_5_image.convert("L"))
         plot_6_image = ImageOps.autocontrast(plot_6_image.convert("L"))
 
+        # Resize test images to same size as ref images
+        plot_1_image = plot_1_image.resize((num_cols, num_rows), resample=0)
+        plot_3_image = plot_3_image.resize((num_cols, num_rows), resample=0)
+        plot_4_image = plot_4_image.resize((num_cols, num_rows), resample=0)
+        plot_5_image = plot_5_image.resize((num_cols, num_rows), resample=0)
+        plot_6_image = plot_6_image.resize((num_cols, num_rows), resample=0)
+
+        # Create seperation bar
         separation_bar_vert = np.ones([num_rows, int(np.floor(num_cols * 0.02))], dtype=np.uint8)
         separation_bar_vert.fill(255)
         # Stack images horizontally
