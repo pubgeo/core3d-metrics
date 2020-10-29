@@ -6,6 +6,7 @@ import argparse
 import glob
 import math
 import csv
+from tqdm import tqdm
 
 
 def saveTiffMultiBand(outputFilename, imageData, outputDataType):
@@ -104,7 +105,7 @@ def computeAngleInfo(kernelRadius, pixelGSD, refDSM, refCLS, testDSM, testCLS, n
 	
 	#loop through all building-labeled pixels
 	print("Computing angles")
-	for i in range(0,len(prows)):#loop through all pixels with refCLS==6
+	for i in tqdm(range(0,len(prows))):#loop through all pixels with refCLS==6
 	#for i in range(0,int(len(prows)*0.033)):#loop through some pixels with refCLS==6
 		if prows[i]>=irad and prows[i]<refDSM.shape[0]-irad and pcols[i]>=irad and pcols[i]<refDSM.shape[1]-irad:#ignore image edges where kernel is outside bounds
 			#current pixel coordinates
@@ -161,7 +162,7 @@ def computeAngleInfo(kernelRadius, pixelGSD, refDSM, refCLS, testDSM, testCLS, n
 			tmpData[8, y, x]=angleDiff
 			
 			# report progress every 10000 values
-			if i%10000==0:print(i*100/len(prows), "percent complete")
+			#if i%10000==0:print(i*100/len(prows), "percent complete")
 	
 	# write angular statistics data
 	myfile = open(os.path.join(outputPath,'angleData.csv'), 'w', newline='')

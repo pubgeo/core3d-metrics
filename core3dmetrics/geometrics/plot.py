@@ -403,6 +403,8 @@ class plot:
         else:
             # If can't find viz image, use non viz
             conf_viz_image = Image.open(test_conf_filename)
+            conf_viz_image_rgb = Image.new("RGB", conf_viz_image.size)
+            conf_viz_image_rgb.paste(conf_viz_image)
             conf_shape = np.shape(conf_viz_image)
             conf_viz_image = conf_viz_image.resize((stoplight_shape[1], stoplight_shape[0]), resample=0)
 
