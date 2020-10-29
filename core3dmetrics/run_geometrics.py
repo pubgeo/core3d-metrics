@@ -494,7 +494,11 @@ def run_geometrics(config_file, ref_path=None, test_path=None, output_path=None,
 
     # Run Roof slope metrics
     # Roof Slope Metrics
-    from ang import calculate_metrics as calculate_roof_metrics
+    try:
+        from core3dmetrics.geometrics.ang import calculate_metrics as calculate_roof_metrics
+    except:
+        from ang import calculate_metrics as calculate_roof_metrics
+
     IOUC, IOUZ, IOUAGL, IOUMZ, orderRMS = calculate_roof_metrics(ref_dsm, ref_dtm, ref_cls, test_dsm, test_dtm,
                            test_cls, tform, kernel_radius=3, output_path=output_path)
     files = [str(Path(output_path, filename).absolute()) for filename in os.listdir(output_path) if

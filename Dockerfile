@@ -3,6 +3,7 @@ FROM jhuapl/pubgeo:latest
 RUN apt update && apt upgrade -y && \
   DEBIAN_FRONTEND=noninteractive apt install -y --fix-missing --no-install-recommends \
     git \
+    build-essential \
     libglib2.0-0 \
     libsm6 \
 	python3 \
