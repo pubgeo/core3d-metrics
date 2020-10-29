@@ -479,11 +479,13 @@ class plot:
 
         # Create image mosaic/stack
         try:
-            num_rows, num_cols, ch_num = np.shape(plot_1_image)
+            num_rows, num_cols, ch_num = np.shape(plot_2_image)
         except ValueError:
-            num_rows, num_cols = np.shape(plot_1_image)
+            num_rows, num_cols = np.shape(plot_2_image)
 
         # Resize test images to same size as ref images
+        plot_1_image = plot_1_image.resize((num_cols, num_rows), resample=0)
+        plot_3_image = plot_3_image.resize((num_cols, num_rows), resample=0)
         plot_4_image = plot_4_image.resize((num_cols, num_rows), resample=0)
         plot_5_image = plot_5_image.resize((num_cols, num_rows), resample=0)
         plot_6_image = plot_6_image.resize((num_cols, num_rows), resample=0)
