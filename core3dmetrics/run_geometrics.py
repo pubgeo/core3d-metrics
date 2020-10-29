@@ -518,7 +518,6 @@ def run_geometrics(config_file, ref_path=None, test_path=None, output_path=None,
     metrics_formatted["ZRMS"] = metrics['relative_accuracy'][0]['zrmse']
     metrics_formatted["HRMS"] = metrics['relative_accuracy'][0]['hrmse']
     metrics_formatted["Slope RMS"] = orderRMS
-    metrics_formatted["2D_IOU_Shea"] = IOUC
     metrics_formatted["DTM RMS"] = metrics['terrain_accuracy']['zrmse']
     metrics_formatted["DTM Completeness"] = metrics['terrain_accuracy']['completeness']
     metrics_formatted["Z IOU"] = IOUZ

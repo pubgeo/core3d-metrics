@@ -224,7 +224,7 @@ def computeIOUs(refDSM, refDTM, refCLS, testDSM, testNDSM, testCLS, stableAngleM
 	# Combined Rasters
 	saveTiffSimple(os.path.join(outputPath, 'Roof_CLS_IOU.tif'), correctLabel, gdal.GDT_Float32)
 	saveTiffSimple(os.path.join(outputPath, 'Roof_CLS_Z_IOU.tif'), np.multiply(correctLabel,correctHeight), gdal.GDT_Float32)
-	saveTiffSimple(os.path.join(outputPath, 'Roof_CLS_Z_SLOPE_IOU.tif'), np.multiply(correctLabel, correctHeight, correctAngle),
+	saveTiffSimple(os.path.join(outputPath, 'Roof_CLS_Z_SLOPE_IOU.tif'), np.multiply(np.multiply(correctLabel, correctHeight), correctAngle),
 				   gdal.GDT_Float32)
 	saveTiffSimple(os.path.join(outputPath, 'Roof_CLS_AGL_IOU.tif'),
 				   np.multiply(correctLabel, correctAGL),
