@@ -6,13 +6,16 @@ RUN apt update && apt upgrade -y && \
     libglib2.0-0 \
     libsm6 \
 	python3 \
+    python3-dev \
 	python3-pip \
 	python3-gdal \
 	python3-tk \
 	python3-scipy
 
 RUN apt autoremove -y && rm -rf /var/lib/apt/lists/*
-RUN pip3 install "matplotlib==3.0.3" laspy setuptools "jsonschema==2.6.0" "numpy==1.16.2" "opencv-python==4.0.0.21" "Pillow" wheel simplekml tqdm mathutils bpy-cuda bpy_post_install mathutils
+RUN pip3 install future-fstrings
+RUN pip3 install wheel
+RUN pip3 install "matplotlib==3.0.3" laspy setuptools "jsonschema==2.6.0" "numpy==1.16.2" "opencv-python==4.0.0.21" "Pillow" simplekml tqdm "mathutils==2.81.2"
 WORKDIR /
 
 ARG DOCKER_DEPLOY=true

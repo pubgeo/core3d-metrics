@@ -495,10 +495,10 @@ def run_geometrics(config_file, ref_path=None, test_path=None, output_path=None,
     # Run Roof slope metrics
     # Roof Slope Metrics
     from ang import calculate_metrics as calculate_roof_metrics
-    IOUC, IOUZ, IOUAGL, IOUMZ, orderRMS = calculate_roof_metrics(ref_dsm_filename, ref_dtm_filename, ref_cls_filename, test_dsm_filename, test_dtm_filename,
-                           test_cls_filename, kernel_radius=3, output_path=output_path)
+    IOUC, IOUZ, IOUAGL, IOUMZ, orderRMS = calculate_roof_metrics(ref_dsm, ref_dtm, ref_cls, test_dsm, test_dtm,
+                           test_cls, tform, kernel_radius=3, output_path=output_path)
     files = [str(Path(output_path, filename).absolute()) for filename in os.listdir(output_path) if
-             filename.startswith("del")]
+             filename.startswith("Roof")]
 
     # Save all of myrons outputs here
     #TODO: “metrics.json”
@@ -530,31 +530,34 @@ def run_geometrics(config_file, ref_path=None, test_path=None, output_path=None,
     print(json.dumps(metrics_formatted, indent=2))
 
     if PLOTS_ENABLE:
-        plot.make_final_metrics_images(stoplight_fn, errhgt_fn, test_conf_filename, output_folder)
+        cls_iou_fn = [filename for filename in files if filename.endswith("CLS_IOU.tif")][0]
+        cls_z_iou_fn = [filename for filename in files if filename.endswith("CLS_Z_IOU.tif")][0]
+        cls_z_slope_fn = [filename for filename in files if filename.endswith("CLS_Z_SLOPE_IOU.tif")][0]
+        plot.make_final_metrics_images(stoplight_fn, errhgt_fn, test_conf_filename, cls_iou_fn, cls_z_iou_fn, cls_z_slope_fn, output_folder)
 
 
     #TODO: "inputs.png"
         plot.make_final_input_images_grayscale([ref_cls_filename, ref_dsm_filename, ref_dtm_filename, test_cls_filename,
                                                 test_dsm_filename, test_dtm_filename], output_folder)
     #TODO: “textured.png”
-    if config['BLENDER.TEST']['OBJDirectoryFilename']:
-        from CORE3D_Perspective_Imagery import generate_blender_images
-        objpath = config['BLENDER.TEST']['OBJDirectoryFilename']
-        gsd = config['BLENDER.TEST']['GSD']
-        Zup = config['BLENDER.TEST']['+Z']
-        N = config['BLENDER.TEST']['OrbitalLocations']
-        e = config['BLENDER.TEST']['ElevationAngle']
-        f = config['BLENDER.TEST']['FocalLength']
-        r = config['BLENDER.TEST']['RadialDistance']
-        output_location = generate_blender_images(objpath, gsd, Zup, N, e, f, r, output_path)
-        files = [str(Path(output_path, filename).absolute()) for filename in os.listdir(output_path) if filename.startswith("persp_image")]
-        #TODO: Figure out a 6th image
-        files.append(files[0])
-        # Make metrics image
-        plot.make_final_input_images_rgb(files, output_folder)
-        print("Done")
-    else:
-        pass
+    # if config['BLENDER.TEST']['OBJDirectoryFilename']:
+    #     from CORE3D_Perspective_Imagery import generate_blender_images
+    #     objpath = config['BLENDER.TEST']['OBJDirectoryFilename']
+    #     gsd = config['BLENDER.TEST']['GSD']
+    #     Zup = config['BLENDER.TEST']['+Z']
+    #     N = config['BLENDER.TEST']['OrbitalLocations']
+    #     e = config['BLENDER.TEST']['ElevationAngle']
+    #     f = config['BLENDER.TEST']['FocalLength']
+    #     r = config['BLENDER.TEST']['RadialDistance']
+    #     output_location = generate_blender_images(objpath, gsd, Zup, N, e, f, r, output_path)
+    #     files = [str(Path(output_path, filename).absolute()) for filename in os.listdir(output_path) if filename.startswith("persp_image")]
+    #     #TODO: Figure out a 6th image
+    #     files.append(files[0])
+    #     # Make metrics image
+    #     plot.make_final_input_images_rgb(files, output_folder)
+    #     print("Done")
+    # else:
+    #     pass
     #TODO: “untextured.png”
 
 

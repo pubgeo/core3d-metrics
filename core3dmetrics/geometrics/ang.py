@@ -220,6 +220,14 @@ def computeIOUs(refDSM, refDTM, refCLS, testDSM, testNDSM, testCLS, stableAngleM
 	saveTiffSimple(os.path.join(outputPath, 'delZCorrectMask.tif'), correctHeight, gdal.GDT_Float32)
 	saveTiffSimple(os.path.join(outputPath, 'delAGLCorrectMask.tif'), correctAGL, gdal.GDT_Float32)
 	saveTiffSimple(os.path.join(outputPath, 'delANGCorrectMask.tif'), correctAngle, gdal.GDT_Float32)
+	# Combined Rasters
+	saveTiffSimple(os.path.join(outputPath, 'Roof_CLS_IOU.tif'), correctLabel, gdal.GDT_Float32)
+	saveTiffSimple(os.path.join(outputPath, 'Roof_CLS_Z_IOU.tif'), np.multiply(correctLabel,correctHeight), gdal.GDT_Float32)
+	saveTiffSimple(os.path.join(outputPath, 'Roof_CLS_Z_SLOPE_IOU.tif'), np.multiply(correctLabel, correctHeight, correctAngle),
+				   gdal.GDT_Float32)
+	saveTiffSimple(os.path.join(outputPath, 'Roof_CLS_AGL_IOU.tif'),
+				   np.multiply(correctLabel, correctAGL),
+				   gdal.GDT_Float32)
 	TPC = np.sum(correctLabel)
 	TPZ = np.sum(correctHeight)
 	TPAGL = np.sum(correctAGL)
@@ -259,21 +267,13 @@ def computeIOUs(refDSM, refDTM, refCLS, testDSM, testNDSM, testCLS, stableAngleM
 	return IOUC, IOUZ, IOUAGL, IOUMZ
 
 
-def calculate_metrics(refDSMPath, refDTMPath, refCLSPath, testDSMPath, testDTMPath, testCLSPath, kernel_radius=3,
+def calculate_metrics(refDSM, refDTM, refCLS, testDSM, testDTM, testCLS, tform, kernel_radius=3,
 					  output_path='./'):
 
-	refDSM = gdal.Open(refDSMPath).ReadAsArray()
-	refDTM = gdal.Open(refDTMPath).ReadAsArray()
-	refCLS = gdal.Open(refCLSPath).ReadAsArray()
-
-	# load ndx/dsm test files
-	testDSM = gdal.Open(testDSMPath).ReadAsArray()
-	testDTM = gdal.Open(testDTMPath).ReadAsArray()
-	testCLS = gdal.Open(testCLSPath).ReadAsArray()
 	testNDSM = testDSM-testDTM
 
 	# read image data
-	transform = gdal.Open(refDSMPath).GetGeoTransform()
+	transform = tform
 	pixelWidth = transform[1]
 	pixelHeight = -transform[5]
 
@@ -296,8 +296,8 @@ if __name__ == "__main__":
 	
 	# load ndx/dsm test files
 	testDSM = gdal.Open(os.path.join(dataPath, 'testDSM.tif')).ReadAsArray()
-	testNDSM = gdal.Open(os.path.join(dataPath,'testNDSM.tif')).ReadAsArray()
-	testCLS = gdal.Open(os.path.join(dataPath,'testCLS.tif')).ReadAsArray()
+	testNDSM = gdal.Open(os.path.join(dataPath, 'testNDSM.tif')).ReadAsArray()
+	testCLS = gdal.Open(os.path.join(dataPath, 'testCLS.tif')).ReadAsArray()
 	
 	# read image data
 	transform = gdal.Open(os.path.join(dataPath, 'refDSM.tif')).GetGeoTransform()
