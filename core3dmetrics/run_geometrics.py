@@ -183,12 +183,12 @@ def run_geometrics(config_file, ref_path=None, test_path=None, output_path=None,
         test_dtm[test_valid_data] = test_dtm[test_valid_data] + xyz_offset[2]
 
     # Repeat for conf image
-    test_valid_data = (test_dsm != no_data_value)
-    if test_conf_filename:
-        test_valid_data &= (test_conf != no_data_value)
-
-    if test_conf_filename:
-        test_conf[test_valid_data] = test_conf[test_valid_data] + xyz_offset[2]
+    # test_valid_data = (test_dsm != no_data_value)
+    # if test_conf_filename:
+    #     test_valid_data &= (test_conf != no_data_value)
+    # 
+    # if test_conf_filename:
+    #     test_conf[test_valid_data] = test_conf[test_valid_data] + xyz_offset[2]
 
     # Create mask for ignoring points labeled NoData in reference files.
     ref_dsm_no_data_value = no_data_value
