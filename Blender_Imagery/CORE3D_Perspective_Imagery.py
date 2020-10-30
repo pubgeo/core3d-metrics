@@ -300,7 +300,7 @@ def generate_blender_images(path, gsd=1.0, z_up=True, N=0, elev_ang=60.0, f_leng
     world = bpy.data.worlds['World']
     world.use_nodes = True
     bg = world.node_tree.nodes['Background']
-    bg.inputs[0].default_value[:3] = (float(220) / 255, float(220) / 255, float(220) / 255)
+    bg.inputs[0].default_value[:3] = (float(153) / 255, float(204) / 255, float(255) / 255)
     bg.inputs[1].default_value = 1.0
     # add locked track to camera (use empty)
     # see example of how-to here: https://www.youtube.com/watch?v=ageV_llb0Hk

@@ -525,6 +525,7 @@ def run_geometrics(config_file, ref_path=None, test_path=None, output_path=None,
     metrics_formatted["MODEL IOU"] = IOUMZ
     metrics_formatted["X Offset"] = xyz_offset[0]
     metrics_formatted["Y Offset"] = xyz_offset[1]
+    metrics_formatted["Z Offset"] = xyz_offset[2]
     metrics_formatted["P Value"] = metrics['threshold_geometry'][0]['pearson']
 
     fileout = os.path.join(output_folder, "metrics.json")
