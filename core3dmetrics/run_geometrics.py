@@ -535,6 +535,7 @@ def run_geometrics(config_file, ref_path=None, test_path=None, output_path=None,
         json.dump(metrics_formatted, fid, indent=2)
     print(json.dumps(metrics_formatted, indent=2))
 
+    # metrics.png
     if PLOTS_ENABLE:
         cls_iou_fn = [filename for filename in files if filename.endswith("CLS_IOU.tif")][0]
         cls_z_iou_fn = [filename for filename in files if filename.endswith("CLS_Z_IOU.tif")][0]
@@ -542,10 +543,10 @@ def run_geometrics(config_file, ref_path=None, test_path=None, output_path=None,
         plot.make_final_metrics_images(stoplight_fn, errhgt_fn, test_conf_filename, cls_iou_fn, cls_z_iou_fn, cls_z_slope_fn, output_folder)
 
 
-    #TODO: "inputs.png"
+    # inputs.png
         plot.make_final_input_images_grayscale([ref_cls_filename, ref_dsm_filename, ref_dtm_filename, test_cls_filename,
                                                 test_dsm_filename, test_dtm_filename], output_folder)
-    #TODO: “textured.png”
+    # textured.png
     # if config['BLENDER.TEST']['OBJDirectoryFilename']:
     #     from CORE3D_Perspective_Imagery import generate_blender_images
     #     objpath = config['BLENDER.TEST']['OBJDirectoryFilename']
