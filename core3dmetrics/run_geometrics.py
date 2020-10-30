@@ -173,7 +173,7 @@ def run_geometrics(config_file, ref_path=None, test_path=None, output_path=None,
     print("\n\n")
 
     # Apply registration offset, only to valid data to allow better tracking of bad data
-    print("Applying offset of Z:  %d" % (xyz_offset[2]))
+    print("Applying offset of Z:  %f" % (xyz_offset[2]))
     test_valid_data = (test_dsm != no_data_value)
     if test_dtm_filename:
         test_valid_data &= (test_dtm != no_data_value)
