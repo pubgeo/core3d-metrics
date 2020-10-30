@@ -415,7 +415,7 @@ def run_geometrics(config_file, ref_path=None, test_path=None, output_path=None,
 
         # Evaluate threshold geometry metrics using refDTM as the testDTM to mitigate effects of terrain modeling
         # uncertainty
-        result, _, stoplight_fn, errhgt_fn = geo.run_threshold_geometry_metrics(ref_dsm, ref_dtm, ref_mask, test_dsm, ref_dtm, test_mask, tform,
+        result, _, stoplight_fn, errhgt_fn = geo.run_threshold_geometry_metrics(ref_dsm, ref_dtm, ref_mask, test_dsm, test_dtm, test_mask, tform,
                                                     ignore_mask, testCONF=test_conf, plot=plot)
         if ref_match_value == test_match_value:
             result['CLSValue'] = ref_match_value
