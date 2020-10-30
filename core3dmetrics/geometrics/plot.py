@@ -420,12 +420,12 @@ class plot:
         cls_z_iou_rgb.paste(cls_z_iou)
 
         cls_iou_image = Image.open(cls_iou_fn).convert("L")
-        cls_iou_image_rgb = Image.new("RGB", cls_z_iou.size)
-        cls_iou_image_rgb.paste(cls_z_iou)
+        cls_iou_image_rgb = Image.new("RGB", cls_iou_image.size)
+        cls_iou_image_rgb.paste(cls_iou_image)
 
         cls_z_slope = Image.open(cls_z_slope_fn).convert("L")
-        cls_z_slope_rgb = Image.new("RGB", cls_z_iou.size)
-        cls_z_slope_rgb.paste(cls_z_iou)
+        cls_z_slope_rgb = Image.new("RGB", cls_z_slope.size)
+        cls_z_slope_rgb.paste(cls_z_slope)
         # Convert to RGB
         from PIL import ImageOps
         cls_z_iou_rgb = ImageOps.colorize(ImageOps.autocontrast(cls_z_iou_rgb).convert("L"),black=(220,220,220), white="blue")

@@ -102,6 +102,7 @@ def run_geometrics(config_file, ref_path=None, test_path=None, output_path=None,
         except:
             align3d_path = None
         xyz_offset = geo.align3d(ref_dsm_filename, test_dsm_filename_copy, exec_path=align3d_path)
+        print(xyz_offset)
         #xyz_offset = geo.align3d_python(ref_dsm_filename, test_dsm_filename_copy)
 
     # Explicitly assign a no data value to warped images to track filled pixels
