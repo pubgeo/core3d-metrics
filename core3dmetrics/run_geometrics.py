@@ -187,7 +187,6 @@ def run_geometrics(config_file, ref_path=None, test_path=None, output_path=None,
     if test_conf_filename:
         test_valid_data &= (test_conf != no_data_value)
 
-    test_dsm[test_valid_data] = test_dsm[test_valid_data] + xyz_offset[2]
     if test_conf_filename:
         test_conf[test_valid_data] = test_conf[test_valid_data] + xyz_offset[2]
 
