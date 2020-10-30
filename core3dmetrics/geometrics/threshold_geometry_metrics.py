@@ -34,9 +34,9 @@ def run_threshold_geometry_metrics(refDSM, refDTM, refMask, testDSM, testDTM, te
     # refDTM is purposfully used twice for consistency
     test_height = testDSM.astype(np.float64) - refDTM.astype(np.float64)
     # TestDTM is used here to make the images correct
-    test_height_for_image = testDSM.astype(np.float64) - testDTM.astype(np.float64)
+    # test_height_for_image = testDSM.astype(np.float64) - testDTM.astype(np.float64)
     test_height[~test_footprint] = 0
-    test_height_for_image[~test_footprint] = 0
+    #test_height_for_image[~test_footprint] = 0
 
     # total 2D area (in pixels)
     ref_total_area = np.sum(ref_footprint, dtype=np.uint64)
@@ -64,7 +64,7 @@ def run_threshold_geometry_metrics(refDSM, refDTM, refMask, testDSM, testDTM, te
         plot.make(test_footprint, 'Test Object Regions', 251, saveName=PLOTS_SAVE_PREFIX+"testObjMask")
         plot.make(test_height, 'Test Object Height', 252, saveName=PLOTS_SAVE_PREFIX+"testObjHgt", colorbar=True)
 
-        errorMap = (test_height_for_image-ref_height)
+        errorMap = (test_height-ref_height)
         errorMap[~ref_footprint & ~test_footprint] = np.nan
         plot.make(errorMap, 'Height Error', 291, saveName=PLOTS_SAVE_PREFIX+"errHgt", colorbar=True)
         plot.make(errorMap, 'Height Error (clipped)', 292, saveName=PLOTS_SAVE_PREFIX+"errHgtClipped", colorbar=True,

@@ -186,7 +186,7 @@ def run_geometrics(config_file, ref_path=None, test_path=None, output_path=None,
     # test_valid_data = (test_dsm != no_data_value)
     # if test_conf_filename:
     #     test_valid_data &= (test_conf != no_data_value)
-    # 
+    #
     # if test_conf_filename:
     #     test_conf[test_valid_data] = test_conf[test_valid_data] + xyz_offset[2]
 
@@ -539,7 +539,7 @@ def run_geometrics(config_file, ref_path=None, test_path=None, output_path=None,
         cls_iou_fn = [filename for filename in files if filename.endswith("CLS_IOU.tif")][0]
         cls_z_iou_fn = [filename for filename in files if filename.endswith("CLS_Z_IOU.tif")][0]
         cls_z_slope_fn = [filename for filename in files if filename.endswith("CLS_Z_SLOPE_IOU.tif")][0]
-        plot.make_final_metrics_images(stoplight_fn, errhgt_fn, test_conf_filename, cls_iou_fn, cls_z_iou_fn, cls_z_slope_fn, output_folder)
+        plot.make_final_metrics_images(stoplight_fn, errhgt_fn, test_conf_filename, cls_iou_fn, cls_z_iou_fn, cls_z_slope_fn, ref_cls, output_folder)
 
 
     # inputs.png

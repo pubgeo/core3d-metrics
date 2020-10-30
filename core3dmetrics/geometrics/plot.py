@@ -382,7 +382,7 @@ class plot:
         plt.set_cmap('jet')
 
     def make_final_metrics_images(self, stoplight_fn, errhgt_fn, test_conf_filename, cls_iou_fn, cls_z_iou_fn,
-                                  cls_z_slope_fn, output_dir):
+                                  cls_z_slope_fn, ref_cls, output_dir):
         #TODO: “metrics.png”
         # Top 3: 2D IOU, 3D IOU, CONF VIZ
         # Bottom 3: CLS IOU, CLS+Z IOU, and CLS+Z+SLOPE IOU
@@ -411,26 +411,39 @@ class plot:
         # Recolor conf_viz_image
         black_color = (0, 0, 0)
         gray_color = (220, 220, 220)
+        red_color = (255, 0, 0)
+        blue_color = (0, 0, 255)
         conf_viz_image_array = np.array(conf_viz_image)
         conf_viz_image_array[np.all(conf_viz_image_array == black_color, axis=-1)] = (gray_color)
         conf_viz_image_recolor = Image.fromarray(np.uint8(conf_viz_image_array))
 
-        cls_z_iou = Image.open(cls_z_iou_fn).convert("L")
-        cls_z_iou_rgb = Image.new("RGB", cls_z_iou.size)
-        cls_z_iou_rgb.paste(cls_z_iou)
+        def assign_colors_to_images(metrics_image, ref_cls):
+            array = np.array(metrics_image)
+            correct = (array == 1) & (ref_cls == 6)
+            incorrect = (array != 1) & (ref_cls == 6)
+
+            map_image = np.zeros(array.shape)
+            map_image[correct == True] = 1
+            map_image[incorrect == True] = 6
+            map_image = np.uint8(map_image)
+
+            x, y = array.shape
+            rgb_image = np.zeros((x, y, 3))
+            rgb_image[map_image == 0] = [220, 220, 220]
+            rgb_image[map_image == 1] = [0, 0, 255]
+            rgb_image[map_image == 6] = [255, 0, 0]
+
+            rgb_PIL = Image.fromarray(np.uint8(rgb_image), 'RGB')
+            return rgb_PIL
 
         cls_iou_image = Image.open(cls_iou_fn).convert("L")
-        cls_iou_image_rgb = Image.new("RGB", cls_iou_image.size)
-        cls_iou_image_rgb.paste(cls_iou_image)
+        cls_iou_image_rgb = assign_colors_to_images(cls_iou_image, ref_cls)
+
+        cls_z_iou = Image.open(cls_z_iou_fn).convert("L")
+        cls_z_iou_rgb = assign_colors_to_images(cls_z_iou, ref_cls)
 
         cls_z_slope = Image.open(cls_z_slope_fn).convert("L")
-        cls_z_slope_rgb = Image.new("RGB", cls_z_slope.size)
-        cls_z_slope_rgb.paste(cls_z_slope)
-        # Convert to RGB
-        from PIL import ImageOps
-        cls_z_iou_rgb = ImageOps.colorize(ImageOps.autocontrast(cls_z_iou_rgb).convert("L"),black=(220,220,220), white="blue")
-        cls_iou_image_rgb = ImageOps.colorize(ImageOps.autocontrast(cls_iou_image_rgb).convert("L"),black=(220,220,220), white="blue")
-        cls_z_slope_rgb = ImageOps.colorize(ImageOps.autocontrast(cls_z_slope_rgb).convert("L"),black=(220,220,220), white="blue")
+        cls_z_slope_rgb = assign_colors_to_images(cls_z_slope, ref_cls)
 
         # Create image mosaic/stack
         num_rows, num_cols, ch_num = np.shape(iou_2d_image)
