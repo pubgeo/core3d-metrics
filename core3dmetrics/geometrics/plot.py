@@ -497,26 +497,31 @@ class plot:
             num_rows, num_cols = np.shape(plot_2_image)
 
         # Autocontrast
-        def normalize_image(image):
-            array = np.array(image)
-            data = array / array.max()
-            data = 255 * data
-            img = data.astype(np.uint8)
-            img_pil = Image.fromarray(img)
-            return img_pil
+        def normalize_image(image1, image2):
+            array1 = np.array(image1)
+            array2 = np.array(image2)
+            array_max = max(array1.max(), array2.max())
+            data1 = array1 / array_max
+            data1 = 255 * data1
+            img1 = data1.astype(np.uint8)
+            img_pil_1 = Image.fromarray(img1)
+            data2 = array2 / array_max
+            data2 = 255 * data2
+            img2 = data2.astype(np.uint8)
+            img_pil_2 = Image.fromarray(img2)
+            return img_pil_1, img_pil_2
 
         from PIL import ImageOps
-        plot_2_image = normalize_image(plot_2_image)
-        plot_3_image = normalize_image(plot_3_image)
-        plot_5_image = normalize_image(plot_5_image)
-        plot_6_image = normalize_image(plot_6_image)
+        plot_1_image, plot_4_image = normalize_image(plot_1_image, plot_4_image)
+        plot_2_image, plot_5_image = normalize_image(plot_2_image, plot_5_image)
+        plot_3_image, plot_6_image = normalize_image(plot_3_image, plot_6_image)
 
-        plot_1_image = ImageOps.autocontrast(plot_1_image.convert("L"))
-        plot_2_image = ImageOps.autocontrast(plot_2_image.convert("L"))
-        plot_3_image = ImageOps.autocontrast(plot_3_image.convert("L"))
-        plot_4_image = ImageOps.autocontrast(plot_4_image.convert("L"))
-        plot_5_image = ImageOps.autocontrast(plot_5_image.convert("L"))
-        plot_6_image = ImageOps.autocontrast(plot_6_image.convert("L"))
+        #plot_1_image = ImageOps.autocontrast(plot_1_image.convert("L"))
+        plot_2_image = ImageOps.autocontrast(plot_2_image.convert("L"), cutoff=10)
+        plot_3_image = ImageOps.autocontrast(plot_3_image.convert("L"),  cutoff=10)
+        #plot_4_image = ImageOps.autocontrast(plot_4_image.convert("L"))
+        plot_5_image = ImageOps.autocontrast(plot_5_image.convert("L"),  cutoff=10)
+        plot_6_image = ImageOps.autocontrast(plot_6_image.convert("L"),  cutoff=10)
 
         # Resize test images to same size as ref images
         plot_1_image = plot_1_image.resize((num_cols, num_rows), resample=0)
