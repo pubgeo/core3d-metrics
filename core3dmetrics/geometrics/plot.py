@@ -388,6 +388,7 @@ class plot:
         # Bottom 3: CLS IOU, CLS+Z IOU, and CLS+Z+SLOPE IOU
         from PIL import Image
         from pathlib import Path
+        Image.MAX_IMAGE_PIXELS = None
 
         iou_2d_path = Path(stoplight_fn)
         iou_2d_image = Image.open(str(iou_2d_path.absolute()))
@@ -476,6 +477,7 @@ class plot:
 
         from PIL import Image
         from pathlib import Path
+        Image.MAX_IMAGE_PIXELS = None
 
         plot_1_path = Path(plot_1)
         plot_1_image = Image.open(str(plot_1_path.absolute()))
@@ -490,38 +492,66 @@ class plot:
         plot_6_path = Path(plot_6)
         plot_6_image = Image.open(str(plot_6_path.absolute()))
 
+        # colorize_no_Data
+        def colorize_image(input_img, minval=None, maxval=None):
+            w = np.isnan(input_img)
+            img = np.zeros((input_img.shape[0], input_img.shape[1], 3))
+            img[:, :, 0] = np.copy(input_img)
+            img[:, :, 1] = np.copy(input_img)
+            img[:, :, 2] = np.copy(input_img)
+            if minval == None and maxval == None:
+                maxval = np.nanpercentile(img, 99)
+                minval = np.nanpercentile(img, 1)
+            img[img < minval] = minval
+            img[img > maxval] = maxval
+            img[np.isnan(img)] = minval
+            img = img - minval
+            img = ((255.0 * img) / maxval).astype(np.uint8)
+
+            img[w, 0] = 135.0
+            img[w, 1] = 206.0
+            img[w, 2] = 250.0
+            img = img.astype(np.uint8)
+            return img, minval, maxval
+
+        def nodata_to_nan(img):
+            nodata = -9999
+            img[img == nodata] = np.nan
+            nodata = -10000
+            img[img == nodata] = np.nan
+            return (img)
+
+        # Convert PIL image to nparray and insert np.nan
+        # Uint8
+        plot_1_image = np.array(plot_1_image)
+        plot_4_image = np.array(plot_4_image)
+        # Floats
+        plot_2_image = nodata_to_nan(np.array(plot_2_image))
+        plot_3_image = nodata_to_nan(np.array(plot_3_image))
+        plot_5_image = nodata_to_nan(np.array(plot_5_image))
+        plot_6_image = nodata_to_nan(np.array(plot_6_image))
+
+        # Colorize images with same scale
+        plot_1_image, minval, maxval = colorize_image(plot_1_image)
+        plot_4_image, _, _ = colorize_image(plot_4_image, minval, maxval)
+        plot_2_image, minval, maxval = colorize_image(plot_2_image)
+        plot_3_image, _, _ = colorize_image(plot_3_image, minval, maxval)
+        plot_5_image, minval, maxval = colorize_image(plot_5_image)
+        plot_6_image, _, _ = colorize_image(plot_6_image, minval, maxval)
+
+        # Convert back to PIL images
+        plot_1_image = Image.fromarray(plot_1_image)
+        plot_4_image = Image.fromarray(plot_4_image)
+        plot_2_image = Image.fromarray(plot_2_image)
+        plot_3_image = Image.fromarray(plot_3_image)
+        plot_5_image = Image.fromarray(plot_5_image)
+        plot_6_image = Image.fromarray(plot_6_image)
+
         # Create image mosaic/stack
         try:
             num_rows, num_cols, ch_num = np.shape(plot_2_image)
         except ValueError:
             num_rows, num_cols = np.shape(plot_2_image)
-
-        # Autocontrast
-        def normalize_image(image1, image2):
-            array1 = np.array(image1)
-            array2 = np.array(image2)
-            array_max = max(array1.max(), array2.max())
-            data1 = array1 / array_max
-            data1 = 255 * data1
-            img1 = data1.astype(np.uint8)
-            img_pil_1 = Image.fromarray(img1)
-            data2 = array2 / array_max
-            data2 = 255 * data2
-            img2 = data2.astype(np.uint8)
-            img_pil_2 = Image.fromarray(img2)
-            return img_pil_1, img_pil_2
-
-        from PIL import ImageOps
-        plot_1_image, plot_4_image = normalize_image(plot_1_image, plot_4_image)
-        plot_2_image, plot_5_image = normalize_image(plot_2_image, plot_5_image)
-        plot_3_image, plot_6_image = normalize_image(plot_3_image, plot_6_image)
-
-        #plot_1_image = ImageOps.autocontrast(plot_1_image.convert("L"))
-        plot_2_image = ImageOps.autocontrast(plot_2_image.convert("L"), cutoff=10)
-        plot_3_image = ImageOps.autocontrast(plot_3_image.convert("L"),  cutoff=10)
-        #plot_4_image = ImageOps.autocontrast(plot_4_image.convert("L"))
-        plot_5_image = ImageOps.autocontrast(plot_5_image.convert("L"),  cutoff=10)
-        plot_6_image = ImageOps.autocontrast(plot_6_image.convert("L"),  cutoff=10)
 
         # Resize test images to same size as ref images
         plot_1_image = plot_1_image.resize((num_cols, num_rows), resample=0)
@@ -531,8 +561,9 @@ class plot:
         plot_6_image = plot_6_image.resize((num_cols, num_rows), resample=0)
 
         # Create seperation bar
-        separation_bar_vert = np.ones([num_rows, int(np.floor(num_cols * 0.02))], dtype=np.uint8)
+        separation_bar_vert = np.ones([num_rows, int(np.floor(num_cols * 0.02)), ch_num], dtype=np.uint8)
         separation_bar_vert.fill(255)
+
         # Stack images horizontally
         image_stack_top = np.hstack((plot_1_image, separation_bar_vert, plot_2_image, separation_bar_vert,
                                      plot_3_image))
@@ -540,8 +571,8 @@ class plot:
         image_stack_bot = np.hstack((plot_4_image, separation_bar_vert, plot_5_image, separation_bar_vert,
                                      plot_6_image))
 
-        num_rows, num_cols = np.shape(image_stack_top)
-        separation_bar_horz = np.ones([int(np.floor(num_rows * 0.02)), num_cols], dtype=np.uint8)
+        num_rows, num_cols, ch = np.shape(image_stack_top)
+        separation_bar_horz = np.ones([int(np.floor(num_rows * 0.02)), num_cols, ch_num], dtype=np.uint8)
         separation_bar_horz.fill(255)
 
         # Stack images vertically

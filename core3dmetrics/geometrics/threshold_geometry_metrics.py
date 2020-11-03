@@ -162,16 +162,34 @@ def run_threshold_geometry_metrics(refDSM, refDTM, refMask, testDSM, testDTM, te
 
     # Confidence Metrics
     if testCONF is not None:
-        # create mask including both reference and test building labels
-        w_ref = refMask > 0
-        w_test = testMask > 0
-        w = np.logical_and(w_ref, w_test)
+        # check for all common NODATA values
+        def nodata_to_nan(img):
+            nodata = -9999
+            img[img == nodata] = np.nan
+            nodata = -10000
+            img[img == nodata] = np.nan
+            return (img)
+
         # compute differences
-        abs_delta = np.abs(testDSM - refDSM)
+        testDSM_filt = nodata_to_nan(testDSM)
+        refDSM_filt = nodata_to_nan(refDSM)
+        testCONF_filt = nodata_to_nan(testCONF)
+        valid_mask = np.logical_not(np.logical_or(np.logical_or(np.isnan(refDSM_filt), np.isnan(testDSM_filt)), np.isnan(testCONF_filt)))
+        building_mask = np.logical_or(test_footprint, ref_footprint)
+        w = np.logical_and(valid_mask, building_mask)
+
+        # since not running registration for now, remove z offset
+        dz = np.nanmedian(refDSM_filt - testDSM_filt)
+        tgt_dsm = testDSM_filt + dz
+        dz = np.nanmedian(refDSM_filt - tgt_dsm)
+        print('dz after align = ', dz)
+
+        abs_delta = np.abs(testDSM_filt - refDSM_filt)
         abs_delta_minus_mask = abs_delta[w]
-        confidence_minus_mask = testCONF[w]
+        confidence_minus_mask = testCONF_filt[w]
         # compute pearson coefficient
-        p = pearsonr(abs_delta_minus_mask, confidence_minus_mask)
+        p = pearsonr(abs_delta_minus_mask, -confidence_minus_mask)
+        print(p)
     else:
         p = [np.nan, np.nan]
 

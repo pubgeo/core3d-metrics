@@ -82,7 +82,7 @@ def run_geometrics(config_file, ref_path=None, test_path=None, output_path=None,
         plot = geo.plot(saveDir=output_path, autoSave=PLOTS_SAVE, savePrefix=basename + '_', badColor='black', showPlots=PLOTS_SHOW, dpi=900)
     else:
         plot = None
-        
+
     # copy testDSM to the output path
     # this is a workaround for the "align3d" function with currently always
     # saves new files to the same path as the testDSM
@@ -126,6 +126,8 @@ def run_geometrics(config_file, ref_path=None, test_path=None, output_path=None,
         ref_mtl = None
         print('NO REFERENCE MTL')
 
+
+    ##### COMMENT HERE FOR TESTING METICS IMAGES #####
     # Read test model files and apply XYZ offsets.
     print("\nReading test model files...")
     test_cls = geo.imageWarp(test_cls_filename, ref_cls_filename, xyz_offset, gdalconst.GRA_NearestNeighbour)
@@ -181,14 +183,6 @@ def run_geometrics(config_file, ref_path=None, test_path=None, output_path=None,
     test_dsm[test_valid_data] = test_dsm[test_valid_data] + xyz_offset[2]
     if test_dtm_filename:
         test_dtm[test_valid_data] = test_dtm[test_valid_data] + xyz_offset[2]
-
-    # Repeat for conf image
-    # test_valid_data = (test_dsm != no_data_value)
-    # if test_conf_filename:
-    #     test_valid_data &= (test_conf != no_data_value)
-    #
-    # if test_conf_filename:
-    #     test_conf[test_valid_data] = test_conf[test_valid_data] + xyz_offset[2]
 
     # Create mask for ignoring points labeled NoData in reference files.
     ref_dsm_no_data_value = no_data_value
@@ -545,7 +539,7 @@ def run_geometrics(config_file, ref_path=None, test_path=None, output_path=None,
     # inputs.png
         plot.make_final_input_images_grayscale([ref_cls_filename, ref_dsm_filename, ref_dtm_filename, test_cls_filename,
                                                 test_dsm_filename, test_dtm_filename], output_folder)
-    # textured.png
+    # # textured.png
     # if config['BLENDER.TEST']['OBJDirectoryFilename']:
     #     from CORE3D_Perspective_Imagery import generate_blender_images
     #     objpath = config['BLENDER.TEST']['OBJDirectoryFilename']
