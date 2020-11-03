@@ -171,9 +171,9 @@ def run_threshold_geometry_metrics(refDSM, refDTM, refMask, testDSM, testDTM, te
             return (img)
 
         # compute differences
-        testDSM_filt = nodata_to_nan(testDSM)
-        refDSM_filt = nodata_to_nan(refDSM)
-        testCONF_filt = nodata_to_nan(testCONF)
+        testDSM_filt = nodata_to_nan(testDSM.copy())
+        refDSM_filt = nodata_to_nan(refDSM.copy())
+        testCONF_filt = nodata_to_nan(testCONF.copy())
         valid_mask = np.logical_not(np.logical_or(np.logical_or(np.isnan(refDSM_filt), np.isnan(testDSM_filt)), np.isnan(testCONF_filt)))
         building_mask = np.logical_or(test_footprint, ref_footprint)
         w = np.logical_and(valid_mask, building_mask)
