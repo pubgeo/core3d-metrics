@@ -126,8 +126,6 @@ def run_geometrics(config_file, ref_path=None, test_path=None, output_path=None,
         ref_mtl = None
         print('NO REFERENCE MTL')
 
-
-    ##### COMMENT HERE FOR TESTING METICS IMAGES #####
     # Read test model files and apply XYZ offsets.
     print("\nReading test model files...")
     test_cls = geo.imageWarp(test_cls_filename, ref_cls_filename, xyz_offset, gdalconst.GRA_NearestNeighbour)
@@ -252,6 +250,7 @@ def run_geometrics(config_file, ref_path=None, test_path=None, output_path=None,
     if np.all(ignore_mask):
         raise ValueError('All pixels are ignored')
 
+    ##### COMMENT HERE FOR TESTING METICS IMAGES #####
     # report "data voids"
     num_data_voids = np.sum(ignore_mask > 0)
     print('Number of data voids in ignore mask = ', num_data_voids)
@@ -537,8 +536,8 @@ def run_geometrics(config_file, ref_path=None, test_path=None, output_path=None,
 
 
     # inputs.png
-        plot.make_final_input_images_grayscale([ref_cls_filename, ref_dsm_filename, ref_dtm_filename, test_cls_filename,
-                                                test_dsm_filename, test_dtm_filename], output_folder)
+        plot.make_final_input_images_grayscale(ref_cls, ref_dsm, ref_dtm, test_cls,
+                                                test_dsm, test_dtm, output_folder)
     # # textured.png
     # if config['BLENDER.TEST']['OBJDirectoryFilename']:
     #     from CORE3D_Perspective_Imagery import generate_blender_images

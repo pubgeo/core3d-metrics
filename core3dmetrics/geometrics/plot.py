@@ -466,31 +466,18 @@ class plot:
         import cv2
         cv2.imwrite(str(Path(output_dir, "metrics.png").absolute()), cv2.cvtColor(final_stack, cv2.COLOR_BGR2RGB))
 
-    def make_final_input_images_grayscale(self, plot_fn: list, output_dir):
-
-        plot_1 = plot_fn[0]
-        plot_2 = plot_fn[1]
-        plot_3 = plot_fn[2]
-        plot_4 = plot_fn[3]
-        plot_5 = plot_fn[4]
-        plot_6 = plot_fn[5]
+    def make_final_input_images_grayscale(self, plot_1, plot_2, plot_3, plot_4, plot_5, plot_6, output_dir):
 
         from PIL import Image
         from pathlib import Path
         Image.MAX_IMAGE_PIXELS = None
 
-        plot_1_path = Path(plot_1)
-        plot_1_image = Image.open(str(plot_1_path.absolute()))
-        plot_2_path = Path(plot_2)
-        plot_2_image = Image.open(str(plot_2_path.absolute()))
-        plot_3_path = Path(plot_3)
-        plot_3_image = Image.open(str(plot_3_path.absolute()))
-        plot_4_path = Path(plot_4)
-        plot_4_image = Image.open(str(plot_4_path.absolute()))
-        plot_5_path = Path(plot_5)
-        plot_5_image = Image.open(str(plot_5_path.absolute()))
-        plot_6_path = Path(plot_6)
-        plot_6_image = Image.open(str(plot_6_path.absolute()))
+        plot_1_image = Image.fromarray(plot_1)
+        plot_2_image = Image.fromarray(plot_2)
+        plot_3_image = Image.fromarray(plot_3)
+        plot_4_image = Image.fromarray(plot_4)
+        plot_5_image = Image.fromarray(plot_5)
+        plot_6_image = Image.fromarray(plot_6)
 
         # colorize_no_Data
         def colorize_image(input_img, minval=None, maxval=None):
