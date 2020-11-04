@@ -480,7 +480,9 @@ class plot:
         plot_6_image = Image.fromarray(plot_6)
 
         # colorize_no_Data
-        def colorize_image(input_img, minval=None, maxval=None):
+        def colorize_image(input_img, minval=None, maxval=None, is_cls=False):
+            if is_cls:
+                b = input_img == 6
             w = np.isnan(input_img)
             img = np.zeros((input_img.shape[0], input_img.shape[1], 3))
             img[:, :, 0] = np.copy(input_img)
@@ -498,6 +500,12 @@ class plot:
             img[w, 0] = 135.0
             img[w, 1] = 206.0
             img[w, 2] = 250.0
+
+            if is_cls:
+                img[b, 0] = 230
+                img[b, 1] = 0
+                img[b, 2] = 0
+
             img = img.astype(np.uint8)
             return img, minval, maxval
 
@@ -519,8 +527,8 @@ class plot:
         plot_6_image = nodata_to_nan(np.array(plot_6_image))
 
         # Colorize images with same scale
-        plot_1_image, minval, maxval = colorize_image(plot_1_image)
-        plot_4_image, _, _ = colorize_image(plot_4_image, minval, maxval)
+        plot_1_image, minval, maxval = colorize_image(plot_1_image, is_cls=True)
+        plot_4_image, _, _ = colorize_image(plot_4_image, minval, maxval, is_cls=True)
         plot_2_image, minval, maxval = colorize_image(plot_2_image)
         plot_3_image, _, _ = colorize_image(plot_3_image, minval, maxval)
         plot_5_image, minval, maxval = colorize_image(plot_5_image)

@@ -534,7 +534,6 @@ def run_geometrics(config_file, ref_path=None, test_path=None, output_path=None,
         cls_z_slope_fn = [filename for filename in files if filename.endswith("CLS_Z_SLOPE_IOU.tif")][0]
         plot.make_final_metrics_images(stoplight_fn, errhgt_fn, test_conf_filename, cls_iou_fn, cls_z_iou_fn, cls_z_slope_fn, ref_cls, output_folder)
 
-
     # inputs.png
         plot.make_final_input_images_grayscale(ref_cls, ref_dsm, ref_dtm, test_cls,
                                                 test_dsm, test_dtm, output_folder)
