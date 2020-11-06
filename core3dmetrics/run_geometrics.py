@@ -142,9 +142,8 @@ def run_geometrics(config_file, ref_path=None, test_path=None, output_path=None,
 
     if test_conf_filename:
         test_conf = geo.imageWarp(test_conf_filename,  ref_cls_filename, xyz_offset, noDataValue=no_data_value)
-        if save_aligned:
-            geo.arrayToGeotiff(test_conf, os.path.join(output_path, basename + '_test_conf_reg_out'), ref_cls_filename,
-                               no_data_value)
+        geo.arrayToGeotiff(test_conf, os.path.join(output_path, 'CONF_aligned'), ref_cls_filename,
+                           no_data_value)
     else:
         test_conf = None
         print("NO TEST CONF")
@@ -532,7 +531,9 @@ def run_geometrics(config_file, ref_path=None, test_path=None, output_path=None,
         cls_iou_fn = [filename for filename in files if filename.endswith("CLS_IOU.tif")][0]
         cls_z_iou_fn = [filename for filename in files if filename.endswith("CLS_Z_IOU.tif")][0]
         cls_z_slope_fn = [filename for filename in files if filename.endswith("CLS_Z_SLOPE_IOU.tif")][0]
-        plot.make_final_metrics_images(stoplight_fn, errhgt_fn, test_conf_filename, cls_iou_fn, cls_z_iou_fn, cls_z_slope_fn, ref_cls, output_folder)
+        if test_conf_filename:
+            plot.make_final_metrics_images(stoplight_fn, errhgt_fn, Path(os.path.join(output_path, 'CONF_aligned.tif')),
+                                           cls_iou_fn, cls_z_iou_fn, cls_z_slope_fn, ref_cls, output_folder)
 
     # inputs.png
         plot.make_final_input_images_grayscale(ref_cls, ref_dsm, ref_dtm, test_cls,

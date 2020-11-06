@@ -395,27 +395,30 @@ class plot:
         iou_3d_path = Path(errhgt_fn)
         iou_3d_image = Image.open(str(iou_3d_path.absolute()))
         stoplight_shape = np.shape(iou_2d_image)
-        conf_viz_path = Path(str(Path(test_conf_filename).parent.absolute()),
-                             Path(test_conf_filename).stem + '_VIZ.tif')
-        if conf_viz_path.is_file():
-            conf_viz_image = Image.open(conf_viz_path)
-            conf_shape = np.shape(conf_viz_image)
-            conf_viz_image = conf_viz_image.resize((stoplight_shape[1], stoplight_shape[0]), resample=0)
+        if test_conf_filename.is_file():
+            conf_image = Image.open(test_conf_filename)
+            # Scale confidence image for RGB
+            conf_image_array = np.array(conf_image)
+            conf_image_array_scaled = conf_image_array * 255
+            # Apply CMAP to CONF image
+            cm = plt.get_cmap('gist_rainbow')
+            conf_image_array_scaled = np.uint8(conf_image_array_scaled)
+            colored_image = cm(conf_image_array_scaled)
+            colored_image = colored_image[:, :, :3]
+            colored_image = np.uint8(colored_image*255)
+            conf_image_array_rgb = Image.fromarray(colored_image)
+            conf_viz_image = conf_image_array_rgb.resize((stoplight_shape[1], stoplight_shape[0]), resample=0)
         else:
-            # If can't find viz image, use non viz
-            conf_viz_image = Image.open(test_conf_filename)
-            conf_viz_image_rgb = Image.new("RGB", conf_viz_image.size)
-            conf_viz_image_rgb.paste(conf_viz_image)
-            conf_shape = np.shape(conf_viz_image)
-            conf_viz_image = conf_viz_image.resize((stoplight_shape[1], stoplight_shape[0]), resample=0)
+            print("Can't find image. Aborting metrics.png creation...")
+            return
 
         # Recolor conf_viz_image
-        black_color = (0, 0, 0)
+        background_color = (255, 39, 0)
         gray_color = (220, 220, 220)
         red_color = (255, 0, 0)
         blue_color = (0, 0, 255)
         conf_viz_image_array = np.array(conf_viz_image)
-        conf_viz_image_array[np.all(conf_viz_image_array == black_color, axis=-1)] = (gray_color)
+        conf_viz_image_array[np.all(conf_viz_image_array == background_color, axis=-1)] = (gray_color)
         conf_viz_image_recolor = Image.fromarray(np.uint8(conf_viz_image_array))
 
         def assign_colors_to_images(metrics_image, ref_cls):
