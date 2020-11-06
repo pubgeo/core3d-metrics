@@ -118,7 +118,8 @@ def run_objectwise_metrics(refDSM, refDTM, refMask, testDSM, testDTM, testMask, 
 
     # Dilate reference object mask to combine closely spaced objects
     ref_ndx_orig = np.copy(refMask)
-    ref_ndx = ndimage.binary_dilation(ref_ndx_orig, structure=strel,  iterations=padding_pixels.astype(int))
+    #ref_ndx = ndimage.binary_dilation(ref_ndx_orig, structure=strel,  iterations=padding_pixels.astype(int))
+    ref_ndx = ref_ndx_orig
 
     # Create index regions
     ref_ndx, num_ref_regions = ndimage.label(ref_ndx)

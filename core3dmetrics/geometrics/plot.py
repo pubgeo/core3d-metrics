@@ -401,7 +401,7 @@ class plot:
             conf_image_array = np.array(conf_image)
             conf_image_array_scaled = conf_image_array * 255
             # Apply CMAP to CONF image
-            cm = plt.get_cmap('gist_rainbow')
+            cm = plt.get_cmap('viridis')
             conf_image_array_scaled = np.uint8(conf_image_array_scaled)
             colored_image = cm(conf_image_array_scaled)
             colored_image = colored_image[:, :, :3]
