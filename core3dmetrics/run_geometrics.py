@@ -142,6 +142,12 @@ def run_geometrics(config_file, ref_path=None, test_path=None, output_path=None,
 
     if test_conf_filename:
         test_conf = geo.imageWarp(test_conf_filename,  ref_cls_filename, xyz_offset, noDataValue=no_data_value)
+        conf_viz_path = Path(str(Path(test_conf_filename).parent.absolute()),
+                             Path(test_conf_filename).stem + '_VIZ.tif')
+        test_conf_viz = geo.imageWarpRGB(str(conf_viz_path.absolute()), ref_cls_filename, xyz_offset)
+        geo.arrayToGeotiffRGB(test_conf_viz, os.path.join(output_path, 'CONF_VIZ_aligned'), ref_cls_filename,
+                              no_data_value)
+
         geo.arrayToGeotiff(test_conf, os.path.join(output_path, 'CONF_aligned'), ref_cls_filename,
                            no_data_value)
     else:
@@ -498,7 +504,6 @@ def run_geometrics(config_file, ref_path=None, test_path=None, output_path=None,
              filename.startswith("Roof")]
 
     # Save all of myrons outputs here
-    #TODO: “metrics.json”
     metrics_formatted = {}
     metrics_formatted["2D"] = {}
     metrics_formatted["2D"]["Precision"] = metrics["threshold_geometry"][0]['2D']['precision']
@@ -532,7 +537,7 @@ def run_geometrics(config_file, ref_path=None, test_path=None, output_path=None,
         cls_z_iou_fn = [filename for filename in files if filename.endswith("CLS_Z_IOU.tif")][0]
         cls_z_slope_fn = [filename for filename in files if filename.endswith("CLS_Z_SLOPE_IOU.tif")][0]
         if test_conf_filename:
-            plot.make_final_metrics_images(stoplight_fn, errhgt_fn, Path(os.path.join(output_path, 'CONF_aligned.tif')),
+            plot.make_final_metrics_images(stoplight_fn, errhgt_fn, Path(os.path.join(output_path, 'CONF_VIZ_aligned.tif')),
                                            cls_iou_fn, cls_z_iou_fn, cls_z_slope_fn, ref_cls, output_folder)
 
     # inputs.png

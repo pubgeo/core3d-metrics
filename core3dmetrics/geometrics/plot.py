@@ -397,23 +397,13 @@ class plot:
         stoplight_shape = np.shape(iou_2d_image)
         if test_conf_filename.is_file():
             conf_image = Image.open(test_conf_filename)
-            # Scale confidence image for RGB
-            conf_image_array = np.array(conf_image)
-            conf_image_array_scaled = conf_image_array * 255
-            # Apply CMAP to CONF image
-            cm = plt.get_cmap('viridis')
-            conf_image_array_scaled = np.uint8(conf_image_array_scaled)
-            colored_image = cm(conf_image_array_scaled)
-            colored_image = colored_image[:, :, :3]
-            colored_image = np.uint8(colored_image*255)
-            conf_image_array_rgb = Image.fromarray(colored_image)
-            conf_viz_image = conf_image_array_rgb.resize((stoplight_shape[1], stoplight_shape[0]), resample=0)
+            conf_viz_image = conf_image.resize((stoplight_shape[1], stoplight_shape[0]), resample=0)
         else:
             print("Can't find image. Aborting metrics.png creation...")
             return
 
         # Recolor conf_viz_image
-        background_color = (255, 39, 0)
+        background_color = (0, 0, 0)
         gray_color = (220, 220, 220)
         red_color = (255, 0, 0)
         blue_color = (0, 0, 255)

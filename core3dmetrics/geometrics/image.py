@@ -51,6 +51,69 @@ def getMetadata(inputinfo):
     if FLAG_CLOSE: dataset = None
     return meta
 
+def imageWarpRGB(file_src: str, file_dst: str, offset=None, interp_method: int = gdal.gdalconst.GRA_Bilinear, noDataValue=None):
+
+    # verbose display
+    print('Loading <{}>'.format(file_src))
+
+    # destination metadata
+    meta_dst = getMetadata(file_dst)
+
+    # GDAL memory driver
+    mem_drv = gdal.GetDriverByName('MEM')
+
+    # copy source to memory
+    tmp = gdal.Open(file_src, gdal.GA_ReadOnly)
+    dataset_src = mem_drv.CreateCopy('',tmp)
+    tmp = None
+
+    # source metadata
+    meta_src = getMetadata(dataset_src)
+
+    # Apply registration offset
+    if offset is not None:
+
+        # offset error: offset is defined in destination projection space,
+        # and cannot be applied if source and destination projections differ
+        if meta_src['Projection'] != meta_dst['Projection']:
+            print('IMAGE PROJECTION\n{}'.format(meta_src['Projection']))
+            print('OFFSET PROJECTION\n{}'.format(meta_dst['Projection']))
+            raise ValueError('Image/Offset projection mismatch')
+
+        transform = meta_src['GeoTransform']
+        transform[0] += offset[0]
+        transform[3] += offset[1]
+        dataset_src.SetGeoTransform(transform)
+
+
+    # no reprojection necessary
+    if meta_src == meta_dst:
+        print('  No reprojection')
+        dataset_dst = dataset_src
+
+    # reprojection
+    else:
+        keys = [k for k in meta_dst if meta_dst.get(k) != meta_src.get(k)]
+        print('  REPROJECTION (adjusting {})'.format(', '.join(keys)))
+
+        # file, xsz, ysz, nbands, dtype
+        dataset_dst = mem_drv.Create('', meta_dst['RasterXSize'], meta_dst['RasterYSize'],
+            meta_src['RasterCount'], gdal.GDT_Float32)
+
+        dataset_dst.SetProjection(meta_dst['Projection'])
+        dataset_dst.SetGeoTransform(meta_dst['GeoTransform'])
+
+        # input, output, inputproj, outputproj, interp
+        gdal.ReprojectImage(dataset_src, dataset_dst, meta_src['Projection'],
+             meta_dst['Projection'], interp_method)
+
+    # read & return image data
+    r = dataset_dst.GetRasterBand(1).ReadAsArray()
+    g = dataset_dst.GetRasterBand(2).ReadAsArray()
+    b = dataset_dst.GetRasterBand(3).ReadAsArray()
+    img = np.dstack((r,g,b))
+    img = np.uint8(img)
+    return img
 
 def imageWarp(file_src: str, file_dst: str, offset=None, interp_method: int = gdal.gdalconst.GRA_Bilinear, noDataValue=None):
 
@@ -156,6 +219,32 @@ def arrayToGeotiff(image_array, out_file_name, reference_file_name, NODATA_VALUE
 
     return
 
+def arrayToGeotiffRGB(image_array, out_file_name, reference_file_name, NODATA_VALUE):
+    """ Used to save rasterized dsm of point cloud """
+    reference_image = gdal.Open(reference_file_name, gdal.GA_ReadOnly)
+    transform = reference_image.GetGeoTransform()
+    projection = reference_image.GetProjection()
+
+    bands = image_array.shape[2]
+    driver = gdal.GetDriverByName('GTiff')
+    options = ['PHOTOMETRIC=RGB', 'PROFILE=GeoTIFF']
+
+    out_image = driver.Create(out_file_name + '.tif', image_array.shape[1],
+                              image_array.shape[0], bands, gdal.GDT_Byte, options=options)
+    if out_image is None:
+        print('Could not create output GeoTIFF')
+
+    out_image.SetGeoTransform(transform)
+    out_image.SetProjection(projection)
+
+    for band in range(bands):
+        out_image.GetRasterBand(band+1).WriteArray(image_array[:, :, band])
+
+    out_image.FlushCache()
+    # Ignore pep warning here, aids in memory management performance
+    out_image = None
+
+    return
 
 # Load LAS file and generate max DSM in memory
 def lasToRaster(las_filename, transform, shape_out, NODATA):
