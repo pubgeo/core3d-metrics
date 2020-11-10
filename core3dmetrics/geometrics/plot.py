@@ -478,18 +478,19 @@ class plot:
                 building_map = input_img == 6
                 not_building_map = np.bitwise_and((input_img != 6), (input_img != 65))
             nan_map = np.isnan(input_img)
+            if minval == None and maxval == None:
+                maxval = np.nanpercentile(input_img, 95)
+                minval = np.nanpercentile(input_img, 1)
+            input_img[input_img < minval] = minval
+            input_img[input_img > maxval] = maxval
+            input_img[np.isnan(input_img)] = minval
+            input_img = input_img - minval
+            input_img = (255.0 * (input_img / (maxval-minval))).astype(np.uint8)
+
             img = np.zeros((input_img.shape[0], input_img.shape[1], 3))
             img[:, :, 0] = np.copy(input_img)
             img[:, :, 1] = np.copy(input_img)
             img[:, :, 2] = np.copy(input_img)
-            if minval == None and maxval == None:
-                maxval = np.nanpercentile(img, 95)
-                minval = np.nanpercentile(img, 1)
-            img[img < minval] = minval
-            img[img > maxval] = maxval
-            img[np.isnan(img)] = minval
-            img = img - minval
-            img = ((255.0 * img) / maxval).astype(np.uint8)
 
             img[nan_map, 0] = 135.0
             img[nan_map, 1] = 206.0
