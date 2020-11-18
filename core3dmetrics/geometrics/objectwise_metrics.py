@@ -3,23 +3,24 @@ import numpy as np
 
 import scipy.ndimage as ndimage
 import time
-
+import multiprocessing
 from .metrics_util import getUnitWidth
 from .threshold_geometry_metrics import run_threshold_geometry_metrics
 from .relative_accuracy_metrics import run_relative_accuracy_metrics
 from core3dmetrics.instancemetrics.instance_metrics import eval_instance_metrics
 
 
-def eval_metrics(refDSM, refDTM, refMask, testDSM, testDTM, testMask, tform, ignoreMask, plot=None, verbose=True):
+def eval_metrics(refDSM, refDTM, refMask, testDSM, testDTM, testMask, tform, ignoreMask, plot=None, testCONF=None,
+                 verbose=True):
 
     # Evaluate threshold geometry metrics using refDTM as the testDTM to mitigate effects of terrain modeling
     # uncertainty
-    result_geo, unitArea = run_threshold_geometry_metrics(refDSM, refDTM, refMask, testDSM, refDTM, testMask, tform, ignoreMask,
-                                                plot=plot, verbose=verbose)
+    result_geo, unitArea, _, _ = run_threshold_geometry_metrics(refDSM, refDTM, refMask, testDSM, refDTM, testMask, tform, ignoreMask,
+                                                plot=plot, for_objectwise=True, testCONF=testCONF, verbose=verbose)
 
     # Run the relative accuracy metrics and report results.
     result_acc = run_relative_accuracy_metrics(refDSM, testDSM, refMask, testMask, ignoreMask,
-                                               getUnitWidth(tform), plot=plot)
+                                               getUnitWidth(tform), for_objectwise=True, plot=plot)
 
     return result_geo, result_acc, unitArea
 
@@ -39,7 +40,70 @@ def metric_stats(val):
     return s
 
 
-def run_objectwise_metrics(refDSM, refDTM, refMask, testDSM, testDTM, testMask, tform, ignoreMask, merge_radius=2, plot=None, verbose=True):
+def multiprocessing_fun(ref_ndx, loop_region, refMask, test_ndx, ref_ndx_orig,
+                        ref_use_counter, testMask, test_use_counter, refDSM,
+                        refDTM, testDSM, testDTM, tform,
+                        ignoreMask, plot, verbose, max_area, min_area,
+                        max_volume, min_volume):
+    # Reference region under evaluation
+    ref_objs = (ref_ndx == loop_region) & refMask
+
+    # Find test regions overlapping with ref
+    test_regions = np.unique(test_ndx[ref_ndx == loop_region])
+
+    # Find test regions overlapping with ref
+    ref_regions = np.unique(ref_ndx_orig[ref_ndx == loop_region])
+
+    # Remove background region, '0'
+    if np.any(test_regions == 0):
+        test_regions = test_regions.tolist()
+        test_regions.remove(0)
+        test_regions = np.array(test_regions)
+
+    if np.any(ref_regions == 0):
+        ref_regions = ref_regions.tolist()
+        ref_regions.remove(0)
+        ref_regions = np.array(ref_regions)
+
+    if len(test_regions) == 0:
+        return None
+
+    for refRegion in ref_regions:
+        # Increment counter for ref region used
+        ref_use_counter[refRegion - 1] = ref_use_counter[refRegion - 1] + 1
+
+    # Make mask of overlapping test regions
+    test_objs = np.zeros_like(testMask)
+    for test_region in test_regions:
+        test_objs = test_objs | (test_ndx == test_region)
+        # Increment counter for test region used
+        test_use_counter[test_region - 1] = test_use_counter[test_region - 1] + 1
+
+    # TODO:  Not practical as implemented to enable plots. plots is forced to false.
+    [result_geo, result_acc, unitArea] = eval_metrics(refDSM, refDTM, ref_objs, testDSM, testDTM, test_objs, tform,
+                                                      ignoreMask, plot=plot, verbose=verbose)
+
+    this_metric = dict()
+    this_metric['ref_objects'] = ref_regions.tolist()
+    this_metric['test_objects'] = test_regions.tolist()
+    this_metric['threshold_geometry'] = result_geo
+    this_metric['relative_accuracy'] = result_acc
+
+    # Calculate min and max area/volume
+    if this_metric['threshold_geometry']['area']['test_area'] > max_area or loop_region == 1:
+        max_area = this_metric['threshold_geometry']['area']['test_area']
+    if this_metric['threshold_geometry']['area']['test_area'] < min_area or loop_region == 1:
+        min_area = this_metric['threshold_geometry']['area']['test_area']
+    if this_metric['threshold_geometry']['volume']['test_volume'] > max_volume or loop_region == 1:
+        max_volume = this_metric['threshold_geometry']['volume']['test_volume']
+    if this_metric['threshold_geometry']['volume']['test_volume'] < min_volume or loop_region == 1:
+        min_volume = this_metric['threshold_geometry']['volume']['test_volume']
+
+    return this_metric, result_geo, result_acc, unitArea, ref_regions
+
+
+def run_objectwise_metrics(refDSM, refDTM, refMask, testDSM, testDTM, testMask, tform, ignoreMask, merge_radius=2,
+                           plot=None, verbose=True, geotiff_filename=None, use_multiprocessing=False):
 
     # parse plot input
     if plot is None:
@@ -54,7 +118,8 @@ def run_objectwise_metrics(refDSM, refDTM, refMask, testDSM, testDTM, testMask, 
 
     # Dilate reference object mask to combine closely spaced objects
     ref_ndx_orig = np.copy(refMask)
-    ref_ndx = ndimage.binary_dilation(ref_ndx_orig, structure=strel,  iterations=padding_pixels.astype(int))
+    #ref_ndx = ndimage.binary_dilation(ref_ndx_orig, structure=strel,  iterations=padding_pixels.astype(int))
+    ref_ndx = ref_ndx_orig
 
     # Create index regions
     ref_ndx, num_ref_regions = ndimage.label(ref_ndx)
@@ -78,11 +143,8 @@ def run_objectwise_metrics(refDSM, refDTM, refMask, testDSM, testDTM, testMask, 
             self.MIN_AREA_FILTER = 0
             self.UNCERTAIN_VALUE = 65
     params = instance_parameters()
-    metrics_container_no_merge, metrics_container_merge_fp, metrics_container_merge_fn = \
-        eval_instance_metrics(ref_ndx, params, test_ndx)
+    metrics_container_no_merge = eval_instance_metrics(ref_ndx, params, test_ndx)
     no_merge_f1 = metrics_container_no_merge.f1_score
-    merge_fp_f1 = metrics_container_merge_fp.f1_score
-    merge_fn_f1 = metrics_container_merge_fn.f1_score
     num_buildings_performer = np.unique(test_ndx).__len__()-1
     num_buildings_truth = np.unique(ref_ndx).__len__()-1
 
@@ -107,75 +169,71 @@ def run_objectwise_metrics(refDSM, refDTM, refMask, testDSM, testDTM, testMask, 
     max_volume = 0
     min_volume = 0
 
-    for loop_region in range(1, num_ref_regions+1):
+    # Create argument list
+    arguments = []
+    for loop_region in range(1, num_ref_regions + 1):
+        arguments.append([ref_ndx, loop_region, refMask, test_ndx, ref_ndx_orig,
+                            ref_use_counter, testMask, test_use_counter, refDSM,
+                            refDTM, testDSM, testDTM, tform,
+                            ignoreMask, plot, verbose, max_area, min_area,
+                            max_volume, min_volume])
 
-        # Reference region under evaluation
-        ref_objs = (ref_ndx == loop_region) & refMask
+    if use_multiprocessing:
+        with multiprocessing.Pool() as pool:
+            result_map = pool.starmap(multiprocessing_fun, arguments)
+            pool.close()
+            pool.join()
 
-        # Find test regions overlapping with ref
-        test_regions = np.unique(test_ndx[ref_ndx == loop_region])
+        for feature_dict in (r for r in result_map if r is not None):
+            this_metric = feature_dict[0]
+            result_geo = feature_dict[1]
+            result_acc = feature_dict[2]
+            unitArea = feature_dict[3]
+            ref_regions = feature_dict[4]
 
-        # Find test regions overlapping with ref
-        ref_regions = np.unique(ref_ndx_orig[ref_ndx == loop_region])
+            metric_list.append(this_metric)
 
-        # Remove background region, '0'
-        if np.any(test_regions == 0):
-            test_regions = test_regions.tolist()
-            test_regions.remove(0)
-            test_regions = np.array(test_regions)
+            # Add scores to images
+            for i in ref_regions:
+                ind = ref_ndx_orig == i
+                image_2d_completeness[ind] = result_geo['2D']['completeness']
+                image_2d_correctness[ind] = result_geo['2D']['correctness']
+                image_2d_jaccard_index[ind] = result_geo['2D']['jaccardIndex']
+                image_3d_completeness[ind] = result_geo['3D']['completeness']
+                image_3d_correctness[ind] = result_geo['3D']['correctness']
+                image_3d_jaccard_index[ind] = result_geo['3D']['jaccardIndex']
+                image_hrmse[ind] = result_acc['hrmse']
+                image_zrmse[ind] = result_acc['zrmse']
 
-        if np.any(ref_regions == 0):
-            ref_regions = ref_regions.tolist()
-            ref_regions.remove(0)
-            ref_regions = np.array(ref_regions)
+    else:
+        for argument in arguments:
+            result = multiprocessing_fun(argument[0], argument[1], argument[2], argument[3], argument[4], argument[5],
+                                         argument[6], argument[7], argument[8], argument[9], argument[10], argument[11],
+                                         argument[12], argument[13], argument[14], argument[15], argument[16],
+                                         argument[17], argument[18], argument[19])
 
-        if len(test_regions) == 0:
-            continue
+            if result is None:
+                continue
+            else:
+                this_metric = result[0]
+                result_geo = result[1]
+                result_acc = result[2]
+                unitArea = result[3]
+                ref_regions = result[4]
 
-        for refRegion in ref_regions:
-            # Increment counter for ref region used
-            ref_use_counter[refRegion - 1] = ref_use_counter[refRegion - 1] + 1
+            metric_list.append(this_metric)
 
-        # Make mask of overlapping test regions
-        test_objs = np.zeros_like(testMask)
-        for test_region in test_regions:
-            test_objs = test_objs | (test_ndx == test_region)
-            # Increment counter for test region used
-            test_use_counter[test_region-1] = test_use_counter[test_region-1] + 1
-
-        # TODO:  Not practical as implemented to enable plots. plots is forced to false.
-        [result_geo, result_acc, unitArea] = eval_metrics(refDSM, refDTM, ref_objs, testDSM, testDTM, test_objs, tform,
-                                                ignoreMask, plot=None, verbose=verbose)
-
-        this_metric = dict()
-        this_metric['ref_objects'] = test_regions.tolist()
-        this_metric['test_objects'] = ref_regions.tolist()
-        this_metric['threshold_geometry'] = result_geo
-        this_metric['relative_accuracy'] = result_acc
-
-        # Calculate min and max area/volume
-        if this_metric['threshold_geometry']['area']['test_area'] > max_area or loop_region == 1:
-            max_area = this_metric['threshold_geometry']['area']['test_area']
-        if this_metric['threshold_geometry']['area']['test_area'] < min_area or loop_region == 1:
-            min_area = this_metric['threshold_geometry']['area']['test_area']
-        if this_metric['threshold_geometry']['volume']['test_volume'] > max_volume or loop_region == 1:
-            max_volume = this_metric['threshold_geometry']['volume']['test_volume']
-        if this_metric['threshold_geometry']['volume']['test_volume'] < min_volume or loop_region == 1:
-            min_volume = this_metric['threshold_geometry']['volume']['test_volume']
-
-        metric_list.append(this_metric)
-
-        # Add scores to images
-        for i in ref_regions:
-            ind = ref_ndx_orig == i
-            image_2d_completeness[ind] = result_geo['2D']['completeness']
-            image_2d_correctness[ind] = result_geo['2D']['correctness']
-            image_2d_jaccard_index[ind] = result_geo['2D']['jaccardIndex']
-            image_3d_completeness[ind] = result_geo['3D']['completeness']
-            image_3d_correctness[ind] = result_geo['3D']['correctness']
-            image_3d_jaccard_index[ind] = result_geo['3D']['jaccardIndex']
-            image_hrmse[ind] = result_acc['hrmse']
-            image_zrmse[ind] = result_acc['zrmse']
+            # Add scores to images
+            for i in ref_regions:
+                ind = ref_ndx_orig == i
+                image_2d_completeness[ind] = result_geo['2D']['completeness']
+                image_2d_correctness[ind] = result_geo['2D']['correctness']
+                image_2d_jaccard_index[ind] = result_geo['2D']['jaccardIndex']
+                image_3d_completeness[ind] = result_geo['3D']['completeness']
+                image_3d_correctness[ind] = result_geo['3D']['correctness']
+                image_3d_jaccard_index[ind] = result_geo['3D']['jaccardIndex']
+                image_hrmse[ind] = result_acc['hrmse']
+                image_zrmse[ind] = result_acc['zrmse']
 
     # Sort metrics by area
     # Calculate bins for area and volume
@@ -240,10 +298,6 @@ def run_objectwise_metrics(refDSM, refDTM, refMask, testDSM, testDTM, testMask, 
         # Save instance level stoplight charts
         plot.make_instance_stoplight_charts(metrics_container_no_merge.stoplight_chart,
                                             saveName=PLOTS_SAVE_PREFIX+"instanceStoplightNoMerge")
-        plot.make_instance_stoplight_charts(metrics_container_merge_fp.stoplight_chart,
-                                            saveName=PLOTS_SAVE_PREFIX + "instanceStoplightMergePerformer")
-        plot.make_instance_stoplight_charts(metrics_container_merge_fn.stoplight_chart,
-                                            saveName=PLOTS_SAVE_PREFIX + "instanceStoplightMergeGT")
 
         # IOU Histograms
         plot.make_iou_histogram(iou_2d_area_bins, 'Area (m^2)',
@@ -360,10 +414,13 @@ def run_objectwise_metrics(refDSM, refDTM, refMask, testDSM, testDTM, testMask, 
         'summary': summary,
         'objects': metric_list,
         'instance_f1': no_merge_f1,
-        'instance_f1_merge_fp': merge_fp_f1,
-        'instance_f1_merge_fn': merge_fn_f1,
+        'instance_f1_merge_fp': None,
+        'instance_f1_merge_fn': None,
         'num_buildings_gt': num_buildings_truth,
-        'num_buildings_perf': num_buildings_performer
+        'num_buildings_perf': num_buildings_performer,
+        'metrics_container_no_merge': metrics_container_no_merge,
+        'metrics_container_merge_fp': np.nan,
+        'metrics_container_merge_fn': None
     }
 
     return results, test_ndx, ref_ndx

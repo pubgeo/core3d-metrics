@@ -26,6 +26,7 @@ from mathutils import Vector
 import sys, getopt
 from math import radians, degrees
 from pathlib import Path
+
 import geojson
 
 
@@ -222,6 +223,7 @@ def generate_blender_images(path, gsd=1.0, z_up=True, N=0, elev_ang=60.0, f_leng
     # Create file_list to be aware of all potential models in path directory
     file_list = []
     #check = os.path.isdir(path)
+
     for root, dirs, files in os.walk(path):
         for file in files:
             file_path = os.path.join(root, file)
@@ -243,6 +245,7 @@ def generate_blender_images(path, gsd=1.0, z_up=True, N=0, elev_ang=60.0, f_leng
 
     n = 0
     obj_tiles = False
+
     for file_path in file_list:  # [:40]:
         # load models of interest
         if file_path.find('combined.obj') > 0:
@@ -284,7 +287,6 @@ def generate_blender_images(path, gsd=1.0, z_up=True, N=0, elev_ang=60.0, f_leng
 
     # define the model as the currently selected object (last loaded part)
     model = bpy.context.selected_objects[0]
-
     # define image size and factor for scaling focal length to match
     if obj_tiles and num_models > 1:
         pixels = int(max(model.dimensions*(tile_num/1.9)) / gsd)
@@ -297,7 +299,6 @@ def generate_blender_images(path, gsd=1.0, z_up=True, N=0, elev_ang=60.0, f_leng
     model.rotation_euler[0] = 0
     model.rotation_euler[1] = 0
     model.rotation_euler[2] = 0
-
     # Get coordinates of the center of the object bounding box
     # Code snippet below for bounding box center coordinates pulled from:
     # https://blender.stackexchange.com/questions/62040/get-center-of-geometry-of-an-object?noredirect=1&lq=1
@@ -323,7 +324,6 @@ def generate_blender_images(path, gsd=1.0, z_up=True, N=0, elev_ang=60.0, f_leng
         global_bbox_center_allmod = global_bbox_center_allmod / num_models;
         print('Bounding box for all models: ', global_bbox_center_allmod)
 
-
     #if multiple models are loaded in, adjust the coordinates
     if num_models > 1:
         if obj_tiles:
@@ -343,7 +343,7 @@ def generate_blender_images(path, gsd=1.0, z_up=True, N=0, elev_ang=60.0, f_leng
             center_y = global_bbox_center_allmod[1]
             center_z = global_bbox_center_allmod[2]
     else:
-        center_x = global_bbox_center[0] #center coordinates for first object selected
+        center_x = global_bbox_center[0]  # center coordinates for first object selected
         center_y = global_bbox_center[1]
         center_z = global_bbox_center[2]
 
@@ -416,10 +416,11 @@ def generate_blender_images(path, gsd=1.0, z_up=True, N=0, elev_ang=60.0, f_leng
     objects = bpy.context.scene.objects
     for obj in objects:
         obj.select_set(obj.type == "MESH")
-    diffuse_to_emissive()
 
+    diffuse_to_emissive()
     # Write the images
     imgname = 'CHECK_persp_image_' + str(pixels) + '_' + str(pixels) + '_gsd' + str(gsd) + '_z_' + str(z_up) + '_N_' + str(
+
         N) + '_elev_' + str(elev_ang) + '_flen_' + str(f_length) + '_radius_' + str(radius) + '_'
     savepath = str(Path(savepath, imgname).absolute())
     print(savepath)
@@ -436,6 +437,7 @@ if __name__ == '__main__':
     argv = argv[argv.index("--") + 1:]  # get all args after "--"
     total = len(sys.argv)
     cmdargs = str(sys.argv)
+
     #print("The total numbers of args passed to the script: %d " % total)
     #print("Args list: %s " % cmdargs)
 
@@ -454,3 +456,4 @@ if __name__ == '__main__':
     file_dir = os.path.dirname(path)
     savepath = str(Path(file_dir, 'rendered_images').absolute())
     generate_blender_images(path, gsd, z_up, N, elev_ang, f_length, radius, savepath)
+
