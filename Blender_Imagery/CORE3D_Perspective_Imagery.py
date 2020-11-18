@@ -411,7 +411,7 @@ def generate_blender_images(path, gsd=1.0, z_up=True, N=0, elev_ang=60.0, f_leng
     diffuse_to_emissive()
 
     # Write the images
-    imgname = 'persp_image_' + str(pixels) + '_' + str(pixels) + '_gsd' + str(gsd) + '_z_' + str(z_up) + '_N_' + str(
+    imgname = 'CHECK_persp_image_' + str(pixels) + '_' + str(pixels) + '_gsd' + str(gsd) + '_z_' + str(z_up) + '_N_' + str(
         N) + '_elev_' + str(elev_ang) + '_flen_' + str(f_length) + '_radius_' + str(radius) + '_'
     savepath = str(Path(savepath, imgname).absolute())
     print(savepath)
