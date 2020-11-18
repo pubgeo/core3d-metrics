@@ -100,14 +100,14 @@ def rotate_and_render(cam, empty, output_dir, output_file_format, rotation_steps
     theta = (math.pi/2)- radians(elev_ang) #degrees off nadir
     phi = radians(rotation_angle)/ rotation_steps #azimuth step
 
-    #if N = 4, this creates the N S E and W renders
-    for step in range(0, rotation_steps):
-        azimuth = step*phi
-        cam.location[0] = empty.location[0] + (radius * math.sin(theta) * math.cos(azimuth))
-        cam.location[1] = empty.location[1] + (radius * math.sin(theta) * math.sin(azimuth))
-        cam.location[2] = empty.location[2] + (radius * math.cos(theta))
-        bpy.context.scene.render.filepath = output_dir + (output_file_format % step)
-        bpy.ops.render.render(write_still=True, use_viewport=True)
+    # #if N = 4, this creates the N S E and W renders
+    # for step in range(0, rotation_steps):
+    #     azimuth = step*phi
+    #     cam.location[0] = empty.location[0] + (radius * math.sin(theta) * math.cos(azimuth))
+    #     cam.location[1] = empty.location[1] + (radius * math.sin(theta) * math.sin(azimuth))
+    #     cam.location[2] = empty.location[2] + (radius * math.cos(theta))
+    #     bpy.context.scene.render.filepath = output_dir + (output_file_format % step)
+    #     bpy.ops.render.render(write_still=True, use_viewport=True)
     #Nadir render
     cam.location[0] = empty.location[0]
     cam.location[1] = empty.location[1]
@@ -236,6 +236,11 @@ def generate_blender_images(path, gsd=1.0, z_up=True, N=0, elev_ang=60.0, f_leng
     num_models = len(file_list)
     print("Number of models found: " + str(num_models))
 
+    if num_models == 0:
+        print(
+            "ERROR: Missing .obj, .glb, or .dae file. Please add path to one or more of these files. \n")
+        sys.exit(1)
+
     n = 0
     obj_tiles = False
     for file_path in file_list:  # [:40]:
@@ -252,18 +257,20 @@ def generate_blender_images(path, gsd=1.0, z_up=True, N=0, elev_ang=60.0, f_leng
             model = bpy.context.selected_objects[0]
 
             # Data handling
-            if tile_num == 0 & obj_tiles:
+            if tile_num == 0 and num_models > 1:
+                print(num_models)
                 print(
                     "ERROR: No tile metadata files found, please add the file BoundingBox.geojson to directory path of each tile.\n")
                 sys.exit(1)
-            if tile_num < n:
+            if tile_num < n and num_models > 1:
                 print(
                     "ERROR: Missing tile metadata for one or more tiles, please add the file BoundingBox.geojson to directory path of each tile. \n")
                 sys.exit(1)
 
-            # Move the tile to the proper location
-            model.location[0] = tile_centers_x[n - 1]  # tile_bb_center_x
-            model.location[1] = tile_centers_y[n - 1]  # tile_bb_center_y
+            # Move the tiles to the proper location
+            if num_models > 1:
+                model.location[0] = tile_centers_x[n - 1]  # tile_bb_center_x
+                model.location[1] = tile_centers_y[n - 1]  # tile_bb_center_y
 
         elif file_path.find('.glb') > 0:
             # only supports glTF 2.0
@@ -279,7 +286,7 @@ def generate_blender_images(path, gsd=1.0, z_up=True, N=0, elev_ang=60.0, f_leng
     model = bpy.context.selected_objects[0]
 
     # define image size and factor for scaling focal length to match
-    if obj_tiles:
+    if obj_tiles and num_models > 1:
         pixels = int(max(model.dimensions*(tile_num/1.9)) / gsd)
     else:
         pixels = int(max(model.dimensions) / gsd)
@@ -316,17 +323,18 @@ def generate_blender_images(path, gsd=1.0, z_up=True, N=0, elev_ang=60.0, f_leng
         global_bbox_center_allmod = global_bbox_center_allmod / num_models;
         print('Bounding box for all models: ', global_bbox_center_allmod)
 
-    global_x = 0
-    global_y = 0
-    for i in range(tile_num):
-        global_x = global_x + global_bbox_center_allmod[0] + tile_centers_x[i]
-        global_y = global_y + global_bbox_center_allmod[1] + tile_centers_y[i]
-    global_model_center_x = global_x / tile_num
-    global_model_center_y = global_y / tile_num
 
     #if multiple models are loaded in, adjust the coordinates
     if num_models > 1:
         if obj_tiles:
+            global_x = 0
+            global_y = 0
+            for i in range(tile_num):
+                global_x = global_x + global_bbox_center_allmod[0] + tile_centers_x[i]
+                global_y = global_y + global_bbox_center_allmod[1] + tile_centers_y[i]
+            global_model_center_x = global_x / tile_num
+            global_model_center_y = global_y / tile_num
+
             center_x = global_model_center_x #sum(tile_centers_x)/len(tile_centers_x) #center coordinates that is the centroid of all model centers
             center_y = global_model_center_y #sum(tile_centers_y)/len(tile_centers_y)
             center_z = global_bbox_center_allmod[2]
