@@ -27,13 +27,15 @@ import sys, getopt
 from math import radians, degrees
 from pathlib import Path
 
+import geojson
+
 
 def render_on_gpu():
     scene = bpy.data.scenes["Scene"]
     bpy.context.scene.cycles.device = 'GPU'
     for scene in bpy.data.scenes:
         scene.cycles.device = 'GPU'
-        scene.render.resolution_percentage = 100 
+        scene.render.resolution_percentage = 100
     bpy.context.preferences.addons['cycles'].preferences.compute_device_type = 'CUDA'
     for devices in bpy.context.preferences.addons['cycles'].preferences.get_devices():
         for d in devices:
@@ -99,14 +101,14 @@ def rotate_and_render(cam, empty, output_dir, output_file_format, rotation_steps
     theta = (math.pi/2)- radians(elev_ang) #degrees off nadir
     phi = radians(rotation_angle)/ rotation_steps #azimuth step
 
-    #if N = 4, this creates the N S E and W renders
-    for step in range(0, rotation_steps):
-        azimuth = step*phi
-        cam.location[0] = empty.location[0] + (radius * math.sin(theta) * math.cos(azimuth))
-        cam.location[1] = empty.location[1] + (radius * math.sin(theta) * math.sin(azimuth))
-        cam.location[2] = empty.location[2] + (radius * math.cos(theta))
-        bpy.context.scene.render.filepath = output_dir + (output_file_format % step)
-        bpy.ops.render.render(write_still=True, use_viewport=True)
+    # #if N = 4, this creates the N S E and W renders
+    # for step in range(0, rotation_steps):
+    #     azimuth = step*phi
+    #     cam.location[0] = empty.location[0] + (radius * math.sin(theta) * math.cos(azimuth))
+    #     cam.location[1] = empty.location[1] + (radius * math.sin(theta) * math.sin(azimuth))
+    #     cam.location[2] = empty.location[2] + (radius * math.cos(theta))
+    #     bpy.context.scene.render.filepath = output_dir + (output_file_format % step)
+    #     bpy.ops.render.render(write_still=True, use_viewport=True)
     #Nadir render
     cam.location[0] = empty.location[0]
     cam.location[1] = empty.location[1]
@@ -178,12 +180,50 @@ def read_in_args(argumentlist):
 
 def generate_blender_images(path, gsd=1.0, z_up=True, N=0, elev_ang=60.0, f_length=30.0, radius=8000.0, savepath=''):
     global cam
+    #####
+    # Get tile location information
+    #####
+    tile_num = 0
+    tile_centers_x = []
+    tile_centers_y = []
+
+    substring = "BoundingBox.geojson"
+    for root, dirs, files in os.walk(path):
+        for file in files:
+            file_path = os.path.join(root, file)
+            if substring in file: #file.contains(".geojson"): #metadata file: BoundingBox.geojson in subdirectories
+                tile_num = tile_num + 1
+                with open(file_path) as f:
+                    gj = geojson.load(f)
+                features = gj['features'][0]['geometry']['coordinates'][0] #Array of sub arrays, number of x,y coordinate pairs
+
+                x_max = features[0][0]
+                y_max = features[0][1]
+                x_min = x_max
+                y_min = y_max
+                #for index, xy_pair in enumerate(features):
+                for xy_pair in features:
+                    if xy_pair[0] > x_max:
+                        x_max = xy_pair[0]
+                    elif xy_pair[0] < x_min:
+                        x_min = xy_pair[0]
+                    if xy_pair[1] > y_max:
+                        y_max = xy_pair[1]
+                    elif xy_pair[1] < y_min:
+                        y_min = xy_pair[1]
+                new_center_x = ((x_max - x_min)/2) + x_min
+                new_center_y = ((y_max - y_min) / 2) + y_min
+                tile_centers_x.append(new_center_x)
+                tile_centers_y.append(new_center_y)
+
     # delete all objects in scene
     bpy.ops.object.select_all(action='SELECT')
     bpy.ops.object.delete(use_global=False)
+
     # Create file_list to be aware of all potential models in path directory
     file_list = []
-    check = os.path.isdir(path)
+    #check = os.path.isdir(path)
+
     for root, dirs, files in os.walk(path):
         for file in files:
             file_path = os.path.join(root, file)
@@ -197,14 +237,44 @@ def generate_blender_images(path, gsd=1.0, z_up=True, N=0, elev_ang=60.0, f_leng
                 file_list.append(file_path)
     num_models = len(file_list)
     print("Number of models found: " + str(num_models))
+
+    if num_models == 0:
+        print(
+            "ERROR: Missing .obj, .glb, or .dae file. Please add path to one or more of these files. \n")
+        sys.exit(1)
+
+    n = 0
+    obj_tiles = False
+
     for file_path in file_list:  # [:40]:
         # load models of interest
-        if file_path.find('.obj') > 0:
+        if file_path.find('combined.obj') > 0:
             print('loading OBJ model...')
+            obj_tiles = True
             if z_up:
                 bpy.ops.import_scene.obj(filepath=file_path, axis_forward='Y', axis_up='Z')
             else:
                 bpy.ops.import_scene.obj(filepath=file_path)
+            n = n + 1
+            # define the model as the currently selected object (last loaded part)
+            model = bpy.context.selected_objects[0]
+
+            # Data handling
+            if tile_num == 0 and num_models > 1:
+                print(num_models)
+                print(
+                    "ERROR: No tile metadata files found, please add the file BoundingBox.geojson to directory path of each tile.\n")
+                sys.exit(1)
+            if tile_num < n and num_models > 1:
+                print(
+                    "ERROR: Missing tile metadata for one or more tiles, please add the file BoundingBox.geojson to directory path of each tile. \n")
+                sys.exit(1)
+
+            # Move the tiles to the proper location
+            if num_models > 1:
+                model.location[0] = tile_centers_x[n - 1]  # tile_bb_center_x
+                model.location[1] = tile_centers_y[n - 1]  # tile_bb_center_y
+
         elif file_path.find('.glb') > 0:
             # only supports glTF 2.0
             print('loading glTF 2.0 model...')
@@ -213,13 +283,16 @@ def generate_blender_images(path, gsd=1.0, z_up=True, N=0, elev_ang=60.0, f_leng
             print('loading Collada model...')
             bpy.ops.wm.collada_import(filepath=file_path)
             # if heavy importing needed- option below to save .blend file after each tile is loaded
-            bpy.ops.wm.save_as_mainfile(filepath=path + "all_collada_tiles.blend")
+            # bpy.ops.wm.save_as_mainfile(filepath=path + "all_collada_tiles.blend")
+
     # define the model as the currently selected object (last loaded part)
     model = bpy.context.selected_objects[0]
     # define image size and factor for scaling focal length to match
-    pixels = int(max(model.dimensions) / gsd)
-    print('pixels')
-    print(pixels)
+    if obj_tiles and num_models > 1:
+        pixels = int(max(model.dimensions*(tile_num/1.9)) / gsd)
+    else:
+        pixels = int(max(model.dimensions) / gsd)
+
     half_width_meters = (pixels / 2) * gsd * 1.1
     lens_factor = radius / half_width_meters
     # force object rotation to zero
@@ -232,6 +305,7 @@ def generate_blender_images(path, gsd=1.0, z_up=True, N=0, elev_ang=60.0, f_leng
     local_bbox_center = 0.125 * sum((Vector(b) for b in model.bound_box), Vector())
     global_bbox_center = model.matrix_world @ local_bbox_center
     print('Bounding box: ', global_bbox_center)
+
     # determine the global bounding box centroid that includes all models if multiple were loaded
     global_bbox_center_allmod = Vector((0.0, 0.0, 0.0))
     print(bpy.context.scene.objects)
@@ -249,15 +323,30 @@ def generate_blender_images(path, gsd=1.0, z_up=True, N=0, elev_ang=60.0, f_leng
                 global_bbox_center_allmod[2] += global_center[2]
         global_bbox_center_allmod = global_bbox_center_allmod / num_models;
         print('Bounding box for all models: ', global_bbox_center_allmod)
-    # if multiple models are loaded in, adjust the coordinates
+
+    #if multiple models are loaded in, adjust the coordinates
     if num_models > 1:
-        center_x = global_bbox_center_allmod[0]  # center coordinates that is the centroid of all model centers
-        center_y = global_bbox_center_allmod[1]
-        center_z = global_bbox_center_allmod[2]
+        if obj_tiles:
+            global_x = 0
+            global_y = 0
+            for i in range(tile_num):
+                global_x = global_x + global_bbox_center_allmod[0] + tile_centers_x[i]
+                global_y = global_y + global_bbox_center_allmod[1] + tile_centers_y[i]
+            global_model_center_x = global_x / tile_num
+            global_model_center_y = global_y / tile_num
+
+            center_x = global_model_center_x #sum(tile_centers_x)/len(tile_centers_x) #center coordinates that is the centroid of all model centers
+            center_y = global_model_center_y #sum(tile_centers_y)/len(tile_centers_y)
+            center_z = global_bbox_center_allmod[2]
+        else:
+            center_x = global_bbox_center_allmod[0] #center coordinates that is the centroid of all model centers
+            center_y = global_bbox_center_allmod[1]
+            center_z = global_bbox_center_allmod[2]
     else:
         center_x = global_bbox_center[0]  # center coordinates for first object selected
         center_y = global_bbox_center[1]
         center_z = global_bbox_center[2]
+
     # Create camera based on coordinate system setup
     if z_up:
         print('option 1 - z is up')
@@ -279,12 +368,9 @@ def generate_blender_images(path, gsd=1.0, z_up=True, N=0, elev_ang=60.0, f_leng
     cam.data.sensor_width = 2  # * bpy.context.object.data.lens
     cam.data.sensor_height = 2  # * bpy.context.object.data.lens
     cam.data.lens *= lens_factor
-    cam.data.clip_end = radius * 100
-    cam.data.clip_start = radius / 100
-    # print('sensor width = ', cam.data.sensor_width)
-    # print('sensor height = ', cam.data.sensor_height)
-    # print('focal length = ', cam.data.lens)
-    # print('range = ', radius)
+    cam.data.clip_end = radius * 1000
+    cam.data.clip_start = radius / 1000
+
     # define scene for rendering
     scene = bpy.context.scene
     scene.camera = cam
@@ -325,10 +411,16 @@ def generate_blender_images(path, gsd=1.0, z_up=True, N=0, elev_ang=60.0, f_leng
     bpy.context.object.constraints["Track To"].target = empty
     bpy.context.object.constraints["Track To"].track_axis = 'TRACK_NEGATIVE_Z'
     bpy.context.object.constraints["Track To"].up_axis = 'UP_Y'
-    # Run emissive code to render
+
+    # Run emissive code to render, on all selected objects
+    objects = bpy.context.scene.objects
+    for obj in objects:
+        obj.select_set(obj.type == "MESH")
+
     diffuse_to_emissive()
     # Write the images
-    imgname = 'persp_image_' + str(pixels) + '_' + str(pixels) + '_gsd' + str(gsd) + '_z_' + str(z_up) + '_N_' + str(
+    imgname = 'CHECK_persp_image_' + str(pixels) + '_' + str(pixels) + '_gsd' + str(gsd) + '_z_' + str(z_up) + '_N_' + str(
+
         N) + '_elev_' + str(elev_ang) + '_flen_' + str(f_length) + '_radius_' + str(radius) + '_'
     savepath = str(Path(savepath, imgname).absolute())
     print(savepath)
@@ -345,8 +437,9 @@ if __name__ == '__main__':
     argv = argv[argv.index("--") + 1:]  # get all args after "--"
     total = len(sys.argv)
     cmdargs = str(sys.argv)
-    print("The total numbers of args passed to the script: %d " % total)
-    print("Args list: %s " % cmdargs)
+
+    #print("The total numbers of args passed to the script: %d " % total)
+    #print("Args list: %s " % cmdargs)
 
     # redirect stdout to stderr
     # in command line, pipe stdout to nul: python name.py 1> nul
@@ -359,8 +452,8 @@ if __name__ == '__main__':
         y2 = -y2
     print(gsd, x1, y1, x2, y2, z_up, N, elev_ang, f_length, radius, test)
     print(path)
+
     file_dir = os.path.dirname(path)
     savepath = str(Path(file_dir, 'rendered_images').absolute())
     generate_blender_images(path, gsd, z_up, N, elev_ang, f_length, radius, savepath)
-
 
