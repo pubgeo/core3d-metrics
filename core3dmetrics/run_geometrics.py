@@ -476,7 +476,7 @@ def run_geometrics(config_file, ref_path=None, test_path=None, output_path=None,
     print(json.dumps(metrics, indent=2))
     print("Metrics report: " + fileout)
 
-    #  If displaying figures, wait for user before existing
+    #  If displaying figures, wait for user before exiting
     if PLOTS_SHOW:
             input("Press Enter to continue...")
 
@@ -556,7 +556,6 @@ def run_geometrics(config_file, ref_path=None, test_path=None, output_path=None,
     #     output_location = generate_blender_images(objpath, gsd, Zup, N, e, f, r, output_path)
     #     files = [str(Path(output_path, filename).absolute()) for filename in os.listdir(output_path) if
     #              filename.startswith("persp_image")]
-    #     # TODO: Figure out a 6th image
     #     files.append(files[0])
     #     # Make metrics image
     #     plot.make_final_input_images_rgb(files, output_folder)
@@ -564,7 +563,6 @@ def run_geometrics(config_file, ref_path=None, test_path=None, output_path=None,
     # else:
     #     pass
 
-    #TODO: “untextured.png”
 
 
 # command line function
