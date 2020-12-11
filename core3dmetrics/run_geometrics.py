@@ -3,13 +3,15 @@
 #
 
 import os
+import errno
 import sys
 import shutil
 import gdalconst
 import numpy as np
 import argparse
 import json
-
+from datetime import datetime
+from pathlib import Path
 try:
     import core3dmetrics.geometrics as geo
 except:
@@ -38,13 +40,13 @@ def run_geometrics(config_file, ref_path=None, test_path=None, output_path=None,
     test_dsm_filename = config['INPUT.TEST']['DSMFilename']
     test_dtm_filename = config['INPUT.TEST'].get('DTMFilename', None)
     test_cls_filename = config['INPUT.TEST']['CLSFilename']
+    test_conf_filename = config['INPUT.TEST'].get('CONFFilename', None)
     test_mtl_filename = config['INPUT.TEST'].get('MTLFilename', None)
 
     # Get reference model information from configuration file.
     ref_dsm_filename = config['INPUT.REF']['DSMFilename']
     ref_dtm_filename = config['INPUT.REF']['DTMFilename']
     ref_cls_filename = config['INPUT.REF']['CLSFilename']
-    ref_ndx_filename = config['INPUT.REF']['NDXFilename']
     ref_mtl_filename = config['INPUT.REF'].get('MTLFilename', None)
 
     # Get material label names and list of material labels to ignore in evaluation.
@@ -71,13 +73,16 @@ def run_geometrics(config_file, ref_path=None, test_path=None, output_path=None,
         align = config['OPTIONS']['AlignModel']
     save_aligned = config['OPTIONS']['SaveAligned'] | save_aligned
 
+    # Determine multiprocessing usage
+    use_multiprocessing = config['OPTIONS']['UseMultiprocessing']
+
     # Configure plotting
     basename = os.path.basename(test_dsm_filename)
     if PLOTS_ENABLE:
         plot = geo.plot(saveDir=output_path, autoSave=PLOTS_SAVE, savePrefix=basename + '_', badColor='black', showPlots=PLOTS_SHOW, dpi=900)
     else:
         plot = None
-        
+
     # copy testDSM to the output path
     # this is a workaround for the "align3d" function with currently always
     # saves new files to the same path as the testDSM
@@ -97,6 +102,8 @@ def run_geometrics(config_file, ref_path=None, test_path=None, output_path=None,
         except:
             align3d_path = None
         xyz_offset = geo.align3d(ref_dsm_filename, test_dsm_filename_copy, exec_path=align3d_path)
+        print(xyz_offset)
+        #xyz_offset = geo.align3d_python(ref_dsm_filename, test_dsm_filename_copy)
 
     # Explicitly assign a no data value to warped images to track filled pixels
     no_data_value = -9999
@@ -106,7 +113,10 @@ def run_geometrics(config_file, ref_path=None, test_path=None, output_path=None,
     ref_cls, tform = geo.imageLoad(ref_cls_filename)
     ref_dsm = geo.imageWarp(ref_dsm_filename, ref_cls_filename, noDataValue=no_data_value)
     ref_dtm = geo.imageWarp(ref_dtm_filename, ref_cls_filename, noDataValue=no_data_value)
-    ref_ndx = geo.imageWarp(ref_ndx_filename, ref_cls_filename, interp_method=gdalconst.GRA_NearestNeighbour).astype(np.uint16)
+
+    # Validate shape of reference files
+    if ref_cls.shape != ref_dsm.shape or ref_cls.shape != ref_dtm.shape:
+        print("Need to rescale")
 
     if ref_mtl_filename:
         ref_mtl = geo.imageWarp(ref_mtl_filename, ref_cls_filename, interp_method=gdalconst.GRA_NearestNeighbour).astype(np.uint8)
@@ -129,6 +139,20 @@ def run_geometrics(config_file, ref_path=None, test_path=None, output_path=None,
     else:
         print('NO TEST DTM: defaults to reference DTM')
         test_dtm = ref_dtm
+
+    if test_conf_filename:
+        test_conf = geo.imageWarp(test_conf_filename,  ref_cls_filename, xyz_offset, noDataValue=no_data_value)
+        conf_viz_path = Path(str(Path(test_conf_filename).parent.absolute()),
+                             Path(test_conf_filename).stem + '_VIZ.tif')
+        test_conf_viz = geo.imageWarpRGB(str(conf_viz_path.absolute()), ref_cls_filename, xyz_offset)
+        geo.arrayToGeotiffRGB(test_conf_viz, os.path.join(output_path, 'CONF_VIZ_aligned'), ref_cls_filename,
+                              no_data_value)
+
+        geo.arrayToGeotiff(test_conf, os.path.join(output_path, 'CONF_aligned'), ref_cls_filename,
+                           no_data_value)
+    else:
+        test_conf = None
+        print("NO TEST CONF")
 
     if save_aligned:
         geo.arrayToGeotiff(test_cls, os.path.join(output_path, basename + '_test_cls_reg_out'), ref_cls_filename,
@@ -154,6 +178,7 @@ def run_geometrics(config_file, ref_path=None, test_path=None, output_path=None,
     print("\n\n")
 
     # Apply registration offset, only to valid data to allow better tracking of bad data
+    print("Applying offset of Z:  %f" % (xyz_offset[2]))
     test_valid_data = (test_dsm != no_data_value)
     if test_dtm_filename:
         test_valid_data &= (test_dtm != no_data_value)
@@ -171,6 +196,31 @@ def run_geometrics(config_file, ref_path=None, test_path=None, output_path=None,
         ref_cls_no_data_value = 65
     ignore_mask = np.zeros_like(ref_cls, np.bool)
 
+    # Get reference and test classifications
+    ref_cls_match_sets, test_cls_match_sets = geo.getMatchValueSets(config['INPUT.REF']['CLSMatchValue'],
+                                                                    config['INPUT.TEST']['CLSMatchValue'],
+                                                                    np.unique(ref_cls).tolist(),
+                                                                    np.unique(test_cls).tolist())
+    # Add ignore mask on boundaries of cls
+    # Ignore edges
+    ignore_edges = False
+    if ignore_edges is True:
+        print("Applying ignore mask to edges of buildings...")
+        for index, (ref_match_value, test_match_value) in enumerate(zip(ref_cls_match_sets, test_cls_match_sets)):
+            import scipy.ndimage as ndimage
+            ref_mask = np.zeros_like(ref_cls, np.bool)
+            for v in ref_match_value:
+                ref_mask[ref_cls == v] = True
+            strel = ndimage.generate_binary_structure(2, 2)
+            dilated_cls = ndimage.binary_dilation(ref_mask, structure=strel, iterations=3)
+            eroded_cls = ndimage.binary_erosion(ref_mask, structure=strel, iterations=3)
+            dilation_mask = np.bitwise_xor(ref_mask, dilated_cls)
+            erosion_mask = np.bitwise_xor(ref_mask, eroded_cls)
+            ref_cls[dilation_mask == True] = ref_cls_no_data_value
+            ref_cls[erosion_mask == True] = ref_cls_no_data_value
+        print("Finished applying ignore mask to edges of buildings...")
+
+    # Create ignore mask
     if ref_dsm_no_data_value is not None:
         ignore_mask[ref_dsm == ref_dsm_no_data_value] = True
     if ref_dtm_no_data_value is not None:
@@ -180,7 +230,6 @@ def run_geometrics(config_file, ref_path=None, test_path=None, output_path=None,
 
     # optionally ignore test NoDataValue(s)
     if allow_test_ignore:
-
         if allow_test_ignore == 1:
             test_cls_no_data_value = geo.getNoDataValue(test_cls_filename)
             if test_cls_no_data_value is not None:
@@ -206,6 +255,7 @@ def run_geometrics(config_file, ref_path=None, test_path=None, output_path=None,
     if np.all(ignore_mask):
         raise ValueError('All pixels are ignored')
 
+    ##### COMMENT HERE FOR TESTING METICS IMAGES #####
     # report "data voids"
     num_data_voids = np.sum(ignore_mask > 0)
     print('Number of data voids in ignore mask = ', num_data_voids)
@@ -222,7 +272,8 @@ def run_geometrics(config_file, ref_path=None, test_path=None, output_path=None,
 
     if PLOTS_ENABLE:
         # Make image pair plots
-        plot.make_image_pair_plots(performer_pair_data_file, performer_pair_file, performer_files_chosen_file, 201, saveName="image_pair_plot")
+        plot.make_image_pair_plots(performer_pair_data_file, performer_pair_file, performer_files_chosen_file, 201,
+                                   saveName="image_pair_plot")
         # Reference models can include data voids, so ignore invalid data on display
         plot.make(ref_dsm, 'Reference DSM', 111, colorbar=True, saveName="input_refDSM", badValue=no_data_value)
         plot.make(ref_dtm, 'Reference DTM', 112, colorbar=True, saveName="input_refDTM", badValue=no_data_value)
@@ -250,12 +301,6 @@ def run_geometrics(config_file, ref_path=None, test_path=None, output_path=None,
     relative_accuracy_results = []
     objectwise_results = []
 
-    # Check that match values are valid
-    ref_cls_match_sets, test_cls_match_sets = geo.getMatchValueSets(config['INPUT.REF']['CLSMatchValue'],
-                                                                    config['INPUT.TEST']['CLSMatchValue'],
-                                                                    np.unique(ref_cls).tolist(),
-                                                                    np.unique(test_cls).tolist())
-
     if PLOTS_ENABLE:
         # Update plot prefix include counter to be unique for each set of CLS value evaluated
         original_save_prefix = plot.savePrefix
@@ -282,31 +327,93 @@ def run_geometrics(config_file, ref_path=None, test_path=None, output_path=None,
             plot.make(ref_mask.astype(np.int), 'Reference Evaluation Mask', 114, saveName="input_refMask")
 
         if config['OBJECTWISE']['Enable']:
-            try:
-                print("\nRunning objectwise metrics...")
-                merge_radius = config['OBJECTWISE']['MergeRadius']
-                [result, test_ndx, ref_ndx] = geo.run_objectwise_metrics(ref_dsm, ref_dtm, ref_mask, test_dsm, test_dtm,
-                                                                         test_mask, tform, ignore_mask, merge_radius,
-                                                                         plot=plot)
-                if ref_match_value == test_match_value:
-                    result['CLSValue'] = ref_match_value
-                else:
-                    result['CLSValue'] = {'Ref': ref_match_value, "Test": test_match_value}
-                objectwise_results.append(result)
-    
-                # Save index files to compute objectwise metrics
-                obj_save_prefix = basename + "_%03d" % index + "_"
-                geo.arrayToGeotiff(test_ndx, os.path.join(output_path, obj_save_prefix + '_test_ndx_objs'),
-                                   ref_cls_filename, no_data_value)
-                geo.arrayToGeotiff(ref_ndx, os.path.join(output_path, obj_save_prefix + '_ref_ndx_objs'), ref_cls_filename,
-                                   no_data_value)
-            except Exception as e:
-                print(str(e))
+            print("\nRunning objectwise metrics...")
+            merge_radius = config['OBJECTWISE']['MergeRadius']
+            [result, test_ndx, ref_ndx] = geo.run_objectwise_metrics(ref_dsm, ref_dtm, ref_mask, test_dsm, test_dtm,
+                                                                     test_mask, tform, ignore_mask, merge_radius,
+                                                                     plot=plot, geotiff_filename=ref_dsm_filename,
+                                                                     use_multiprocessing=use_multiprocessing)
+
+            # Get UTM coordinates from pixel coordinates in building centroids
+            print("Creating KML and CSVs...")
+            import gdal, osr, simplekml, csv
+            kml = simplekml.Kml()
+            ds = gdal.Open(ref_dsm_filename)
+            # get CRS from dataset
+            crs = osr.SpatialReference()
+            crs.ImportFromWkt(ds.GetProjectionRef())
+            # create lat/long crs with WGS84 datum
+            crsGeo = osr.SpatialReference()
+            crsGeo.ImportFromEPSG(4326)  # 4326 is the EPSG id of lat/long crs
+            t = osr.CoordinateTransformation(crs, crsGeo)
+            # Use CORE3D objectwise
+            current_class = test_match_value[0]
+            with open(Path(output_path, "objectwise_numbers_class_" + str(current_class) + ".csv"), mode='w') as \
+                    objectwise_csv:
+                objectwise_writer = csv.writer(objectwise_csv, delimiter=',', quotechar='"',
+                                               quoting=csv.QUOTE_MINIMAL)
+                objectwise_writer.writerow(
+                    ['Index', 'iou_2d', 'iou_3d', 'hrmse', 'zrmse', 'x_coord', 'y_coord', 'geo_x_coord',
+                     'geo_y_coord', 'long', 'lat'])
+                for current_object in result['objects']:
+                    test_index = current_object['test_objects'][0]
+                    iou_2d = current_object['threshold_geometry']['2D']['jaccardIndex']
+                    iou_3d = current_object['threshold_geometry']['3D']['jaccardIndex']
+                    hrmse = current_object['relative_accuracy']['hrmse']
+                    zrmse = current_object['relative_accuracy']['zrmse']
+                    x_coords, y_coords = np.where(test_ndx == test_index)
+                    x_coord = np.average(x_coords)
+                    y_coord = np.average(y_coords)
+                    geo_x_coord = tform[0] + y_coord * tform[1] + x_coord * tform[2]
+                    geo_y_coord = tform[3] + y_coord * tform[4] + x_coord * tform[5]
+                    (lat, long, z) = t.TransformPoint(geo_x_coord, geo_y_coord)
+                    objectwise_writer.writerow([test_index, iou_2d, iou_3d, hrmse, zrmse, x_coord, y_coord,
+                                                geo_x_coord, geo_y_coord, long, lat])
+                    pnt = kml.newpoint(name="Building Index: " + str(test_index),
+                                       description="2D IOU: " + str(iou_2d) + ' 3D IOU: ' + str(iou_3d) + ' HRMSE: '
+                                                   + str(hrmse) + ' ZRMSE: ' + str(zrmse),
+                                       coords=[(lat, long)])
+                kml.save(Path(output_path, "objectwise_ious_class_" + str(current_class) + ".kml"))
+
+            # Use FFDA objectwise
+            with open(Path(output_path, "objectwise_numbers_no_morphology_class_" + str(current_class) + ".csv"),
+                      mode='w') as objectwise_csv:
+                objectwise_writer = csv.writer(objectwise_csv, delimiter=',', quotechar='"',
+                                               quoting=csv.QUOTE_MINIMAL)
+                objectwise_writer.writerow(['iou', 'x_coord', 'y_coord', 'geo_x_coord',
+                                            'geo_y_coord', 'long', 'lat'])
+                for i in result['metrics_container_no_merge'].iou_per_gt_building.keys():
+                    iou = result['metrics_container_no_merge'].iou_per_gt_building[i][0]
+                    x_coord = result['metrics_container_no_merge'].iou_per_gt_building[i][1][0]
+                    y_coord = result['metrics_container_no_merge'].iou_per_gt_building[i][1][1]
+                    geo_x_coord = tform[0] + y_coord * tform[1] + x_coord * tform[2]
+                    geo_y_coord = tform[3] + y_coord * tform[4] + x_coord * tform[5]
+                    (lat, long, z) = t.TransformPoint(geo_x_coord, geo_y_coord)
+                    objectwise_writer.writerow([iou, x_coord, y_coord, geo_x_coord, geo_y_coord, long, lat])
+                    pnt = kml.newpoint(name="Building Index: " + str(i), description=str(iou), coords=[(lat, long)])
+            kml.save(Path(output_path, "objectwise_ious_no_morphology_class_" + str(current_class) + ".kml"))
+            # Result
+            if ref_match_value == test_match_value:
+                result['CLSValue'] = ref_match_value
+            else:
+                result['CLSValue'] = {'Ref': ref_match_value, "Test": test_match_value}
+            # Delete non-json dumpable metrics
+            del result['metrics_container_no_merge'], result['metrics_container_merge_fp'], result[
+                'metrics_container_merge_fn']
+            objectwise_results.append(result)
+
+            # Save index files to compute objectwise metrics
+            obj_save_prefix = basename + "_%03d" % index + "_"
+            geo.arrayToGeotiff(test_ndx, os.path.join(output_path, obj_save_prefix + '_test_ndx_objs'),
+                               ref_cls_filename, no_data_value)
+            geo.arrayToGeotiff(ref_ndx, os.path.join(output_path, obj_save_prefix + '_ref_ndx_objs'),
+                               ref_cls_filename,
+                               no_data_value)
 
         # Evaluate threshold geometry metrics using refDTM as the testDTM to mitigate effects of terrain modeling
         # uncertainty
-        result, _ = geo.run_threshold_geometry_metrics(ref_dsm, ref_dtm, ref_mask, test_dsm, ref_dtm, test_mask, tform,
-                                                    ignore_mask, plot=plot)
+        result, _, stoplight_fn, errhgt_fn = geo.run_threshold_geometry_metrics(ref_dsm, ref_dtm, ref_mask, test_dsm, test_dtm, test_mask, tform,
+                                                    ignore_mask, testCONF=test_conf, plot=plot)
         if ref_match_value == test_match_value:
             result['CLSValue'] = ref_match_value
         else:
@@ -365,13 +472,100 @@ def run_geometrics(config_file, ref_path=None, test_path=None, output_path=None,
 
     fileout = os.path.join(output_path, os.path.basename(config_file) + "_metrics.json")
     with open(fileout, 'w') as fid:
-        json.dump(metrics, fid,indent=2)
+        json.dump(metrics, fid, indent=2)
     print(json.dumps(metrics, indent=2))
     print("Metrics report: " + fileout)
 
-    #  If displaying figures, wait for user before existing
+    #  If displaying figures, wait for user before exiting
     if PLOTS_SHOW:
             input("Press Enter to continue...")
+
+    # Write final metrics out
+    output_folder = os.path.join(output_path, "metrics_final")
+    try:
+        os.mkdir(output_folder)
+    except OSError as e:
+        if e.errno == errno.EEXIST:
+            pass
+        else:
+            print("Can't create directory, please check permissions...")
+            raise
+
+    # Run Roof slope metrics
+    # Roof Slope Metrics
+    try:
+        from core3dmetrics.geometrics.ang import calculate_metrics as calculate_roof_metrics
+    except:
+        from ang import calculate_metrics as calculate_roof_metrics
+
+    IOUC, IOUZ, IOUAGL, IOUMZ, orderRMS = calculate_roof_metrics(ref_dsm, ref_dtm, ref_cls, test_dsm, test_dtm,
+                           test_cls, tform, kernel_radius=3, output_path=output_path)
+    files = [str(Path(output_path, filename).absolute()) for filename in os.listdir(output_path) if
+             filename.startswith("Roof")]
+
+    # Save all of myrons outputs here
+    metrics_formatted = {}
+    metrics_formatted["2D"] = {}
+    metrics_formatted["2D"]["Precision"] = metrics["threshold_geometry"][0]['2D']['precision']
+    metrics_formatted["2D"]["Recall"] = metrics["threshold_geometry"][0]['2D']['recall']
+    metrics_formatted["2D"]["IOU"] = metrics["threshold_geometry"][0]['2D']['jaccardIndex']
+    metrics_formatted["3D"] = {}
+    metrics_formatted["3D"]["Precision"] = metrics["threshold_geometry"][0]['3D']['precision']
+    metrics_formatted["3D"]["Recall"] = metrics["threshold_geometry"][0]['3D']['recall']
+    metrics_formatted["3D"]["IOU"] = metrics["threshold_geometry"][0]['3D']['jaccardIndex']
+    metrics_formatted["ZRMS"] = metrics['relative_accuracy'][0]['zrmse']
+    metrics_formatted["HRMS"] = metrics['relative_accuracy'][0]['hrmse']
+    metrics_formatted["Slope RMS"] = orderRMS
+    metrics_formatted["DTM RMS"] = metrics['terrain_accuracy']['zrmse']
+    metrics_formatted["DTM Completeness"] = metrics['terrain_accuracy']['completeness']
+    metrics_formatted["Z IOU"] = IOUZ
+    metrics_formatted["AGL IOU"] = IOUAGL
+    metrics_formatted["MODEL IOU"] = IOUMZ
+    metrics_formatted["X Offset"] = xyz_offset[0]
+    metrics_formatted["Y Offset"] = xyz_offset[1]
+    metrics_formatted["Z Offset"] = xyz_offset[2]
+    metrics_formatted["P Value"] = metrics['threshold_geometry'][0]['pearson']
+
+    fileout = os.path.join(output_folder, "metrics.json")
+    with open(fileout, 'w') as fid:
+        json.dump(metrics_formatted, fid, indent=2)
+    print(json.dumps(metrics_formatted, indent=2))
+
+    # metrics.png
+    if PLOTS_ENABLE:
+        cls_iou_fn = [filename for filename in files if filename.endswith("CLS_IOU.tif")][0]
+        cls_z_iou_fn = [filename for filename in files if filename.endswith("CLS_Z_IOU.tif")][0]
+        cls_z_slope_fn = [filename for filename in files if filename.endswith("CLS_Z_SLOPE_IOU.tif")][0]
+        if test_conf_filename:
+            plot.make_final_metrics_images(stoplight_fn, errhgt_fn, Path(os.path.join(output_path, 'CONF_VIZ_aligned.tif')),
+                                           cls_iou_fn, cls_z_iou_fn, cls_z_slope_fn, ref_cls, output_folder)
+
+    # inputs.png
+        plot.make_final_input_images_grayscale(ref_cls, ref_dsm, ref_dtm, test_cls,
+                                                test_dsm, test_dtm, output_folder)
+    # textured.png
+    if config['BLENDER.TEST']['OBJDirectoryFilename']:
+        try:
+            from CORE3D_Perspective_Imagery import generate_blender_images
+            objpath = config['BLENDER.TEST']['OBJDirectoryFilename']
+            gsd = config['BLENDER.TEST']['GSD']
+            Zup = config['BLENDER.TEST']['+Z']
+            N = config['BLENDER.TEST']['OrbitalLocations']
+            e = config['BLENDER.TEST']['ElevationAngle']
+            f = config['BLENDER.TEST']['FocalLength']
+            r = config['BLENDER.TEST']['RadialDistance']
+            output_location = generate_blender_images(objpath, gsd, Zup, N, e, f, r, output_path)
+            files = [str(Path(output_path, filename).absolute()) for filename in os.listdir(output_path) if
+                     filename.startswith("persp_image")]
+            files.append(files[0])
+            # Make metrics image
+            plot.make_final_input_images_rgb(files, output_folder)
+            print("Done")
+        except:
+            print("Could not render Blender images...")
+    else:
+        pass
+
 
 
 # command line function
@@ -413,6 +607,7 @@ def main(args=None):
 
     args, unknown = parser.parse_known_args(args)
 
+    start_time = datetime.now()
     print('RUN_GEOMETRICS input arguments:')
     print(args)
 
@@ -433,6 +628,8 @@ def main(args=None):
 
     # run process
     run_geometrics(config_file=args.config, **kwargs)
+    elapsed_time = datetime.now() - start_time
+    print("Elapsed time: " + str(elapsed_time))
 
 
 if __name__ == "__main__":

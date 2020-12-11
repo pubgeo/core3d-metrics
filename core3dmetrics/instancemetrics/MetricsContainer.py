@@ -23,6 +23,7 @@ class MetricsContainer:
         self.average_area_difference = None
         self.average_area_ratio = None
         self.stoplight_chart = None
+        self.iou_per_gt_building = {}
 
     def show_stoplight_chart(self):
         """
@@ -40,7 +41,7 @@ class MetricsContainer:
 
     def set_values(self, tp, fp, fn, ignored_ground_truth_ids, ignored_performer_ids, precision, recall, f1_score,
                    matched_gt_ids, unmatched_gt_ids, matched_performer_ids, unmatched_performer_ids,
-                   average_area_difference, average_area_ratio, stoplight_chart):
+                   average_area_difference, average_area_ratio, stoplight_chart, iou_per_gt_building):
         """
         Setter method that simply let you set object variables in one function instead of individually
         :param tp: True positive value
@@ -58,6 +59,7 @@ class MetricsContainer:
         :param average_area_difference: mean of all matched area differences
         :param average_area_ratio: mean of all matched area ratios
         :param stoplight_chart: numpy array of stoplight chart raster
+        :param iou_per_gt_building: dictionary of iou and centroid in image per gt building
         :return:
         """
         self.TP = tp
@@ -75,6 +77,7 @@ class MetricsContainer:
         self.average_area_difference = average_area_difference
         self.average_area_ratio = average_area_ratio
         self.stoplight_chart = stoplight_chart
+        self.iou_per_gt_building = iou_per_gt_building
 
     def show_metrics(self, suppress_lists=True):
         """

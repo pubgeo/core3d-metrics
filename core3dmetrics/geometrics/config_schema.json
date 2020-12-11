@@ -53,11 +53,11 @@
             "DSMFilename",
             "DTMFilename",
             "CLSFilename",
-            "NDXFilename",
             "CLSMatchValue"
          ],
          "optional": [
-            "MTLFilename"
+            "MTLFilename",
+            "NDXFilename"
          ],
          "additionalProperties": false,
          "properties": {
@@ -70,20 +70,26 @@
             "CLSFilename": {
                "type": "string"
             },
-            "NDXFilename": {
-               "type": "string"
-            },
             "MTLFilename": {
                "oneOf": [
                   {
                      "type": "string"
-                  }, 
+                  },
                   {
                      "type": "null"
                   }
                ]
             },
-
+            "NDXFilename": {
+               "oneOf": [
+                  {
+                     "type": "string"
+                  },
+                  {
+                     "type": "null"
+                  }
+               ]
+            },
            "CLSMatchValue": {
               "$ref": "#/definitions/CLSMatchValueArrayOf"
             }
@@ -111,6 +117,16 @@
                   {
                      "type": "string"
                   }, 
+                  {
+                     "type": "null"
+                  }
+               ]
+            },
+            "CONFFilename": {
+               "oneOf": [
+                  {
+                     "type": "string"
+                  },
                   {
                      "type": "null"
                   }
@@ -172,17 +188,21 @@
          ],
         "optional": [
             "AlignModel",
-            "SaveAligned"
+            "SaveAligned",
+            "UseMultiprocessing"
          ],
          "additionalProperties": false,
          "properties": {
             "QuantizeHeight": {
               "type": "boolean"
             },
-           "AlignModel": {
+            "AlignModel": {
               "type": "boolean"
             },
             "SaveAligned": {
+              "type": "boolean"
+            },
+            "UseMultiprocessing": {
               "type": "boolean"
             },
             "TerrainZErrorThreshold": {
@@ -262,6 +282,40 @@
          "properties": {
             "Align3DPath": {
                "type": "string"
+            }
+         }
+      },
+      "BLENDER.TEST": {
+         "type": "object",
+         "additionalProperties": false,
+         "properties": {
+            "OBJDirectoryFilename": {
+               "type": "string"
+            },
+            "GSD": {
+               "type": "number"
+            },
+            "bbox": {
+               "type": "array",
+               "items": {
+                 "type": "number"
+               }
+            },
+            "+Z": {
+               "type": "boolean"
+            },
+            "OrbitalLocations": {
+               "type": "integer",
+               "minimum": 0
+            },
+            "ElevationAngle": {
+               "type": "number"
+            },
+            "FocalLength": {
+               "type": "number"
+            },
+            "RadialDistance": {
+               "type": "number"
             }
          }
       }

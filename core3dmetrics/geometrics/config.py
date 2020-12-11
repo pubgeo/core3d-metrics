@@ -124,6 +124,11 @@ def parse_config(configfile, refpath=None, testpath=None):
             config[s][i] = parser.getboolean(s, i)
         else:
             config[s][i] = True
+        s = 'OPTIONS'; i = 'UseMultiprocessing'
+        if i in config[s]:  # Optional Field
+            config[s][i] = parser.getboolean(s, i)
+        else:
+            config[s][i] = False
         s = 'OPTIONS'; i = 'SaveAligned'
         if i in config[s]:  # Optional Field
              config[s][i] = parser.getboolean(s, i)
@@ -134,20 +139,75 @@ def parse_config(configfile, refpath=None, testpath=None):
         s = 'MATERIALS.REF'; i = 'MaterialNames'; config[s][i] = config[s][i].split(',')
         s = 'MATERIALS.REF'; i = 'MaterialIndicesToIgnore'; config[s][i] = [int(v) for v in config[s][i].split(',')]
 
+        # Get BLENDER Options
+        s = 'BLENDER.TEST'
+        if s in config:
+            i = '+Z'
+            if i in config[s]:
+                config[s][i] = parser.getboolean(s, i)
+            else:
+                config[s][i] = True
+            i = 'OrbitalLocations'
+            if i in config[s]:
+                config[s][i] = parser.getint(s, i)
+            else:
+                config[s][i] = 0
+            i = 'GSD'
+            if i in config[s]:
+                config[s][i] = parser.getfloat(s, i)
+            else:
+                config[s][i] = 1.0
+            i = 'bbox'
+            if i in config[s]:  # Optional Field
+                config[s][i] = config[s][i].split(',')
+            else:
+                config[s][i] = [0, 0, 0, 0]
+            i = 'ElevationAngle'
+            if i in config[s]:
+                config[s][i] = parser.getfloat(s, i)
+            else:
+                config[s][i] = 60.0
+            i = 'FocalLength'
+            if i in config[s]:
+                config[s][i] = parser.getfloat(s, i)
+            else:
+                config[s][i] = 30.0
+            i = 'RadialDistance'
+            if i in config[s]:
+                config[s][i] = parser.getfloat(s, i)
+            else:
+                config[s][i] = 8000.0
+        else:
+            config[s] = {'+Z': True,
+                         'GSD': 1.0,
+                         'bbox': [0, 0, 0, 0],
+                         'OrbitalLocations': 0,
+                         'ElevationAngle': 60.0,
+                         'FocalLength': 30.0,
+                         'RadialDistance': 8000.0
+                         }  # meters
+
     # unrecognized config file type
     else:
         raise IOError('Unrecognized configuration file')
 
-
     # locate files for each "xxxFilename" configuration parameter
     # this makes use of "refpath" and "testpath" arguments for relative filenames
     # we do this before validation to ensure required files are located
-    for item in [('INPUT.REF', refpath), ('INPUT.TEST', testpath)]:
+    for item in [('INPUT.REF', refpath), ('INPUT.TEST', testpath), ('BLENDER.TEST', refpath)]:
         sec = item[0]
         path = item[1]
         print('\nPROCESSING "{}" FILES'.format(sec))
         config[sec] = findfiles(config[sec], path)
 
+    # try:
+    #     for item in [('BLENDER.TEST', refpath)]:
+    #         sec = item[0]
+    #         path = item[1]
+    #         print('\nPROCESSING "{}" FILES'.format(sec))
+    #         config[sec] = findfiles(config[sec], path)
+    # except:
+    #     pass
 
     # validate final configuration against schema
     try:
@@ -161,8 +221,7 @@ def parse_config(configfile, refpath=None, testpath=None):
 
         raise jsonschema.exceptions.ValidationError('validation error')
 
-  
-    # for easier explotation, ensure some configuration options are tuple/list
+    # for easier exploitation, ensure some configuration options are tuple/list
     opts = (('INPUT.TEST', 'CLSMatchValue'), ('INPUT.REF', 'CLSMatchValue'),
             ('MATERIALS.REF', 'MaterialIndicesToIgnore'))
 

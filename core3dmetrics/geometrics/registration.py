@@ -6,7 +6,59 @@ import os
 import platform
 import numpy as np
 import gdal
+from utils.align3d import AlignParameters, AlignTarget2Reference
+from datetime import datetime
+import sys
+from pathlib import Path
 
+
+def align3d_python(reference_filename, target_filename, gsd=1.0, maxt=10.0, maxdz=0.0):
+    """
+    Runs the python port of align3d
+    :param reference_filename: ground truth reference file
+    :param target_filename: target/performer file
+    :param gsd: Ground Sample Distance (GSD) for gridding point cloud (meters); default = 1.0
+    :param maxt: Maximum horizontal translation in search (meters); default = 10.0
+    :param maxdz: Max local Z difference (meters) for matching; default = 2*gsd
+    :return: xyz offsets
+    """
+
+    offset= None
+    params = AlignParameters()
+    params.gsd = gsd
+    params.maxt = maxt
+    params.maxdz = maxdz
+    # Default MAXDZ = GSD x 2 to ensure reliable performance on steep slopes
+    if params.maxdz == 0.0:
+        params.maxdz = params.gsd * 2.0
+    print("Selected Parameters:")
+    print(f" ref   = {reference_filename}")
+    print(f" tgt   = {target_filename}")
+    print(f" gsd   = {params.gsd}")
+    print(f" maxdz = {params.maxdz}")
+    print(f" maxt  = {params.maxt}")
+
+    # Intialiize timer
+    start_time = datetime.now()
+    try:
+        AlignTarget2Reference(Path(reference_filename), Path(target_filename), params)
+    except:
+        print("Unexpected error:", sys.exc_info()[0])
+        raise
+    end_time = datetime.now() - start_time
+    print(f" Total time elapsed = {end_time} seconds")
+
+    registered_filename = os.path.join(target_filename[0:-4] + '_aligned.tif')
+    offset_filename = os.path.join(target_filename[0:-4] + '_offsets.txt')
+
+    # Open permissions on output files
+    unroot(registered_filename)
+    unroot(offset_filename)
+
+    # Read XYZ offset from align3d output file.
+    offsets = readXYZoffset(offset_filename)
+
+    return offset
 
 def align3d(reference_filename, test_filename, exec_path=None):
 
