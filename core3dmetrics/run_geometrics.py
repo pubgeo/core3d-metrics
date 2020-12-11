@@ -543,25 +543,28 @@ def run_geometrics(config_file, ref_path=None, test_path=None, output_path=None,
     # inputs.png
         plot.make_final_input_images_grayscale(ref_cls, ref_dsm, ref_dtm, test_cls,
                                                 test_dsm, test_dtm, output_folder)
-    # # textured.png
-    # if config['BLENDER.TEST']['OBJDirectoryFilename']:
-    #     from CORE3D_Perspective_Imagery import generate_blender_images
-    #     objpath = config['BLENDER.TEST']['OBJDirectoryFilename']
-    #     gsd = config['BLENDER.TEST']['GSD']
-    #     Zup = config['BLENDER.TEST']['+Z']
-    #     N = config['BLENDER.TEST']['OrbitalLocations']
-    #     e = config['BLENDER.TEST']['ElevationAngle']
-    #     f = config['BLENDER.TEST']['FocalLength']
-    #     r = config['BLENDER.TEST']['RadialDistance']
-    #     output_location = generate_blender_images(objpath, gsd, Zup, N, e, f, r, output_path)
-    #     files = [str(Path(output_path, filename).absolute()) for filename in os.listdir(output_path) if
-    #              filename.startswith("persp_image")]
-    #     files.append(files[0])
-    #     # Make metrics image
-    #     plot.make_final_input_images_rgb(files, output_folder)
-    #     print("Done")
-    # else:
-    #     pass
+    # textured.png
+    if config['BLENDER.TEST']['OBJDirectoryFilename']:
+        try:
+            from CORE3D_Perspective_Imagery import generate_blender_images
+            objpath = config['BLENDER.TEST']['OBJDirectoryFilename']
+            gsd = config['BLENDER.TEST']['GSD']
+            Zup = config['BLENDER.TEST']['+Z']
+            N = config['BLENDER.TEST']['OrbitalLocations']
+            e = config['BLENDER.TEST']['ElevationAngle']
+            f = config['BLENDER.TEST']['FocalLength']
+            r = config['BLENDER.TEST']['RadialDistance']
+            output_location = generate_blender_images(objpath, gsd, Zup, N, e, f, r, output_path)
+            files = [str(Path(output_path, filename).absolute()) for filename in os.listdir(output_path) if
+                     filename.startswith("persp_image")]
+            files.append(files[0])
+            # Make metrics image
+            plot.make_final_input_images_rgb(files, output_folder)
+            print("Done")
+        except:
+            print("Could not render Blender images...")
+    else:
+        pass
 
 
 
