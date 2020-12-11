@@ -22,7 +22,7 @@ WORKDIR /
 ARG DOCKER_DEPLOY=true
 ENV DOCKER_DEPLOY=$DOCKER_DEPLOY
 RUN if [ "$DOCKER_DEPLOY" = true ] ; then \
-	pip3 install --no-deps git+https://github.com/Sean-S-Wang/core3d-metrics.git@metrics-dev; \
+	pip3 install --no-deps git+https://github.com/Sean-S-Wang/core3d-metrics.git@master; \
     fi 
 
 RUN apt purge -y \
