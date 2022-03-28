@@ -1,9 +1,9 @@
 ## core3d-metrics
- JHU/APL is supporting the IARPA CORE3D program by providing independent test and evaluation of the performer team solutions for building 3D models based on satellite images and other sources. Metric evaluation code is maintained here for transparency and to enable collaboration for improvements with performer teams.
+JHU/APL supported the IARPA CORE3D program by providing independent test and evaluation of the performer team solutions for building 3D models based on satellite images and other sources. Metric evaluation code was maintained here for transparency and to enable collaboration for improvements with performer teams. Legacy MATLAB code is also now archived here for reference. None of this code is being actively maintained at this time.
  
- Preliminary metrics are described in the following paper:
+Preliminary metrics are described in the following paper:
  
- M. Bosch, A. Leichtman, D. Chilcott, H. Goldberg, M. Brown. “Metric Evaluation Pipeline for 3D Modeling of Urban Scenes”, ISPRS Archives, 2017 [pdf](https://www.int-arch-photogramm-remote-sens-spatial-inf-sci.net/XLII-1-W1/239/2017/isprs-archives-XLII-1-W1-239-2017.pdf).
+M. Bosch, A. Leichtman, D. Chilcott, H. Goldberg, M. Brown. “Metric Evaluation Pipeline for 3D Modeling of Urban Scenes”, ISPRS Archives, 2017 [pdf](https://www.int-arch-photogramm-remote-sens-spatial-inf-sci.net/XLII-1-W1/239/2017/isprs-archives-XLII-1-W1-239-2017.pdf).
 
 ### Requirements
 The following python3 libraries (and their dependencies) are required:
