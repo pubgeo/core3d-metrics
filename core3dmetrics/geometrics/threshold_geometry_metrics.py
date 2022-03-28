@@ -2,17 +2,19 @@ import numpy as np
 import os
 import json
 import math
+from scipy.ndimage.measurements import label
+from scipy.stats import pearsonr
 
 from .metrics_util import calcMops
 from .metrics_util import getUnitArea
 
 
 def run_threshold_geometry_metrics(refDSM, refDTM, refMask, testDSM, testDTM, testMask,
-                                   tform, ignoreMask, plot=None, verbose=True):
+                                   tform, ignoreMask, plot=None, for_objectwise=False, testCONF=None, verbose=True):
     # INPUT PARSING==========
 
     # parse plot input
-    if plot is None:
+    if plot is None or for_objectwise is True:
         PLOTS_ENABLE = False
     else:
         PLOTS_ENABLE = True
@@ -29,8 +31,12 @@ def run_threshold_geometry_metrics(refDSM, refDTM, refMask, testDSM, testDTM, te
     ref_height = refDSM.astype(np.float64) - refDTM.astype(np.float64)
     ref_height[~ref_footprint] = 0
 
-    test_height = testDSM.astype(np.float64) - testDTM.astype(np.float64)
+    # refDTM is purposfully used twice for consistency
+    test_height = testDSM.astype(np.float64) - refDTM.astype(np.float64)
+    # TestDTM is used here to make the images correct
+    # test_height_for_image = testDSM.astype(np.float64) - testDTM.astype(np.float64)
     test_height[~test_footprint] = 0
+    #test_height_for_image[~test_footprint] = 0
 
     # total 2D area (in pixels)
     ref_total_area = np.sum(ref_footprint, dtype=np.uint64)
@@ -48,6 +54,7 @@ def run_threshold_geometry_metrics(refDSM, refDTM, refMask, testDSM, testDTM, te
         print('TEST area (px), volume (m^3) =  [{},{}]'.format(test_total_area,test_total_volume))
 
     # plot
+    error_height_fn = None
     if PLOTS_ENABLE:
         print('Input plots...')
 
@@ -62,7 +69,8 @@ def run_threshold_geometry_metrics(refDSM, refDTM, refMask, testDSM, testDTM, te
         plot.make(errorMap, 'Height Error', 291, saveName=PLOTS_SAVE_PREFIX+"errHgt", colorbar=True)
         plot.make(errorMap, 'Height Error (clipped)', 292, saveName=PLOTS_SAVE_PREFIX+"errHgtClipped", colorbar=True,
                   vmin=-5, vmax=5)
-        plot.make_error_map(error_map=errorMap, ref=ref_footprint, saveName=PLOTS_SAVE_PREFIX+"errHgtImageOnly")
+        error_height_fn = plot.make_error_map(error_map=errorMap, ref=ref_footprint, saveName=PLOTS_SAVE_PREFIX+"errHgtImageOnly",
+                            ignore=ignoreMask)
 
     # 2D ANALYSIS==========
 
@@ -92,12 +100,13 @@ def run_threshold_geometry_metrics(refDSM, refDTM, refMask, testDSM, testDTM, te
             tp_total_area, fp_total_area, test_total_area))
 
     # plot
+    stoplight_fn = None
     if PLOTS_ENABLE:
         print('2D analysis plots...')
         plot.make(tp_2D_array, 'True Positive Regions',  283, saveName=PLOTS_SAVE_PREFIX+"truePositive")
-        plot.make(fn_2D_array, 'False Negative Regions', 281, saveName=PLOTS_SAVE_PREFIX+"falseNegetive")
+        plot.make(fn_2D_array, 'False Negative Regions', 281, saveName=PLOTS_SAVE_PREFIX+"falseNegative")
         plot.make(fp_2D_array, 'False Positive Regions', 282, saveName=PLOTS_SAVE_PREFIX+"falsePositive")
-        plot.make_stoplight_plot(fp_image=fp_2D_array, fn_image=fn_2D_array, ref=ref_footprint, saveName=PLOTS_SAVE_PREFIX+"stoplight")
+        stoplight_fn = plot.make_stoplight_plot(fp_image=fp_2D_array, fn_image=fn_2D_array, ref=ref_footprint, saveName=PLOTS_SAVE_PREFIX+"stoplight")
 
         layer = np.zeros_like(ref_footprint).astype(np.uint8) + 3  # Initialize as True Negative
         layer[tp_2D_array] = 1  # TP
@@ -120,14 +129,14 @@ def run_threshold_geometry_metrics(refDSM, refDTM, refMask, testDSM, testDTM, te
 
     # separate test height into above & below ground sets
     test_above = np.copy(test_height)
-    test_above[test_height<0] = 0
+    test_above[test_height < 0] = 0
 
     test_below = np.copy(test_height)
-    test_below[test_height>0] = 0
+    test_below[test_height > 0] = 0
     test_below = np.absolute(test_below)
 
     # 3D metric arrays
-    tp_3D_array = np.minimum(ref_height,test_above) # ref/test height overlap
+    tp_3D_array = np.minimum(ref_height, test_above) # ref/test height overlap
     fn_3D_array = (ref_height - tp_3D_array) # test too short
     fp_3D_array = (test_above - tp_3D_array) + test_below # test too tall OR test below ground
 
@@ -151,6 +160,38 @@ def run_threshold_geometry_metrics(refDSM, refDTM, refMask, testDSM, testDTM, te
         print('3D TP+FP ({}+{}) equals test volume ({})'.format(
             tp_total_volume, fp_total_volume, test_total_volume))
 
+    # Confidence Metrics
+    if testCONF is not None:
+        # check for all common NODATA values
+        def nodata_to_nan(img):
+            nodata = -9999
+            img[img == nodata] = np.nan
+            nodata = -10000
+            img[img == nodata] = np.nan
+            return (img)
+
+        # compute differences
+        testDSM_filt = nodata_to_nan(testDSM.copy())
+        refDSM_filt = nodata_to_nan(refDSM.copy())
+        testCONF_filt = nodata_to_nan(testCONF.copy())
+        valid_mask = np.logical_not(np.logical_or(np.logical_or(np.isnan(refDSM_filt), np.isnan(testDSM_filt)), np.isnan(testCONF_filt)))
+        building_mask = np.logical_or(test_footprint, ref_footprint)
+        w = np.logical_and(valid_mask, building_mask)
+
+        # since not running registration for now, remove z offset
+        dz = np.nanmedian(refDSM_filt - testDSM_filt)
+        tgt_dsm = testDSM_filt + dz
+        dz = np.nanmedian(refDSM_filt - tgt_dsm)
+        print('dz after align = ', dz)
+
+        abs_delta = np.abs(testDSM_filt - refDSM_filt)
+        abs_delta_minus_mask = abs_delta[w]
+        confidence_minus_mask = testCONF_filt[w]
+        # compute pearson coefficient
+        p = pearsonr(abs_delta_minus_mask, -confidence_minus_mask)
+        print(p)
+    else:
+        p = [np.nan, np.nan]
 
     # CLEANUP==========
 
@@ -158,12 +199,15 @@ def run_threshold_geometry_metrics(refDSM, refDTM, refMask, testDSM, testDTM, te
     metrics = {
         '2D': calcMops(tp_total_area, fn_total_area, fp_total_area),
         '3D': calcMops(tp_total_volume, fn_total_volume, fp_total_volume),
+        'area': {'reference_area': np.int(ref_total_area), 'test_area': np.int(test_total_area)},
+        'volume': {'reference_volume': np.float(ref_total_volume), 'test_volume': np.float(test_total_volume)},
+        'pearson': {'pearson-r': np.float(p[0]), 'pearson-pvalue': np.float(p[1])}
     }
 
     # verbose reporting
     if verbose:
         print('METRICS REPORT:')
-        print(json.dumps(metrics,indent=2))
+        print(json.dumps(metrics, indent=2))
 
     # return metric dictionary
-    return metrics
+    return metrics, unitArea, stoplight_fn, error_height_fn

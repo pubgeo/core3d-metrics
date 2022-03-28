@@ -53,11 +53,11 @@
             "DSMFilename",
             "DTMFilename",
             "CLSFilename",
-            "NDXFilename",
             "CLSMatchValue"
          ],
          "optional": [
-            "MTLFilename"
+            "MTLFilename",
+            "NDXFilename"
          ],
          "additionalProperties": false,
          "properties": {
@@ -70,20 +70,26 @@
             "CLSFilename": {
                "type": "string"
             },
-            "NDXFilename": {
-               "type": "string"
-            },
             "MTLFilename": {
                "oneOf": [
                   {
                      "type": "string"
-                  }, 
+                  },
                   {
                      "type": "null"
                   }
                ]
             },
-
+            "NDXFilename": {
+               "oneOf": [
+                  {
+                     "type": "string"
+                  },
+                  {
+                     "type": "null"
+                  }
+               ]
+            },
            "CLSMatchValue": {
               "$ref": "#/definitions/CLSMatchValueArrayOf"
             }
@@ -96,6 +102,11 @@
             "CLSFilename",
             "CLSMatchValue"
          ],
+         "optional": [
+            "ImagePairFilename",
+            "ImagePairDataFilename",
+            "FilesChosenFilename"
+         ],
          "additionalProperties": false,
          "properties": {
             "DSMFilename": {
@@ -111,8 +122,48 @@
                   }
                ]
             },
+            "CONFFilename": {
+               "oneOf": [
+                  {
+                     "type": "string"
+                  },
+                  {
+                     "type": "null"
+                  }
+               ]
+            },
             "CLSFilename": {
                "type": "string"
+            },
+            "ImagePairFilename": {
+               "oneOf": [
+                  {
+                     "type": "string"
+                  },
+                  {
+                     "type": "null"
+                  }
+               ]
+            },
+            "ImagePairDataFilename": {
+               "oneOf": [
+                  {
+                     "type": "string"
+                  },
+                  {
+                     "type": "null"
+                  }
+               ]
+            },
+            "FilesChosenFilename": {
+               "oneOf": [
+                  {
+                     "type": "string"
+                  },
+                  {
+                     "type": "null"
+                  }
+               ]
             },
             "MTLFilename": {
                "oneOf": [
@@ -137,17 +188,21 @@
          ],
         "optional": [
             "AlignModel",
-            "SaveAligned"
+            "SaveAligned",
+            "UseMultiprocessing"
          ],
          "additionalProperties": false,
          "properties": {
             "QuantizeHeight": {
               "type": "boolean"
             },
-           "AlignModel": {
+            "AlignModel": {
               "type": "boolean"
             },
             "SaveAligned": {
+              "type": "boolean"
+            },
+            "UseMultiprocessing": {
               "type": "boolean"
             },
             "TerrainZErrorThreshold": {
@@ -227,6 +282,40 @@
          "properties": {
             "Align3DPath": {
                "type": "string"
+            }
+         }
+      },
+      "BLENDER.TEST": {
+         "type": "object",
+         "additionalProperties": false,
+         "properties": {
+            "OBJDirectoryFilename": {
+               "type": "string"
+            },
+            "GSD": {
+               "type": "number"
+            },
+            "bbox": {
+               "type": "array",
+               "items": {
+                 "type": "number"
+               }
+            },
+            "+Z": {
+               "type": "boolean"
+            },
+            "OrbitalLocations": {
+               "type": "integer",
+               "minimum": 0
+            },
+            "ElevationAngle": {
+               "type": "number"
+            },
+            "FocalLength": {
+               "type": "number"
+            },
+            "RadialDistance": {
+               "type": "number"
             }
          }
       }
