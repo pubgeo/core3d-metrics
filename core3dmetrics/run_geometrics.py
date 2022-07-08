@@ -7,6 +7,7 @@ import errno
 import sys
 import shutil
 import gdalconst
+import gdal
 import numpy as np
 import argparse
 import json
@@ -85,11 +86,41 @@ def run_geometrics(config_file, ref_path=None, test_path=None, output_path=None,
 
     # copy testDSM to the output path
     # this is a workaround for the "align3d" function with currently always
+
     # saves new files to the same path as the testDSM
     src = test_dsm_filename
     dst = os.path.join(output_path, os.path.basename(src))
     if not os.path.isfile(dst): shutil.copyfile(src, dst)
     test_dsm_filename_copy = dst
+
+    # Make sure test and ref are same projection
+    # reference metadata
+    # gdalwarp -t_srs '+proj=utm +zone=42 +datum=WGS84 +units=m +no_defs' D6_Kabul_2.0sqkm-CLS.tif D6_Kabul_CLS.tif
+    meta_ref = geo.getMetadata(ref_dsm_filename)
+
+    # GDAL memory driver
+    import subprocess
+    import osr
+    reprojected_filenames = {}
+    for file_src in [test_dsm_filename, test_dtm_filename, test_cls_filename]:
+        interp_method = gdalconst.GRA_NearestNeighbour
+        meta_test = geo.getMetadata(file_src)
+        if meta_test['Projection'] != meta_ref['Projection']:
+
+            reprojected_filename = str(Path(str(Path(file_src).parent), Path(file_src).stem + "_reproj.tif").absolute())
+            # Build t_srs_string
+            srs = osr.SpatialReference(wkt=meta_ref['Projection'])
+            t_srs_string = srs.ExportToProj4()
+            subprocess.call(['gdalwarp', '-t_srs', t_srs_string, file_src, reprojected_filename])
+
+            # Reassign file_src to reprojected name
+            reprojected_filenames[file_src] = reprojected_filename
+        else:
+            reprojected_filenames[file_src] = file_src
+    # reassigned reprojected file names
+    test_dtm_filename = reprojected_filenames[test_dtm_filename]
+    test_dsm_filename = reprojected_filenames[test_dsm_filename]
+    test_cls_filename = reprojected_filenames[test_cls_filename]
 
     # Register test model to ground truth reference model.
     if not align:
@@ -103,7 +134,6 @@ def run_geometrics(config_file, ref_path=None, test_path=None, output_path=None,
             align3d_path = None
         xyz_offset = geo.align3d(ref_dsm_filename, test_dsm_filename_copy, exec_path=align3d_path)
         print(xyz_offset)
-        #xyz_offset = geo.align3d_python(ref_dsm_filename, test_dsm_filename_copy)
 
     # Explicitly assign a no data value to warped images to track filled pixels
     no_data_value = -9999

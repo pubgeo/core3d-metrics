@@ -1,5 +1,5 @@
 import os
-import gdal
+import gdal, osr
 import numpy as np
 
 
@@ -45,6 +45,8 @@ def getMetadata(inputinfo):
         'RasterCount':  dataset.RasterCount,
         'Projection':   dataset.GetProjection(),
         'GeoTransform': list(dataset.GetGeoTransform()),
+        'BitDepth': dataset.GetRasterBand(1).DataType,
+        'EPSG': osr.SpatialReference(wkt=dataset.GetProjection()).GetAttrValue('AUTHORITY',1)
     }
 
     # cleanuo
