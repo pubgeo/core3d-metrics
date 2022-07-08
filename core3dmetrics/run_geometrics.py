@@ -84,15 +84,6 @@ def run_geometrics(config_file, ref_path=None, test_path=None, output_path=None,
     else:
         plot = None
 
-    # copy testDSM to the output path
-    # this is a workaround for the "align3d" function with currently always
-
-    # saves new files to the same path as the testDSM
-    src = test_dsm_filename
-    dst = os.path.join(output_path, os.path.basename(src))
-    if not os.path.isfile(dst): shutil.copyfile(src, dst)
-    test_dsm_filename_copy = dst
-
     # Make sure test and ref are same projection
     # reference metadata
     # gdalwarp -t_srs '+proj=utm +zone=42 +datum=WGS84 +units=m +no_defs' D6_Kabul_2.0sqkm-CLS.tif D6_Kabul_CLS.tif
@@ -121,6 +112,15 @@ def run_geometrics(config_file, ref_path=None, test_path=None, output_path=None,
     test_dtm_filename = reprojected_filenames[test_dtm_filename]
     test_dsm_filename = reprojected_filenames[test_dsm_filename]
     test_cls_filename = reprojected_filenames[test_cls_filename]
+
+    # copy testDSM to the output path
+    # this is a workaround for the "align3d" function with currently always
+
+    # saves new files to the same path as the testDSM
+    src = test_dsm_filename
+    dst = os.path.join(output_path, os.path.basename(src))
+    if not os.path.isfile(dst): shutil.copyfile(src, dst)
+    test_dsm_filename_copy = dst
 
     # Register test model to ground truth reference model.
     if not align:
