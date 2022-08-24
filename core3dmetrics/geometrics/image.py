@@ -150,7 +150,8 @@ def imageWarp(file_src: str, file_dst: str, offset=None, interp_method: int = gd
     meta_src = getMetadata(dataset_src)
 
     # Reproject if dst and source do not have matching projections. Reproject to dst
-    if meta_src['Projection'] != meta_dst['Projection']:
+    if meta_src['Projection'] != meta_dst['Projection'] or meta_src['RasterXSize'] != meta_dst["RasterXSize"]\
+            or meta_src["RasterYSize"] != meta_dst["RasterYSize"]:
         print('IMAGE PROJECTION\n{}'.format(meta_src['Projection']))
         print('OFFSET PROJECTION\n{}'.format(meta_dst['Projection']))
         # raise ValueError('Image/Offset projection mismatch')
