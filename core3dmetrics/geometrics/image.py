@@ -1,5 +1,5 @@
 import os
-import gdal
+import gdal, osr
 import numpy as np
 
 
@@ -45,6 +45,8 @@ def getMetadata(inputinfo):
         'RasterCount':  dataset.RasterCount,
         'Projection':   dataset.GetProjection(),
         'GeoTransform': list(dataset.GetGeoTransform()),
+        'BitDepth': dataset.GetRasterBand(1).DataType,
+        'EPSG': osr.SpatialReference(wkt=dataset.GetProjection()).GetAttrValue('AUTHORITY',1)
     }
 
     # cleanuo
@@ -147,35 +149,20 @@ def imageWarp(file_src: str, file_dst: str, offset=None, interp_method: int = gd
     # source metadata
     meta_src = getMetadata(dataset_src)
 
-    # Apply registration offset
-    if offset is not None:
+    # Reproject if dst and source do not have matching projections. Reproject to dst
+    if meta_src['Projection'] != meta_dst['Projection'] or meta_src['RasterXSize'] != meta_dst["RasterXSize"]\
+            or meta_src["RasterYSize"] != meta_dst["RasterYSize"]:
+        print('IMAGE PROJECTION\n{}'.format(meta_src['Projection']))
+        print('OFFSET PROJECTION\n{}'.format(meta_dst['Projection']))
+        # raise ValueError('Image/Offset projection mismatch')
 
-        # offset error: offset is defined in destination projection space,
-        # and cannot be applied if source and destination projections differ
-        if meta_src['Projection'] != meta_dst['Projection']:
-            print('IMAGE PROJECTION\n{}'.format(meta_src['Projection']))
-            print('OFFSET PROJECTION\n{}'.format(meta_dst['Projection']))
-            raise ValueError('Image/Offset projection mismatch')
-
-        transform = meta_src['GeoTransform']
-        transform[0] += offset[0]
-        transform[3] += offset[1]
-        dataset_src.SetGeoTransform(transform)
-
-
-    # no reprojection necessary
-    if meta_src == meta_dst:
-        print('  No reprojection')
-        dataset_dst = dataset_src
-
-    # reprojection
-    else:
+        # Reproject
         keys = [k for k in meta_dst if meta_dst.get(k) != meta_src.get(k)]
         print('  REPROJECTION (adjusting {})'.format(', '.join(keys)))
 
         # file, xsz, ysz, nbands, dtype
-        dataset_dst = mem_drv.Create('', meta_dst['RasterXSize'], meta_dst['RasterYSize'], 
-            meta_src['RasterCount'], gdal.GDT_Float32)
+        dataset_dst = mem_drv.Create('', meta_dst['RasterXSize'], meta_dst['RasterYSize'],
+                                     meta_src['RasterCount'], gdal.GDT_Float32)
 
         dataset_dst.SetProjection(meta_dst['Projection'])
         dataset_dst.SetGeoTransform(meta_dst['GeoTransform'])
@@ -187,7 +174,18 @@ def imageWarp(file_src: str, file_dst: str, offset=None, interp_method: int = gd
 
         # input, output, inputproj, outputproj, interp
         gdal.ReprojectImage(dataset_src, dataset_dst, meta_src['Projection'],
-             meta_dst['Projection'], interp_method)
+                            meta_dst['Projection'], interp_method)
+    else:
+        dataset_dst = dataset_src
+
+    # Apply registration offset
+    if offset is not None:
+        # offset error: offset is defined in destination projection space,
+        # and cannot be applied if source and destination projections differ
+        transform = meta_src['GeoTransform']
+        transform[0] += offset[0]
+        transform[3] += offset[1]
+        dataset_src.SetGeoTransform(transform)
 
     # read & return image data
     img = dataset_dst.GetRasterBand(1).ReadAsArray()    
