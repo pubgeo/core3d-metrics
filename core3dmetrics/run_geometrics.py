@@ -489,7 +489,8 @@ def run_geometrics(config_file, ref_path=None, test_path=None, output_path=None,
             ref_mask_terrain_acc[ref_cls == v] = True
 
         metrics['terrain_accuracy'] = geo.run_terrain_accuracy_metrics(ref_dtm, test_dtm, ref_mask_terrain_acc,
-                                                                       dtm_z_threshold, plot=plot)
+                                                                       dtm_z_threshold, no_data_value=no_data_value,
+                                                                       plot=plot)
     else:
         print('WARNING: No test DTM file, skipping terrain accuracy metrics')
 
