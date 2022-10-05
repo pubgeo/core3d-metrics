@@ -4,7 +4,7 @@ import sys
 
 from .metrics_util import calcMops
 
-def run_terrain_accuracy_metrics(refDTM, testDTM, refMask, threshold=1, plot=None):
+def run_terrain_accuracy_metrics(refDTM, testDTM, refMask, threshold=1, no_data_value = -10000, plot=None):
 
     PLOTS_ENABLE = True
     if plot is None: PLOTS_ENABLE = False
@@ -13,6 +13,9 @@ def run_terrain_accuracy_metrics(refDTM, testDTM, refMask, threshold=1, plot=Non
     # Ignore objects identified by the reference mask because the
     # ground is not expected to be observable under those objects.
     delta = testDTM - refDTM
+    # Account for no data
+    refMask[refDTM == no_data_value] = 1
+    # Get delta mask
     delta_minus_mask = delta[np.where(refMask == 0)]
     z68 = np.percentile(abs(delta_minus_mask),68)
     z50 = np.percentile(abs(delta_minus_mask),50)
